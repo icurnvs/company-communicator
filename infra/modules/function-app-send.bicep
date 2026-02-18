@@ -43,6 +43,9 @@ param kvRefServiceBusConnection string
 @description('Fully-qualified namespace for Service Bus (for passwordless AMQP).')
 param serviceBusFullyQualifiedNamespace string
 
+@description('Bot (Entra) app registration client ID — needed by SendFunctionMessageSender for Bot Framework REST API calls.')
+param botAppId string
+
 // ---------------------------------------------------------------------------
 // Dedicated Consumption Plan (Y1 dynamic) for independent auto-scaling
 // ---------------------------------------------------------------------------
@@ -120,6 +123,11 @@ resource functionAppSend 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
           value: appInsightsConnectionString
+        }
+        // ---- Bot ----
+        {
+          name: 'Bot__AppId'
+          value: botAppId
         }
         // ---- SQL (Key Vault reference) ----
         {

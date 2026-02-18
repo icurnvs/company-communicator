@@ -222,6 +222,7 @@ module functionAppSend 'modules/function-app-send.bicep' = {
     kvRefSqlConnection: keyVault.outputs.kvRefSqlConnection
     kvRefServiceBusConnection: keyVault.outputs.kvRefServiceBusConnection
     serviceBusFullyQualifiedNamespace: serviceBus.outputs.fullyQualifiedNamespace
+    botAppId: botAppId
   }
 }
 
