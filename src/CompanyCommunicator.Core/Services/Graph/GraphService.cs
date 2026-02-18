@@ -284,6 +284,68 @@ internal sealed class GraphService : IGraphService
         return results;
     }
 
+    /// <inheritdoc/>
+    public async Task<bool> InstallAppForUserAsync(string userAadId, string teamsAppId, CancellationToken ct)
+    {
+        if (!Guid.TryParse(userAadId, out _))
+            throw new ArgumentException($"userAadId must be a valid GUID, got: '{userAadId}'", nameof(userAadId));
+        if (!Guid.TryParse(teamsAppId, out _))
+            throw new ArgumentException($"teamsAppId must be a valid GUID, got: '{teamsAppId}'", nameof(teamsAppId));
+
+        try
+        {
+            await _resilience.ExecuteAsync(async token =>
+            {
+                var requestBody = new Microsoft.Graph.Models.UserScopeTeamsAppInstallation
+                {
+                    AdditionalData = new Dictionary<string, object>
+                    {
+                        ["teamsApp@odata.bind"] =
+                            $"https://graph.microsoft.com/v1.0/appCatalogs/teamsApps/{teamsAppId}",
+                    },
+                };
+
+                await _graphClient.Users[userAadId].Teamwork.InstalledApps
+                    .PostAsync(requestBody, cancellationToken: token)
+                    .ConfigureAwait(false);
+            }, ct).ConfigureAwait(false);
+
+            _logger.LogDebug(
+                "InstallAppForUserAsync: Successfully installed app for user {UserAadId}.",
+                userAadId);
+            return true;
+        }
+        catch (ODataError odataError) when (odataError.ResponseStatusCode == 409)
+        {
+            // 409 Conflict = app already installed. Idempotent on Durable replay.
+            _logger.LogDebug(
+                "InstallAppForUserAsync: App already installed for user {UserAadId}.",
+                userAadId);
+            return true;
+        }
+        catch (ODataError odataError) when (odataError.ResponseStatusCode is 403 or 404)
+        {
+            // 403 = admin policy blocks install; 404 = user not found or no Teams license.
+            _logger.LogWarning(
+                "InstallAppForUserAsync: Cannot install for user {UserAadId}. Status={StatusCode}",
+                userAadId, odataError.ResponseStatusCode);
+            return false;
+        }
+        catch (Polly.CircuitBreaker.BrokenCircuitException)
+        {
+            // v3-H1: Rethrow circuit-open exceptions so the Durable Functions activity-level
+            // retry policy (TaskRetryOptions) can handle them.
+            throw;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "InstallAppForUserAsync: Unexpected error for user {UserAadId}.",
+                userAadId);
+            return false;
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
