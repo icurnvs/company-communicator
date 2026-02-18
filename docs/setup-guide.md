@@ -345,8 +345,8 @@ For each GitHub environment (`dev`, `stg`, `prod`), set these secrets:
 | `BOT_APP_ID` | App registration client ID from step 1 | Azure Portal > App registration > Client ID |
 | `AUTHOR_GROUP_ID` | Object ID of the Entra ID group for Authors | `az ad group show --group "CC-Authors" --query id -o tsv` |
 | `ADMIN_GROUP_ID` | Object ID of the Entra ID group for Admins | `az ad group show --group "CC-Admins" --query id -o tsv` |
-| `SQL_CONNECTION_STRING` | ADO.NET connection string for EF migrations | Set after infra deploy; see step 4.6.3 |
-| `BOT_APP_SECRET` | Client secret from step 1.5 | Copy from Entra ID (create new if lost); see step 4.6.4 |
+| `SQL_CONNECTION_STRING` | ADO.NET connection string for EF migrations | Set after infra deploy; see step 4.7.3 |
+| `BOT_APP_SECRET` | Client secret from step 1.5 | Copy from Entra ID (create new if lost); see step 4.7.4 |
 
 Add these via GitHub UI: **Settings > Environments > [environment] > Environment secrets > Add Secret**
 
@@ -558,11 +558,99 @@ az keyvault secret set `
   --value "<bot-client-secret-from-step-1.5>"
 ```
 
-### 4.6 Configure SQL Access for GitHub Actions
+### 4.6 Grant Microsoft Graph Permissions to the Managed Identity
+
+The backend uses the managed identity (via `DefaultAzureCredential`) to call Microsoft Graph for user sync, group search, and team member lookups. The MI's service principal needs application-level Graph permissions.
+
+> **Note:** This is separate from the bot app registration permissions (step 1.2). The bot app registration is used for Teams SSO/OBO flows, while the managed identity handles server-to-server Graph API calls.
+
+1. Get the managed identity's principal ID:
+
+**Bash:**
+```bash
+MI_PRINCIPAL_ID=$(az identity show \
+  --resource-group rg-cc-dev \
+  --name id-cc-dev \
+  --query principalId -o tsv)
+
+GRAPH_SP_ID=$(az ad sp show --id 00000003-0000-0000-c000-000000000000 --query id -o tsv)
+```
+
+**PowerShell:**
+```powershell
+$MI_PRINCIPAL_ID = az identity show `
+  --resource-group rg-cc-dev `
+  --name id-cc-dev `
+  --query principalId -o tsv
+
+$GRAPH_SP_ID = az ad sp show --id 00000003-0000-0000-c000-000000000000 --query id -o tsv
+```
+
+2. Grant the required application permissions:
+
+| Permission | Purpose |
+|---|---|
+| `User.Read.All` | User sync, delta queries, profile photos |
+| `Group.Read.All` | Search groups, read group members |
+| `TeamMember.Read.All` | Read team membership for recipient resolution |
+
+**Bash:**
+```bash
+# User.Read.All
+az rest --method POST \
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${MI_PRINCIPAL_ID}/appRoleAssignments" \
+  --headers "Content-Type=application/json" \
+  --body "{\"principalId\":\"${MI_PRINCIPAL_ID}\",\"resourceId\":\"${GRAPH_SP_ID}\",\"appRoleId\":\"df021288-bdef-4463-88db-98f22de89214\"}"
+
+# Group.Read.All
+az rest --method POST \
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${MI_PRINCIPAL_ID}/appRoleAssignments" \
+  --headers "Content-Type=application/json" \
+  --body "{\"principalId\":\"${MI_PRINCIPAL_ID}\",\"resourceId\":\"${GRAPH_SP_ID}\",\"appRoleId\":\"5b567255-7703-4780-807c-7be8301ae99b\"}"
+
+# TeamMember.Read.All
+az rest --method POST \
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${MI_PRINCIPAL_ID}/appRoleAssignments" \
+  --headers "Content-Type=application/json" \
+  --body "{\"principalId\":\"${MI_PRINCIPAL_ID}\",\"resourceId\":\"${GRAPH_SP_ID}\",\"appRoleId\":\"660b7406-55f1-41ca-a0ed-0b035e182f3e\"}"
+```
+
+**PowerShell:**
+```powershell
+# User.Read.All
+az rest --method POST `
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$MI_PRINCIPAL_ID/appRoleAssignments" `
+  --headers "Content-Type=application/json" `
+  --body "{`"principalId`":`"$MI_PRINCIPAL_ID`",`"resourceId`":`"$GRAPH_SP_ID`",`"appRoleId`":`"df021288-bdef-4463-88db-98f22de89214`"}"
+
+# Group.Read.All
+az rest --method POST `
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$MI_PRINCIPAL_ID/appRoleAssignments" `
+  --headers "Content-Type=application/json" `
+  --body "{`"principalId`":`"$MI_PRINCIPAL_ID`",`"resourceId`":`"$GRAPH_SP_ID`",`"appRoleId`":`"5b567255-7703-4780-807c-7be8301ae99b`"}"
+
+# TeamMember.Read.All
+az rest --method POST `
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$MI_PRINCIPAL_ID/appRoleAssignments" `
+  --headers "Content-Type=application/json" `
+  --body "{`"principalId`":`"$MI_PRINCIPAL_ID`",`"resourceId`":`"$GRAPH_SP_ID`",`"appRoleId`":`"660b7406-55f1-41ca-a0ed-0b035e182f3e`"}"
+```
+
+3. Verify the assignments:
+
+```bash
+az rest --method GET \
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${MI_PRINCIPAL_ID}/appRoleAssignments" \
+  --query "value[].appRoleId" -o tsv
+```
+
+> **Important:** After granting permissions, restart the web app (`az webapp stop` / `az webapp start`) so the managed identity acquires a fresh token with the new roles.
+
+### 4.7 Configure SQL Access for GitHub Actions
 
 The deploy workflow runs EF Core migrations against Azure SQL. Since the SQL Server uses Entra ID-only authentication (no SQL passwords), the GitHub Actions deployment service principal needs database access.
 
-#### 4.6.1 Open SQL Server Firewall for GitHub Actions
+#### 4.7.1 Open SQL Server Firewall for GitHub Actions
 
 GitHub Actions runners connect from outside Azure. Add a temporary firewall rule:
 
@@ -594,7 +682,7 @@ az sql server firewall-rule create `
 
 > **Security note:** This allows connections from any IP. After initial deployment you can tighten this to [GitHub's published IP ranges](https://api.github.com/meta) or remove it entirely if you run migrations locally.
 
-#### 4.6.2 Grant the Deployment Service Principal Database Access
+#### 4.7.2 Grant the Deployment Service Principal Database Access
 
 Connect to the Azure SQL database as the Entra ID admin (the managed identity `id-cc-<env>` is automatically set as SQL admin by Bicep) and create a database user for the GitHub Actions service principal.
 
@@ -619,7 +707,7 @@ ALTER ROLE db_datawriter ADD MEMBER [gh-cc-deploy-dev];
 
 Repeat for `stg` and `prod` environments with the corresponding service principal names.
 
-#### 4.6.3 Set the SQL_CONNECTION_STRING GitHub Secret
+#### 4.7.3 Set the SQL_CONNECTION_STRING GitHub Secret
 
 Get the SQL server FQDN:
 
@@ -645,7 +733,7 @@ Replace `<server-fqdn>` with the output from above (e.g., `sql-cc-dev-a1b2c.data
 
 > **How this works:** The GitHub Actions workflow authenticates via `azure/login@v2` (OIDC). The `Active Directory Default` authentication mode in the connection string picks up that credential, so the deployment service principal's database user (created in 4.6.2) is used to run migrations.
 
-#### 4.6.4 Set the BOT_APP_SECRET GitHub Secret
+#### 4.7.4 Set the BOT_APP_SECRET GitHub Secret
 
 Add `BOT_APP_SECRET` to the same environment with the client secret you created in step 1.5.
 
@@ -774,7 +862,7 @@ az functionapp deployment source config-zip `
 
 **Bash:**
 ```bash
-# Set the connection string (replace with your actual value from step 4.6.3)
+# Set the connection string (replace with your actual value from step 4.7.3)
 export ConnectionStrings__SqlConnection="Server=tcp:<server-fqdn>,1433;Initial Catalog=db-cc-dev;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;"
 
 dotnet ef database update \
@@ -785,7 +873,7 @@ dotnet ef database update \
 
 **PowerShell:**
 ```powershell
-# Set the connection string (replace with your actual value from step 4.6.3)
+# Set the connection string (replace with your actual value from step 4.7.3)
 $env:ConnectionStrings__SqlConnection = "Server=tcp:<server-fqdn>,1433;Initial Catalog=db-cc-dev;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;"
 
 dotnet ef database update `
