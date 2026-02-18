@@ -1,5 +1,6 @@
 using CompanyCommunicator.Core.Data;
 using CompanyCommunicator.Core.Data.Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace CompanyCommunicator.Core.Services.Recipients;
@@ -37,21 +38,37 @@ internal sealed class RecipientService : IRecipientService
 
         for (int i = 0; i < recipientAadIds.Count; i += DbBatchSize)
         {
-            var batch = recipientAadIds.Skip(i).Take(DbBatchSize);
+            var batchIds = recipientAadIds.Skip(i).Take(DbBatchSize).ToList();
 
-            var records = batch.Select(aadId => new SentNotification
+            // Look up existing Users to copy ConversationId and ServiceUrl
+            // into SentNotification records for users who already have the bot installed.
+            var userLookup = await _db.Users
+                .AsNoTracking()
+                .Where(u => batchIds.Contains(u.AadId))
+                .Select(u => new { u.AadId, u.ConversationId, u.ServiceUrl })
+                .ToDictionaryAsync(u => u.AadId, ct)
+                .ConfigureAwait(false);
+
+            var records = batchIds.Select(aadId =>
             {
-                NotificationId = notificationId,
-                RecipientId = aadId,
-                RecipientType = "User",
-                DeliveryStatus = DeliveryStatus.Queued,
-                RetryCount = 0,
+                userLookup.TryGetValue(aadId, out var user);
+                return new SentNotification
+                {
+                    NotificationId = notificationId,
+                    RecipientId = aadId,
+                    RecipientType = "User",
+                    ConversationId = user?.ConversationId,
+                    ServiceUrl = user?.ServiceUrl,
+                    DeliveryStatus = DeliveryStatus.Queued,
+                    RetryCount = 0,
+                };
             });
 
             await _db.SentNotifications.AddRangeAsync(records, ct).ConfigureAwait(false);
             await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+            _db.ChangeTracker.Clear(); // Prevent 50k tracked entities accumulating
 
-            totalInserted += batch.Count();
+            totalInserted += batchIds.Count;
         }
 
         _logger.LogInformation(
