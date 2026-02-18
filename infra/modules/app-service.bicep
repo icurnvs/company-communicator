@@ -92,6 +92,7 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
     serverFarmId: appServicePlan.id
     httpsOnly: true
     clientAffinityEnabled: false
+    keyVaultReferenceIdentity: managedIdentityResourceId
     siteConfig: {
       linuxFxVersion: 'DOTNETCORE|8.0'
       alwaysOn: true
