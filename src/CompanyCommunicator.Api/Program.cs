@@ -172,36 +172,54 @@ if (!Directory.Exists(spaRoot))
     spaRoot = Path.Combine(app.Environment.ContentRootPath, "ClientApp", "dist");
 }
 
-if (Directory.Exists(spaRoot))
+// Use app.Map to strip the /clientapp prefix, then serve static files
+// with no RequestPath. This avoids the RequestPath + PhysicalFileProvider
+// interaction that fails on Linux.
+var spaFileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(spaRoot);
+app.Map("/clientapp", spaApp =>
 {
-    var spaFileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(spaRoot);
-    app.UseStaticFiles(new StaticFileOptions
+    spaApp.UseStaticFiles(new StaticFileOptions
     {
         FileProvider = spaFileProvider,
-        RequestPath = "/clientapp",
     });
-}
+
+    // SPA fallback: serve index.html for any path not matching a file
+    spaApp.Run(async context =>
+    {
+        var indexPath = Path.Combine(spaRoot, "index.html");
+        if (File.Exists(indexPath))
+        {
+            context.Response.ContentType = "text/html";
+            await context.Response.SendFileAsync(indexPath);
+        }
+        else
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+        }
+    });
+});
 
 // Also serve default wwwroot static files (if any)
 app.UseStaticFiles();
 
-// Fallback: for any /clientapp/* route that doesn't match a physical file,
-// serve index.html so React Router can handle client-side navigation.
-app.MapFallback("/clientapp/{**path}", async context =>
+// Temporary diagnostic endpoints — remove after confirming SPA works.
+app.MapGet("/debug/file-test", () =>
 {
-    var indexPath = Path.Combine(spaRoot, "index.html");
-    if (File.Exists(indexPath))
+    var provider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(spaRoot);
+    var f1 = provider.GetFileInfo("/assets/fluent-D5ePGgNC.js");
+    var f2 = provider.GetFileInfo("assets/fluent-D5ePGgNC.js");
+    var f3 = provider.GetFileInfo("/index.html");
+    var dirContents = provider.GetDirectoryContents("/assets");
+    return new
     {
-        context.Response.ContentType = "text/html";
-        await context.Response.SendFileAsync(indexPath);
-    }
-    else
-    {
-        context.Response.StatusCode = StatusCodes.Status404NotFound;
-    }
+        ProviderRoot = spaRoot,
+        WithLeadingSlash = new { f1.Name, f1.Exists, f1.Length, f1.PhysicalPath },
+        WithoutLeadingSlash = new { f2.Name, f2.Exists, f2.Length, f2.PhysicalPath },
+        IndexHtml = new { f3.Name, f3.Exists, f3.Length, f3.PhysicalPath },
+        AssetsDir = new { dirContents.Exists, Count = dirContents.Count() },
+    };
 });
 
-// Temporary diagnostic endpoint — remove after confirming SPA works.
 app.MapGet("/debug/env", () =>
 {
     var contentRoot = app.Environment.ContentRootPath;
