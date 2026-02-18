@@ -64,7 +64,7 @@ public sealed class SendMessageFunction
     public async Task Run(
         [ServiceBusTrigger(
             QueueNames.Send,
-            Connection = "ServiceBus:FullyQualifiedNamespace")]
+            Connection = "ServiceBus")]
         string messageBody,
         FunctionContext executionContext)
     {

@@ -44,7 +44,7 @@ public sealed class PrepareToSendTrigger
     public async Task Run(
         [ServiceBusTrigger(
             QueueNames.Prepare,
-            Connection = "ServiceBus:FullyQualifiedNamespace")]
+            Connection = "ServiceBus")]
         string messageBody,
         [DurableClient] DurableTaskClient client,
         FunctionContext ctx)

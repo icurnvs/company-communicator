@@ -66,6 +66,7 @@ resource functionAppPrep 'Microsoft.Web/sites@2023-12-01' = {
     serverFarmId: appServicePlanId
     httpsOnly: true
     clientAffinityEnabled: false
+    keyVaultReferenceIdentity: managedIdentityResourceId
     siteConfig: {
       linuxFxVersion: 'DOTNET-ISOLATED|8.0'
       alwaysOn: true

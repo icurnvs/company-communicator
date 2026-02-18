@@ -45,7 +45,7 @@ public sealed class ExportTrigger
     public async Task Run(
         [ServiceBusTrigger(
             QueueNames.Export,
-            Connection = "ServiceBus:FullyQualifiedNamespace")]
+            Connection = "ServiceBus")]
         string messageBody,
         FunctionContext ctx)
     {

@@ -24,6 +24,9 @@ param sqlAdminObjectId string
 @description('Display name for the Entra ID SQL admin (used in the AD admin record).')
 param sqlAdminDisplayName string = 'cc-mi-sqladmin'
 
+@description('Client ID of the user-assigned managed identity. Embedded in the connection string so SqlClient selects the correct identity via IMDS.')
+param managedIdentityClientId string
+
 // ---------------------------------------------------------------------------
 // SQL Server
 // ---------------------------------------------------------------------------
@@ -125,5 +128,5 @@ output serverId string = sqlServer.id
 @description('Resource ID of the SQL database.')
 output databaseId string = sqlDatabase.id
 
-@description('Connection string pattern using Active Directory Default (managed identity) authentication.')
-output connectionStringPattern string = 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabase.name};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;'
+@description('Connection string using Active Directory Managed Identity authentication. User Id is the MI client ID, which is required by SqlClient to unambiguously select a user-assigned identity when calling IMDS.')
+output connectionStringPattern string = 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=${sqlDatabase.name};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Managed Identity;User Id=${managedIdentityClientId};'

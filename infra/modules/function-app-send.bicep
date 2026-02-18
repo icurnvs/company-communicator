@@ -82,6 +82,7 @@ resource functionAppSend 'Microsoft.Web/sites@2023-12-01' = {
     serverFarmId: consumptionPlan.id
     httpsOnly: true
     clientAffinityEnabled: false
+    keyVaultReferenceIdentity: managedIdentityResourceId
     siteConfig: {
       netFrameworkVersion: 'v8.0'
       minTlsVersion: '1.2'

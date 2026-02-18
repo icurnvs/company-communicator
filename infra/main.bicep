@@ -129,6 +129,7 @@ module sql 'modules/sql.bicep' = {
     uniqueSuffix: uniqueSuffix
     sqlAdminObjectId: managedIdentity.outputs.principalId
     sqlAdminDisplayName: managedIdentity.outputs.name
+    managedIdentityClientId: managedIdentity.outputs.clientId
   }
 }
 
