@@ -250,6 +250,7 @@ jobs:
               "AzureAd__TenantId=${TENANT_ID}" \
               "AzureAd__ClientId=${BOT_APP_ID}" \
               "AzureAd__ClientSecret=@Microsoft.KeyVault(VaultName=${{ steps.names.outputs.kv_name }};SecretName=BotAppSecret)" \
+              "AzureAd__ApplicationIdUri=api://${{ steps.names.outputs.web_app_name }}.azurewebsites.net/${BOT_APP_ID}" \
               "TokenValidation__TenantId=${TENANT_ID}" \
               "TokenValidation__Audiences__0=${BOT_APP_ID}" \
               "Connections__ServiceConnection__Settings__AuthorityEndpoint=https://login.microsoftonline.com/${TENANT_ID}" \
