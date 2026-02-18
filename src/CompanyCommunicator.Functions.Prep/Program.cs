@@ -28,8 +28,15 @@ var host = new HostBuilder()
 
         // -----------------------------------------------------------------------
         // Azure credential (Managed Identity in Azure, dev credential locally)
+        // Explicitly pass ManagedIdentityClientId for user-assigned MI to ensure
+        // the correct identity is used for Graph, Service Bus, and Blob SDK calls.
         // -----------------------------------------------------------------------
-        var credential = new DefaultAzureCredential();
+        var miClientId = config["AZURE_CLIENT_ID"];
+        var credential = new DefaultAzureCredential(
+            new DefaultAzureCredentialOptions
+            {
+                ManagedIdentityClientId = miClientId,
+            });
 
         // -----------------------------------------------------------------------
         // Azure SDK clients

@@ -86,10 +86,15 @@ if (!string.IsNullOrEmpty(clientId))
 
 // ---------------------------------------------------------------------------
 // Microsoft Graph client
-// Using DefaultAzureCredential which works with both MSI and local dev.
-// The GraphServiceClient is registered as singleton - it is thread-safe.
+// Explicitly pass ManagedIdentityClientId for user-assigned MI to ensure
+// the correct identity is used for all Azure SDK calls.
 // ---------------------------------------------------------------------------
-var azureCredential = new DefaultAzureCredential();
+var miClientId = config["AZURE_CLIENT_ID"];
+var azureCredential = new DefaultAzureCredential(
+    new DefaultAzureCredentialOptions
+    {
+        ManagedIdentityClientId = miClientId,
+    });
 var graphScopes = new[] { "https://graph.microsoft.com/.default" };
 var authProvider = new AzureIdentityAuthenticationProvider(azureCredential, scopes: graphScopes);
 services.AddSingleton(new GraphServiceClient(authProvider));
