@@ -284,6 +284,7 @@ jobs:
           dotnet ef database update \
             --project src/CompanyCommunicator.Core/CompanyCommunicator.Core.csproj \
             --startup-project src/CompanyCommunicator.Api/CompanyCommunicator.Api.csproj \
+            --connection "$ConnectionStrings__SqlConnection" \
             --verbose
 
       # -----------------------------------------------------------------------
