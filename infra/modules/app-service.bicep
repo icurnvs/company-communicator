@@ -112,10 +112,6 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
           value: appInsightsConnectionString
         }
-        {
-          name: 'ApplicationInsightsAgent_EXTENSION_VERSION'
-          value: '~3'
-        }
         // ---- SQL (Key Vault reference) ----
         {
           name: 'ConnectionStrings__SqlConnection'
