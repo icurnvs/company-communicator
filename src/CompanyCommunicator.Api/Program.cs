@@ -161,9 +161,14 @@ app.UseHttpsRedirection();
 
 // ---------------------------------------------------------------------------
 // Serve the React SPA from /clientapp/
+//
 // SPA files are published to wwwroot/clientapp/ by the csproj PublishRunWebpack
-// target. We explicitly create a PhysicalFileProvider to guarantee the correct
-// root path on Azure App Service Linux.
+// target. We use app.Map("/clientapp") to strip the URL prefix at the pipeline
+// level, then serve static files with no RequestPath. This avoids an issue
+// where UseStaticFiles with RequestPath="/clientapp" fails to serve files on
+// Azure App Service Linux despite PhysicalFileProvider finding them correctly
+// (suspected interaction between PathString prefix stripping and the
+// StaticFileMiddleware's internal path resolution).
 // ---------------------------------------------------------------------------
 var spaRoot = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "clientapp");
 if (!Directory.Exists(spaRoot))
@@ -172,75 +177,36 @@ if (!Directory.Exists(spaRoot))
     spaRoot = Path.Combine(app.Environment.ContentRootPath, "ClientApp", "dist");
 }
 
-// Use app.Map to strip the /clientapp prefix, then serve static files
-// with no RequestPath. This avoids the RequestPath + PhysicalFileProvider
-// interaction that fails on Linux.
-var spaFileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(spaRoot);
-app.Map("/clientapp", spaApp =>
+if (Directory.Exists(spaRoot))
 {
-    spaApp.UseStaticFiles(new StaticFileOptions
+    var spaFileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(spaRoot);
+    app.Map("/clientapp", spaApp =>
     {
-        FileProvider = spaFileProvider,
-    });
-
-    // SPA fallback: serve index.html for any path not matching a file
-    spaApp.Run(async context =>
-    {
-        var indexPath = Path.Combine(spaRoot, "index.html");
-        if (File.Exists(indexPath))
+        spaApp.UseStaticFiles(new StaticFileOptions
         {
-            context.Response.ContentType = "text/html";
-            await context.Response.SendFileAsync(indexPath);
-        }
-        else
-        {
-            context.Response.StatusCode = StatusCodes.Status404NotFound;
-        }
-    });
-});
+            FileProvider = spaFileProvider,
+        });
 
-// Also serve default wwwroot static files (if any)
+        // SPA fallback: serve index.html for any path not matching a file
+        // so React Router can handle client-side navigation.
+        spaApp.Run(async context =>
+        {
+            var indexPath = Path.Combine(spaRoot, "index.html");
+            if (File.Exists(indexPath))
+            {
+                context.Response.ContentType = "text/html";
+                await context.Response.SendFileAsync(indexPath);
+            }
+            else
+            {
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+            }
+        });
+    });
+}
+
+// Serve any other static files from wwwroot/
 app.UseStaticFiles();
-
-// Temporary diagnostic endpoints — remove after confirming SPA works.
-app.MapGet("/debug/file-test", () =>
-{
-    var provider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(spaRoot);
-    var f1 = provider.GetFileInfo("/assets/fluent-D5ePGgNC.js");
-    var f2 = provider.GetFileInfo("assets/fluent-D5ePGgNC.js");
-    var f3 = provider.GetFileInfo("/index.html");
-    var dirContents = provider.GetDirectoryContents("/assets");
-    return new
-    {
-        ProviderRoot = spaRoot,
-        WithLeadingSlash = new { f1.Name, f1.Exists, f1.Length, f1.PhysicalPath },
-        WithoutLeadingSlash = new { f2.Name, f2.Exists, f2.Length, f2.PhysicalPath },
-        IndexHtml = new { f3.Name, f3.Exists, f3.Length, f3.PhysicalPath },
-        AssetsDir = new { dirContents.Exists, Count = dirContents.Count() },
-    };
-});
-
-app.MapGet("/debug/env", () =>
-{
-    var contentRoot = app.Environment.ContentRootPath;
-    var webRoot = app.Environment.WebRootPath;
-    return new
-    {
-        ContentRootPath = contentRoot,
-        WebRootPath = webRoot,
-        CWD = Directory.GetCurrentDirectory(),
-        SpaRoot = spaRoot,
-        SpaRootExists = Directory.Exists(spaRoot),
-        NewPathExists = Directory.Exists(Path.Combine(contentRoot, "wwwroot", "clientapp")),
-        OldPathExists = Directory.Exists(Path.Combine(contentRoot, "ClientApp", "dist")),
-        IndexHtmlExists = File.Exists(Path.Combine(spaRoot, "index.html")),
-        SampleAssetExists = File.Exists(Path.Combine(spaRoot, "assets", "fluent-D5ePGgNC.js")),
-        AssetsDir = Directory.Exists(Path.Combine(spaRoot, "assets")),
-        TopLevelFiles = Directory.Exists(contentRoot)
-            ? Directory.GetDirectories(contentRoot).Select(Path.GetFileName).OrderBy(x => x).ToArray()
-            : Array.Empty<string?>(),
-    };
-});
 
 app.UseAuthentication();
 app.UseAuthorization();
