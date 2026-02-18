@@ -1192,6 +1192,12 @@ Look for:
     --url "/subscriptions/<sub-id>/resourceGroups/rg-cc-dev/providers/Microsoft.Web/sites/func-cc-prep-dev-<suffix>?api-version=2023-12-01" \
     --body "{\"properties\":{\"keyVaultReferenceIdentity\":\"${MI_ID}\"}}"
   ```
+- **Service Bus trigger listener starts but never receives messages** – The trigger needs explicit `ServiceBus__clientId` set to the MI's client ID. Without it, the extension cannot authenticate with user-assigned MI:
+  ```bash
+  az functionapp config appsettings set --resource-group rg-cc-dev \
+    --name func-cc-prep-dev-<suffix> \
+    --settings "ServiceBus__clientId=<managed-identity-client-id>"
+  ```
 - `Unable to connect to Service Bus` – Check Key Vault secret permissions and that `ServiceBus__FullyQualifiedNamespace` app setting is configured
 - `Orchestration failed` – Check SQL connection string (see [SendFedAuthToken troubleshooting](#sql-connection-reset-by-peer-during-sendfedauthtoken) above)
 - `Activity 'SendMessageActivity' failed` – Check bot endpoint and managed identity Graph permissions

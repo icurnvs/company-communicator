@@ -126,10 +126,14 @@ resource functionAppSend 'Microsoft.Web/sites@2023-12-01' = {
           name: 'ConnectionStrings__SqlConnection'
           value: kvRefSqlConnection
         }
-        // ---- Service Bus ----
+        // ---- Service Bus (identity-based trigger connection) ----
         {
           name: 'ServiceBus__FullyQualifiedNamespace'
           value: serviceBusFullyQualifiedNamespace
+        }
+        {
+          name: 'ServiceBus__clientId'
+          value: managedIdentityClientId
         }
         {
           name: 'ConnectionStrings__ServiceBusConnection'
