@@ -226,9 +226,11 @@ jobs:
           WEB=$(az webapp list --resource-group "$RG" --query "[?starts_with(name, 'app-cc-${ENV}')].name | [0]" -o tsv)
           PREP=$(az functionapp list --resource-group "$RG" --query "[?starts_with(name, 'func-cc-prep-${ENV}')].name | [0]" -o tsv)
           SEND=$(az functionapp list --resource-group "$RG" --query "[?starts_with(name, 'func-cc-send-${ENV}')].name | [0]" -o tsv)
+          KV=$(az keyvault list --resource-group "$RG" --query "[?starts_with(name, 'kv-cc-${ENV}')].name | [0]" -o tsv)
           echo "web_app_name=${WEB}" >> $GITHUB_OUTPUT
           echo "func_prep_name=${PREP}" >> $GITHUB_OUTPUT
           echo "func_send_name=${SEND}" >> $GITHUB_OUTPUT
+          echo "kv_name=${KV}" >> $GITHUB_OUTPUT
 
       # -----------------------------------------------------------------------
       # Configure identity app settings on the Web App.
@@ -247,6 +249,7 @@ jobs:
             --settings \
               "AzureAd__TenantId=${TENANT_ID}" \
               "AzureAd__ClientId=${BOT_APP_ID}" \
+              "AzureAd__ClientSecret=@Microsoft.KeyVault(VaultName=${{ steps.names.outputs.kv_name }};SecretName=BotAppSecret)" \
               "TokenValidation__TenantId=${TENANT_ID}" \
               "TokenValidation__Audiences__0=${BOT_APP_ID}" \
               "Connections__ServiceConnection__Settings__AuthorityEndpoint=https://login.microsoftonline.com/${TENANT_ID}" \
