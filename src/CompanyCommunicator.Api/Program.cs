@@ -162,18 +162,34 @@ app.UseHttpsRedirection();
 // ---------------------------------------------------------------------------
 // Serve the React SPA from /clientapp/
 // SPA files are published to wwwroot/clientapp/ by the csproj PublishRunWebpack
-// target. app.UseStaticFiles() serves them at /clientapp/* via the default
-// WebRootPath (wwwroot/), which works correctly on Linux App Service.
-// In development, the Vite dev server proxies /api, so this only applies
-// to the production build.
+// target. We explicitly create a PhysicalFileProvider to guarantee the correct
+// root path on Azure App Service Linux.
 // ---------------------------------------------------------------------------
+var spaRoot = Path.Combine(app.Environment.ContentRootPath, "wwwroot", "clientapp");
+if (!Directory.Exists(spaRoot))
+{
+    // Fallback: check the legacy publish path (ClientApp/dist)
+    spaRoot = Path.Combine(app.Environment.ContentRootPath, "ClientApp", "dist");
+}
+
+if (Directory.Exists(spaRoot))
+{
+    var spaFileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(spaRoot);
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = spaFileProvider,
+        RequestPath = "/clientapp",
+    });
+}
+
+// Also serve default wwwroot static files (if any)
 app.UseStaticFiles();
 
 // Fallback: for any /clientapp/* route that doesn't match a physical file,
 // serve index.html so React Router can handle client-side navigation.
 app.MapFallback("/clientapp/{**path}", async context =>
 {
-    var indexPath = Path.Combine(app.Environment.WebRootPath, "clientapp", "index.html");
+    var indexPath = Path.Combine(spaRoot, "index.html");
     if (File.Exists(indexPath))
     {
         context.Response.ContentType = "text/html";
@@ -183,6 +199,29 @@ app.MapFallback("/clientapp/{**path}", async context =>
     {
         context.Response.StatusCode = StatusCodes.Status404NotFound;
     }
+});
+
+// Temporary diagnostic endpoint — remove after confirming SPA works.
+app.MapGet("/debug/env", () =>
+{
+    var contentRoot = app.Environment.ContentRootPath;
+    var webRoot = app.Environment.WebRootPath;
+    return new
+    {
+        ContentRootPath = contentRoot,
+        WebRootPath = webRoot,
+        CWD = Directory.GetCurrentDirectory(),
+        SpaRoot = spaRoot,
+        SpaRootExists = Directory.Exists(spaRoot),
+        NewPathExists = Directory.Exists(Path.Combine(contentRoot, "wwwroot", "clientapp")),
+        OldPathExists = Directory.Exists(Path.Combine(contentRoot, "ClientApp", "dist")),
+        IndexHtmlExists = File.Exists(Path.Combine(spaRoot, "index.html")),
+        SampleAssetExists = File.Exists(Path.Combine(spaRoot, "assets", "fluent-D5ePGgNC.js")),
+        AssetsDir = Directory.Exists(Path.Combine(spaRoot, "assets")),
+        TopLevelFiles = Directory.Exists(contentRoot)
+            ? Directory.GetDirectories(contentRoot).Select(Path.GetFileName).OrderBy(x => x).ToArray()
+            : Array.Empty<string?>(),
+    };
 });
 
 app.UseAuthentication();
