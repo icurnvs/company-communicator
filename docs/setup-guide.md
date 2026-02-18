@@ -591,8 +591,11 @@ $GRAPH_SP_ID = az ad sp show --id 00000003-0000-0000-c000-000000000000 --query i
 | Permission | Purpose |
 |---|---|
 | `User.Read.All` | User sync, delta queries, profile photos |
-| `Group.Read.All` | Search groups, read group members |
+| `Group.Read.All` | Search groups |
+| `GroupMember.Read.All` | Read group members for recipient resolution |
+| `Directory.Read.All` | Broad directory reads, delta query support |
 | `TeamMember.Read.All` | Read team membership for recipient resolution |
+| `TeamsAppInstallation.ReadWriteForUser.All` | Proactive bot installation for users |
 
 **Bash:**
 ```bash
@@ -608,11 +611,29 @@ az rest --method POST \
   --headers "Content-Type=application/json" \
   --body "{\"principalId\":\"${MI_PRINCIPAL_ID}\",\"resourceId\":\"${GRAPH_SP_ID}\",\"appRoleId\":\"5b567255-7703-4780-807c-7be8301ae99b\"}"
 
+# GroupMember.Read.All
+az rest --method POST \
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${MI_PRINCIPAL_ID}/appRoleAssignments" \
+  --headers "Content-Type=application/json" \
+  --body "{\"principalId\":\"${MI_PRINCIPAL_ID}\",\"resourceId\":\"${GRAPH_SP_ID}\",\"appRoleId\":\"98830695-27a2-44f7-8c18-0c3ebc9698f6\"}"
+
+# Directory.Read.All
+az rest --method POST \
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${MI_PRINCIPAL_ID}/appRoleAssignments" \
+  --headers "Content-Type=application/json" \
+  --body "{\"principalId\":\"${MI_PRINCIPAL_ID}\",\"resourceId\":\"${GRAPH_SP_ID}\",\"appRoleId\":\"7ab1d382-f21e-4acd-a863-ba3e13f7da61\"}"
+
 # TeamMember.Read.All
 az rest --method POST \
   --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${MI_PRINCIPAL_ID}/appRoleAssignments" \
   --headers "Content-Type=application/json" \
   --body "{\"principalId\":\"${MI_PRINCIPAL_ID}\",\"resourceId\":\"${GRAPH_SP_ID}\",\"appRoleId\":\"660b7406-55f1-41ca-a0ed-0b035e182f3e\"}"
+
+# TeamsAppInstallation.ReadWriteForUser.All
+az rest --method POST \
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${MI_PRINCIPAL_ID}/appRoleAssignments" \
+  --headers "Content-Type=application/json" \
+  --body "{\"principalId\":\"${MI_PRINCIPAL_ID}\",\"resourceId\":\"${GRAPH_SP_ID}\",\"appRoleId\":\"a267235f-af13-44dc-8385-c1dc93023186\"}"
 ```
 
 **PowerShell:**
@@ -629,11 +650,29 @@ az rest --method POST `
   --headers "Content-Type=application/json" `
   --body "{`"principalId`":`"$MI_PRINCIPAL_ID`",`"resourceId`":`"$GRAPH_SP_ID`",`"appRoleId`":`"5b567255-7703-4780-807c-7be8301ae99b`"}"
 
+# GroupMember.Read.All
+az rest --method POST `
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$MI_PRINCIPAL_ID/appRoleAssignments" `
+  --headers "Content-Type=application/json" `
+  --body "{`"principalId`":`"$MI_PRINCIPAL_ID`",`"resourceId`":`"$GRAPH_SP_ID`",`"appRoleId`":`"98830695-27a2-44f7-8c18-0c3ebc9698f6`"}"
+
+# Directory.Read.All
+az rest --method POST `
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$MI_PRINCIPAL_ID/appRoleAssignments" `
+  --headers "Content-Type=application/json" `
+  --body "{`"principalId`":`"$MI_PRINCIPAL_ID`",`"resourceId`":`"$GRAPH_SP_ID`",`"appRoleId`":`"7ab1d382-f21e-4acd-a863-ba3e13f7da61`"}"
+
 # TeamMember.Read.All
 az rest --method POST `
   --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$MI_PRINCIPAL_ID/appRoleAssignments" `
   --headers "Content-Type=application/json" `
   --body "{`"principalId`":`"$MI_PRINCIPAL_ID`",`"resourceId`":`"$GRAPH_SP_ID`",`"appRoleId`":`"660b7406-55f1-41ca-a0ed-0b035e182f3e`"}"
+
+# TeamsAppInstallation.ReadWriteForUser.All
+az rest --method POST `
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$MI_PRINCIPAL_ID/appRoleAssignments" `
+  --headers "Content-Type=application/json" `
+  --body "{`"principalId`":`"$MI_PRINCIPAL_ID`",`"resourceId`":`"$GRAPH_SP_ID`",`"appRoleId`":`"a267235f-af13-44dc-8385-c1dc93023186`"}"
 ```
 
 3. Verify the assignments:
@@ -1201,6 +1240,27 @@ Look for:
 - `Unable to connect to Service Bus` – Check Key Vault secret permissions and that `ServiceBus__FullyQualifiedNamespace` app setting is configured
 - `Orchestration failed` – Check SQL connection string (see [SendFedAuthToken troubleshooting](#sql-connection-reset-by-peer-during-sendfedauthtoken) above)
 - `Activity 'SendMessageActivity' failed` – Check bot endpoint and managed identity Graph permissions
+
+### Orchestration Fails with "Insufficient privileges"
+
+**Symptom**: PrepareToSendOrchestrator fails at the SyncRecipients step. App Insights shows `Insufficient privileges to complete the operation` from SyncAllUsersActivity or SyncGroupMembersActivity.
+
+**Diagnosis**: The managed identity cannot acquire a Graph token with the correct permissions. This is typically caused by `DefaultAzureCredential` not targeting the user-assigned MI, even when `AZURE_CLIENT_ID` is set.
+
+**Solutions**:
+1. Verify all 6 Graph permissions are granted to the MI (not the bot app registration):
+   ```bash
+   MI_PRINCIPAL_ID=$(az identity show --resource-group rg-cc-dev --name id-cc-dev --query principalId -o tsv)
+   az rest --method GET \
+     --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${MI_PRINCIPAL_ID}/appRoleAssignments" \
+     --query "value[].appRoleId" -o tsv
+   ```
+   Expected role IDs: `df021288` (User.Read.All), `5b567255` (Group.Read.All), `98830695` (GroupMember.Read.All), `7ab1d382` (Directory.Read.All), `660b7406` (TeamMember.Read.All), `a267235f` (TeamsAppInstallation.ReadWriteForUser.All).
+
+2. Verify the code uses explicit `ManagedIdentityClientId`:
+   All three apps (API, Prep Function, Send Function) must create `DefaultAzureCredential` with `ManagedIdentityClientId = config["AZURE_CLIENT_ID"]`. Using bare `new DefaultAzureCredential()` may not reliably target the user-assigned MI for Graph token acquisition.
+
+3. After fixing, restart all compute resources and resubmit the notification.
 
 ### "Forbidden" on API Calls
 

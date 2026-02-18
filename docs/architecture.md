@@ -522,7 +522,14 @@ NONCLUSTERED INDEX IX_NotificationAudiences_NotificationId
   - Storage Queue Data Contributor
   - Storage Table Data Contributor
   - Key Vault Secrets User
-- **Graph application permissions**: User.Read.All, Group.Read.All, TeamMember.Read.All (granted to the MI's service principal, not the bot app registration)
+- **Graph application permissions** (granted to the MI's service principal, not the bot app registration):
+  - `User.Read.All` — User sync, delta queries, profile photos
+  - `Group.Read.All` — Search groups
+  - `GroupMember.Read.All` — Read group members for recipient resolution
+  - `Directory.Read.All` — Broad directory reads, delta query support
+  - `TeamMember.Read.All` — Team membership resolution
+  - `TeamsAppInstallation.ReadWriteForUser.All` — Proactive bot installation for users
+- **Credential configuration**: All apps use `DefaultAzureCredentialOptions { ManagedIdentityClientId = config["AZURE_CLIENT_ID"] }` to explicitly target the user-assigned MI. No Azure service reliably reads the `AZURE_CLIENT_ID` environment variable as a fallback — each requires explicit client ID specification through its own mechanism
 - **Key Vault reference identity**: All compute resources (Web App, both Function Apps) have `keyVaultReferenceIdentity` set to the MI's resource ID so KV-referenced app settings resolve correctly
 - **SQL connection string**: Uses `Authentication=Active Directory Managed Identity;User Id=<MI-client-id>` (not `Active Directory Default`, because `Microsoft.Data.SqlClient` does not read the `AZURE_CLIENT_ID` environment variable)
 - **Service Bus triggers**: Use identity-based connection with `Connection = "ServiceBus"` prefix — the Functions extension resolves `ServiceBus__fullyQualifiedNamespace` from app settings. Requires explicit `ServiceBus__clientId` setting (same MI client ID) because the extension does not fall back to `AZURE_CLIENT_ID` for trigger connections
