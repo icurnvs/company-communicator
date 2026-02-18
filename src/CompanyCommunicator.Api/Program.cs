@@ -15,6 +15,7 @@ using CompanyCommunicator.Core.Services.Queue;
 using Microsoft.Agents.Authentication.Msal;
 using Microsoft.Agents.Builder;
 using Microsoft.Agents.Hosting.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Graph;
 using Microsoft.Identity.Web;
@@ -59,6 +60,22 @@ services.AddSingleton<TenantFilterMiddleware>();
 services.AddMicrosoftIdentityWebApiAuthentication(config, "AzureAd")
     .EnableTokenAcquisitionToCallDownstreamApi()
     .AddInMemoryTokenCaches();
+
+// Teams SSO tokens have aud = "api://{ClientId}" while Microsoft Identity Web
+// 4.x (IdentityModel 8.x) only validates against the raw ClientId by default.
+// Accept both formats so Teams SSO bearer tokens pass audience validation.
+var clientId = config["AzureAd:ClientId"];
+if (!string.IsNullOrEmpty(clientId))
+{
+    services.PostConfigure<JwtBearerOptions>("Bearer", options =>
+    {
+        options.TokenValidationParameters.ValidAudiences = new[]
+        {
+            clientId,
+            $"api://{clientId}",
+        };
+    });
+}
 
 // ---------------------------------------------------------------------------
 // Microsoft Graph client
