@@ -18,8 +18,13 @@
     <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
     <ItemGroup>
       <DistFiles Include="$(SpaRoot)dist\**" />
+      <!--
+        Publish SPA files to wwwroot/clientapp/ so app.UseStaticFiles() serves
+        them at /clientapp/* without a custom PhysicalFileProvider + RequestPath,
+        which has Path.Combine leading-slash issues on Linux App Service.
+      -->
       <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
-        <RelativePath>%(DistFiles.Identity)</RelativePath>
+        <RelativePath>wwwroot\clientapp\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       </ResolvedFileToPublish>

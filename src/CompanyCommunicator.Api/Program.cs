@@ -161,35 +161,29 @@ app.UseHttpsRedirection();
 
 // ---------------------------------------------------------------------------
 // Serve the React SPA from /clientapp/
-// The dist folder is produced by `npm run build` in ClientApp/
-// In development, the Vite dev server proxies to /api, so only the production
-// build needs to be served here.
+// SPA files are published to wwwroot/clientapp/ by the csproj PublishRunWebpack
+// target. app.UseStaticFiles() serves them at /clientapp/* via the default
+// WebRootPath (wwwroot/), which works correctly on Linux App Service.
+// In development, the Vite dev server proxies /api, so this only applies
+// to the production build.
 // ---------------------------------------------------------------------------
-var spaPath = Path.Combine(app.Environment.ContentRootPath, "ClientApp", "dist");
-if (Directory.Exists(spaPath))
-{
-    app.UseStaticFiles(new StaticFileOptions
-    {
-        FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(spaPath),
-        RequestPath = "/clientapp",
-    });
+app.UseStaticFiles();
 
-    // Fallback: for any /clientapp/* route that doesn't match a file,
-    // serve index.html (React Router handles routing client-side).
-    app.MapFallback("/clientapp/{**path}", async context =>
+// Fallback: for any /clientapp/* route that doesn't match a physical file,
+// serve index.html so React Router can handle client-side navigation.
+app.MapFallback("/clientapp/{**path}", async context =>
+{
+    var indexPath = Path.Combine(app.Environment.WebRootPath, "clientapp", "index.html");
+    if (File.Exists(indexPath))
     {
-        var indexPath = Path.Combine(spaPath, "index.html");
-        if (File.Exists(indexPath))
-        {
-            context.Response.ContentType = "text/html";
-            await context.Response.SendFileAsync(indexPath);
-        }
-        else
-        {
-            context.Response.StatusCode = StatusCodes.Status404NotFound;
-        }
-    });
-}
+        context.Response.ContentType = "text/html";
+        await context.Response.SendFileAsync(indexPath);
+    }
+    else
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+    }
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
