@@ -14,7 +14,6 @@
 #   AZURE_TENANT_ID          – Entra ID tenant ID
 #   AZURE_SUBSCRIPTION_ID    – Azure subscription ID
 #   AZURE_RESOURCE_GROUP     – Target resource group name
-#   SQL_ADMIN_OBJECT_ID      – Object ID of Entra ID principal for SQL admin
 #   ALERT_EMAIL              – Email address for operational alert notifications
 #   BOT_APP_ID               – Entra ID Application (client) ID of the bot app reg
 #
@@ -90,7 +89,6 @@ jobs:
             --parameters \
               environmentName="${{ env.TARGET_ENV }}" \
               appName="cc" \
-              sqlAdminObjectId="${{ secrets.SQL_ADMIN_OBJECT_ID }}" \
               alertEmailAddress="${{ secrets.ALERT_EMAIL }}" \
               botAppId="${{ secrets.BOT_APP_ID }}"
 
@@ -114,7 +112,6 @@ jobs:
             --parameters \
               environmentName="${{ env.TARGET_ENV }}" \
               appName="cc" \
-              sqlAdminObjectId="${{ secrets.SQL_ADMIN_OBJECT_ID }}" \
               alertEmailAddress="${{ secrets.ALERT_EMAIL }}" \
               botAppId="${{ secrets.BOT_APP_ID }}" \
             --result-format FullResourcePayloads \
@@ -179,7 +176,6 @@ jobs:
             --parameters \
               environmentName="${{ env.TARGET_ENV }}" \
               appName="cc" \
-              sqlAdminObjectId="${{ secrets.SQL_ADMIN_OBJECT_ID }}" \
               alertEmailAddress="${{ secrets.ALERT_EMAIL }}" \
               botAppId="${{ secrets.BOT_APP_ID }}" \
             --output json \

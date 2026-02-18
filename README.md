@@ -207,7 +207,6 @@ For each GitHub environment (`dev`, `stg`, `prod`), add these secrets:
 | `AZURE_TENANT_ID` | Your Entra ID tenant ID |
 | `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
 | `AZURE_RESOURCE_GROUP` | e.g. `rg-cc-dev` |
-| `SQL_ADMIN_OBJECT_ID` | Object ID of the principal to set as SQL admin |
 | `ALERT_EMAIL` | Email for operational alert notifications |
 | `BOT_APP_ID` | Entra ID app (client) ID of the bot registration |
 | `SQL_CONNECTION_STRING` | ADO.NET connection string for EF migration runner |

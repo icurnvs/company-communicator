@@ -8,9 +8,9 @@
 //     --template-file infra/main.bicep \
 //     --parameters infra/main.bicepparam
 //
-// Sensitive values (botAppId, sqlAdminObjectId) should be injected via
-// pipeline secret variables or Azure DevOps variable groups rather than
-// committed to source control in a production scenario.
+// Sensitive values (botAppId) should be injected via pipeline secret
+// variables or Azure DevOps variable groups rather than committed to
+// source control in a production scenario.
 // =============================================================================
 
 using 'main.bicep'
@@ -35,13 +35,6 @@ param appName = 'cc'
 // ---------------------------------------------------------------------------
 // Identity & auth parameters
 // ---------------------------------------------------------------------------
-
-// Object ID of the Entra ID principal to set as the SQL AD administrator.
-// For initial deployment: use the deploying user's Object ID.
-//   az ad signed-in-user show --query id -o tsv
-// After deployment: update to the managed identity's principal ID via:
-//   az sql server ad-admin create ...
-param sqlAdminObjectId = '00000000-0000-0000-0000-000000000000'
 
 // Entra ID Application (client) ID of the registered single-tenant bot app.
 // Create via: az ad app create --display-name "CompanyCommunicator-v2" ...

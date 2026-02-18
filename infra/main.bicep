@@ -36,9 +36,6 @@ param location string = resourceGroup().location
 @maxLength(10)
 param appName string = 'cc'
 
-@description('Object ID of the Entra ID principal to set as the SQL Entra ID administrator. Typically the managed identity principal ID – resolved after MI creation via post-deploy step, or pass the deploying user\'s object ID for initial setup.')
-param sqlAdminObjectId string
-
 @description('Email address for operational alert notifications.')
 param alertEmailAddress string
 
@@ -130,7 +127,7 @@ module sql 'modules/sql.bicep' = {
     appName: appName
     environmentName: environmentName
     uniqueSuffix: uniqueSuffix
-    sqlAdminObjectId: sqlAdminObjectId
+    sqlAdminObjectId: managedIdentity.outputs.principalId
     sqlAdminDisplayName: managedIdentity.outputs.name
   }
 }

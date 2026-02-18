@@ -341,7 +341,6 @@ For each GitHub environment (`dev`, `stg`, `prod`), set these secrets:
 | `AZURE_TENANT_ID` | Entra ID tenant ID | Azure Portal > Entra ID > Overview > Tenant ID |
 | `AZURE_SUBSCRIPTION_ID` | Your Azure subscription ID | Azure Portal > Subscriptions > Subscription ID |
 | `AZURE_RESOURCE_GROUP` | Resource group name (e.g., `rg-cc-dev`) | Azure Portal > Resource groups |
-| `SQL_ADMIN_OBJECT_ID` | Your Entra ID user object ID (for initial setup) | `az ad signed-in-user show --query id -o tsv` |
 | `ALERT_EMAIL` | Email for alert notifications | Your team's ops email |
 | `BOT_APP_ID` | App registration client ID from step 1 | Azure Portal > App registration > Client ID |
 | `AUTHOR_GROUP_ID` | Object ID of the Entra ID group for Authors | `az ad group show --group "CC-Authors" --query id -o tsv` |
@@ -360,7 +359,6 @@ AZURE_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 AZURE_TENANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 AZURE_SUBSCRIPTION_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 AZURE_RESOURCE_GROUP=rg-cc-dev
-SQL_ADMIN_OBJECT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ALERT_EMAIL=ops-team@contoso.com
 BOT_APP_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 AUTHOR_GROUP_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
@@ -387,7 +385,6 @@ az deployment group validate \
   --parameters \
     environmentName=dev \
     appName=cc \
-    sqlAdminObjectId="<your-object-id>" \
     alertEmailAddress="ops@contoso.com" \
     botAppId="<bot-app-registration-client-id>"
 ```
@@ -400,7 +397,6 @@ az deployment group validate `
   --parameters `
     environmentName=dev `
     appName=cc `
-    sqlAdminObjectId="<your-object-id>" `
     alertEmailAddress="ops@contoso.com" `
     botAppId="<bot-app-registration-client-id>"
 ```
@@ -419,7 +415,6 @@ az deployment group what-if \
   --parameters \
     environmentName=dev \
     appName=cc \
-    sqlAdminObjectId="<your-object-id>" \
     alertEmailAddress="ops@contoso.com" \
     botAppId="<bot-app-registration-client-id>"
 ```
@@ -432,7 +427,6 @@ az deployment group what-if `
   --parameters `
     environmentName=dev `
     appName=cc `
-    sqlAdminObjectId="<your-object-id>" `
     alertEmailAddress="ops@contoso.com" `
     botAppId="<bot-app-registration-client-id>"
 ```
@@ -460,7 +454,6 @@ az deployment group create \
   --parameters \
     environmentName=dev \
     appName=cc \
-    sqlAdminObjectId="<your-object-id>" \
     alertEmailAddress="ops@contoso.com" \
     botAppId="<bot-app-registration-client-id>" \
   --output json > deployment-output.json
@@ -475,7 +468,6 @@ az deployment group create `
   --parameters `
     environmentName=dev `
     appName=cc `
-    sqlAdminObjectId="<your-object-id>" `
     alertEmailAddress="ops@contoso.com" `
     botAppId="<bot-app-registration-client-id>" `
   --output json | Out-File deployment-output.json
@@ -604,12 +596,12 @@ az sql server firewall-rule create `
 
 #### 4.6.2 Grant the Deployment Service Principal Database Access
 
-Connect to the Azure SQL database as the Entra ID admin (the `sqlAdminObjectId` principal you specified during infrastructure deployment) and create a database user for the GitHub Actions service principal.
+Connect to the Azure SQL database as the Entra ID admin (the managed identity `id-cc-<env>` is automatically set as SQL admin by Bicep) and create a database user for the GitHub Actions service principal.
 
 You can connect using Azure Data Studio, SSMS, or the Azure Portal Query Editor:
 
 1. In Azure Portal, go to **SQL databases** > `db-cc-dev` > **Query editor (preview)**.
-2. Sign in with your Entra ID account (the one whose Object ID you used for `sqlAdminObjectId`).
+2. Sign in with your Entra ID account (you'll need to be a member of the SQL admin group or use a tool that can authenticate as the managed identity).
 3. Run the following SQL:
 
 ```sql
