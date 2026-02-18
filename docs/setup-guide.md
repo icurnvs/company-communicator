@@ -1337,6 +1337,33 @@ az webapp restart --resource-group rg-cc-dev --name app-cc-dev-<suffix>
 
 > **Note:** The Bicep templates generate the correct connection string automatically. This manual fix is only needed if a deployment used an older version of the templates.
 
+### Send Function: "Bot:AppId is not configured"
+
+**Symptom**: `SendMessageFunction` fails instantly (4-10ms) with `InvalidOperationException: Bot:AppId is not configured.` Messages exhaust delivery count and move to the dead-letter queue.
+
+**Diagnosis**: The Send Function's `SendFunctionMessageSender` requires `Bot:AppId` in configuration to authenticate against the Bot Framework REST API. This setting (`Bot__AppId` in app settings) is missing.
+
+**Solution**:
+```bash
+az functionapp config appsettings set --resource-group rg-cc-dev \
+  --name func-cc-send-dev-<suffix> \
+  --settings "Bot__AppId=<bot-app-registration-client-id>"
+```
+
+> **Note:** The Bicep templates (since commit `b461de7`) include this setting automatically. This manual fix is only needed for deployments before that commit.
+
+### Send Function Not Processing Queue Messages
+
+**Symptom**: Messages accumulate in `cc-send` queue but the Send Function shows no traces in App Insights. The function app state shows "Running".
+
+**Diagnosis**: The Consumption plan scale controller may not wake the function when using identity-based Service Bus connections. This is an intermittent behavior with Windows Consumption plans.
+
+**Solution**: Force a cold start by pinging the function app:
+```bash
+curl -s -o /dev/null -w "%{http_code}" "https://func-cc-send-dev-<suffix>.azurewebsites.net/"
+```
+The function should start processing within 30 seconds after the ping. If this happens frequently, consider switching to an Elastic Premium (EP1) plan.
+
 ### Function App Timeout
 
 **Symptom**: "The operation timed out" errors in Service Bus processing.

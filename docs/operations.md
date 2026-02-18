@@ -490,7 +490,11 @@ az appservice plan update \
 
 ### 2. Send Function App (Consumption Plan)
 
-**Automatically scales**; no manual action needed. If you hit timeout limits, check:
+**Automatically scales**; no manual action needed.
+
+> **Known behavior**: The Consumption plan scale controller may be slow to wake the function when using identity-based Service Bus connections. If messages accumulate in `cc-send` but the function shows no traces, force a cold start with `curl https://func-cc-send-<env>-<suffix>.azurewebsites.net/`. Consider Elastic Premium (EP1) if this occurs frequently.
+
+If you hit timeout limits, check:
 
 ```bash
 # Check concurrent sends (look for ThrottleState updates)

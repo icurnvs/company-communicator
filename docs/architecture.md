@@ -209,15 +209,17 @@ Company Communicator enables corporate communications teams to:
 - Dead-letter on permanent failure
 
 **Tech Stack**:
-- Azure Functions v4 (Consumption plan for independent auto-scaling)
-- Service Bus trigger
-- M365 Agents SDK for proactive messaging
+- Azure Functions v4 (Windows Consumption plan for independent auto-scaling)
+- Service Bus trigger (identity-based connection)
+- Direct HTTP to Bot Framework REST API (no Agents SDK dependency — uses `TokenCredential` for auth)
 - `ThrottleState` entity in SQL for distributed throttle coordination
 
 **Key Details**:
-- Runs on **independent Consumption plan** (scales to 200+ instances during large broadcasts)
+- Runs on **independent Windows Consumption plan** (scales to 200+ instances during large broadcasts; Windows because Linux Consumption + Linux Dedicated plans can't coexist in the same resource group)
+- Requires `Bot__AppId` app setting (Entra app registration client ID) for Bot Framework REST API authentication
 - Caches Adaptive Card template in `static ConcurrentDictionary` (persists across invocations)
 - Uses optimistic concurrency on `ThrottleState` entity (RowVersion token)
+- **Cold start note**: The Consumption plan scale controller may be slow to wake the function when using identity-based Service Bus connections. An HTTP ping to the function app endpoint can force a cold start if messages are stuck in the queue
 
 ### React Frontend (`CompanyCommunicator.Api/ClientApp`)
 
