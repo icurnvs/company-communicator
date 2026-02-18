@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>CompanyCommunicator.Api</RootNamespace>
+    <AssemblyName>CompanyCommunicator.Api</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Build ClientApp before publishing -->
+    <SpaRoot>ClientApp\</SpaRoot>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
+    <!-- Build the SPA if not already done -->
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm ci" />
+    <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />
+    <ItemGroup>
+      <DistFiles Include="$(SpaRoot)dist\**" />
+      <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>%(DistFiles.Identity)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <!-- M365 Agents SDK (replacement for Bot Framework SDK) -->
+    <PackageReference Include="Microsoft.Agents.Hosting.AspNetCore" Version="1.4.79-beta" />
+    <PackageReference Include="Microsoft.Agents.Authentication.Msal" Version="1.4.79-beta" />
+    <PackageReference Include="Microsoft.Agents.Builder" Version="1.4.79-beta" />
+    <PackageReference Include="Microsoft.Agents.Extensions.Teams" Version="1.4.79-beta" />
+
+    <!-- Identity and auth -->
+    <PackageReference Include="Microsoft.Identity.Web" Version="4.3.0" />
+
+    <!-- Microsoft Graph v5 -->
+    <PackageReference Include="Microsoft.Graph" Version="5.102.0" />
+
+    <!-- Azure SDK -->
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
+    <PackageReference Include="Azure.Identity" Version="1.17.1" />
+
+    <!-- Observability -->
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CompanyCommunicator.Core\CompanyCommunicator.Core.csproj" />
+  </ItemGroup>
+
+</Project>

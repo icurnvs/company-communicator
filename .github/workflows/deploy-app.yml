@@ -1,0 +1,326 @@
+# =============================================================================
+# deploy-app.yml – Company Communicator v2 Application Deployment
+#
+# Builds and deploys all application components:
+#   - Web App (ASP.NET Core 8 + React SPA, published together)
+#   - Prep Function App (Durable Functions, isolated worker)
+#   - Send Function App (Service Bus trigger, isolated worker)
+#   - EF Core database migrations (run against live Azure SQL)
+#
+# Triggers:
+#   - Manual (workflow_dispatch) with environment selection
+#   - Automatically when CI workflow completes successfully on main
+#
+# Required GitHub Environments: dev, stg, prod
+# Each environment must have the following secrets configured:
+#   AZURE_CLIENT_ID          – App registration client ID for OIDC federation
+#   AZURE_TENANT_ID          – Entra ID tenant ID
+#   AZURE_SUBSCRIPTION_ID    – Azure subscription ID
+#   AZURE_RESOURCE_GROUP     – Target resource group name
+#   SQL_CONNECTION_STRING    – ADO.NET connection string for EF migration runner
+#                              (only needs schema-change DDL permissions)
+#
+# Resource name convention (Bicep appends a uniqueString suffix):
+#   Web App:       app-cc-{env}-{suffix}
+#   Prep Function: func-cc-prep-{env}-{suffix}
+#   Send Function: func-cc-send-{env}-{suffix}
+# The deploy job queries actual names from the resource group at runtime.
+# =============================================================================
+
+name: Deploy Application
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - dev
+          - stg
+          - prod
+
+  workflow_run:
+    workflows:
+      - CI
+    branches:
+      - main
+    types:
+      - completed
+
+# Only one application deployment per environment at a time.
+# New deployments queue rather than cancel to prevent partial deploys.
+concurrency:
+  group: deploy-app-${{ github.event.inputs.environment || 'dev' }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write   # Required for OIDC token acquisition
+  contents: read
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  NODE_VERSION: "20"
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  NPM_CONFIG_FUND: "false"
+  TARGET_ENV: ${{ github.event.inputs.environment || 'dev' }}
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Gate: skip deployment if triggered by a failed CI run
+  # ---------------------------------------------------------------------------
+  check-ci:
+    name: Check CI status
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+    steps:
+      - name: Evaluate trigger
+        id: check
+        run: |
+          # When triggered manually, always deploy
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          # When triggered by workflow_run, only deploy if CI succeeded
+          elif [ "${{ github.event.workflow_run.conclusion }}" = "success" ]; then
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "CI workflow did not succeed (conclusion: ${{ github.event.workflow_run.conclusion }}). Skipping deployment."
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    name: Build and publish artifacts
+    needs: check-ci
+    if: needs.check-ci.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: src/CompanyCommunicator.Api/ClientApp/package-lock.json
+
+      # The PublishRunWebpack MSBuild target in the .csproj automatically runs
+      # `npm ci && npm run build` for the SPA during `dotnet publish`.
+      # Node.js must be on the PATH before invoking dotnet publish.
+      - name: Restore NuGet packages
+        run: dotnet restore CompanyCommunicator.sln
+
+      # -----------------------------------------------------------------------
+      # Build and publish Web App (includes SPA build via PublishRunWebpack)
+      # -----------------------------------------------------------------------
+      - name: Publish Web App
+        run: |
+          dotnet publish src/CompanyCommunicator.Api/CompanyCommunicator.Api.csproj \
+            -c Release \
+            --no-restore \
+            -o ./publish/api
+
+      # -----------------------------------------------------------------------
+      # Build and publish Prep Function App
+      # -----------------------------------------------------------------------
+      - name: Publish Prep Function App
+        run: |
+          dotnet publish src/CompanyCommunicator.Functions.Prep/CompanyCommunicator.Functions.Prep.csproj \
+            -c Release \
+            --no-restore \
+            -o ./publish/func-prep
+
+      # -----------------------------------------------------------------------
+      # Build and publish Send Function App
+      # -----------------------------------------------------------------------
+      - name: Publish Send Function App
+        run: |
+          dotnet publish src/CompanyCommunicator.Functions.Send/CompanyCommunicator.Functions.Send.csproj \
+            -c Release \
+            --no-restore \
+            -o ./publish/func-send
+
+      # -----------------------------------------------------------------------
+      # Create deployment packages (zip archives)
+      # az webapp deploy and azure/functions-action both accept zip packages.
+      # -----------------------------------------------------------------------
+      - name: Package all components
+        run: |
+          mkdir -p artifacts
+
+          pushd ./publish/api
+          zip -r ../../artifacts/api.zip .
+          popd
+
+          pushd ./publish/func-prep
+          zip -r ../../artifacts/func-prep.zip .
+          popd
+
+          pushd ./publish/func-send
+          zip -r ../../artifacts/func-send.zip .
+          popd
+
+          echo "Package sizes:"
+          ls -lh artifacts/
+
+      - name: Upload deployment artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-packages-${{ github.run_id }}
+          path: artifacts/
+          retention-days: 7
+
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment || 'dev' }}
+    needs: build
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+
+    # Production deployments require manual approval configured in the
+    # GitHub environment protection rules (Settings > Environments > prod).
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Download deployment artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-packages-${{ github.run_id }}
+          path: artifacts/
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # -----------------------------------------------------------------------
+      # Derive resource names from the resource group.
+      # Bicep appends a uniqueString suffix to globally-unique names, so we
+      # query the actual deployed resource names by prefix pattern.
+      # -----------------------------------------------------------------------
+      - name: Set resource names
+        id: names
+        run: |
+          ENV="${{ env.TARGET_ENV }}"
+          RG="rg-cc-${ENV}"
+          WEB=$(az webapp list --resource-group "$RG" --query "[?starts_with(name, 'app-cc-${ENV}')].name | [0]" -o tsv)
+          PREP=$(az functionapp list --resource-group "$RG" --query "[?starts_with(name, 'func-cc-prep-${ENV}')].name | [0]" -o tsv)
+          SEND=$(az functionapp list --resource-group "$RG" --query "[?starts_with(name, 'func-cc-send-${ENV}')].name | [0]" -o tsv)
+          echo "web_app_name=${WEB}" >> $GITHUB_OUTPUT
+          echo "func_prep_name=${PREP}" >> $GITHUB_OUTPUT
+          echo "func_send_name=${SEND}" >> $GITHUB_OUTPUT
+
+      # -----------------------------------------------------------------------
+      # Deploy Web App
+      # WEBSITE_RUN_FROM_PACKAGE=1 is already set by Bicep, so the zip is
+      # mounted directly from blob storage after upload.
+      # -----------------------------------------------------------------------
+      - name: Deploy Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ steps.names.outputs.web_app_name }}
+          package: artifacts/api.zip
+
+      # -----------------------------------------------------------------------
+      # Deploy Prep Function App
+      # -----------------------------------------------------------------------
+      - name: Deploy Prep Function App
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ steps.names.outputs.func_prep_name }}
+          package: artifacts/func-prep.zip
+          respect-funcignore: false
+
+      # -----------------------------------------------------------------------
+      # Deploy Send Function App
+      # -----------------------------------------------------------------------
+      - name: Deploy Send Function App
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ steps.names.outputs.func_send_name }}
+          package: artifacts/func-send.zip
+          respect-funcignore: false
+
+      # -----------------------------------------------------------------------
+      # Run EF Core database migrations
+      #
+      # The dotnet-ef global tool runs migrations against the live Azure SQL
+      # database using the SQL_CONNECTION_STRING secret.  The tool targets the
+      # Api project (which contains the DbContext and migrations).
+      #
+      # Prerequisites (one-time setup):
+      #   dotnet tool install --global dotnet-ef
+      #
+      # The managed identity used at runtime does NOT need DDL rights; only
+      # the migration runner connection string does (db_ddladmin is sufficient).
+      # -----------------------------------------------------------------------
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Run EF Core migrations
+        env:
+          ConnectionStrings__SqlConnection: ${{ secrets.SQL_CONNECTION_STRING }}
+        run: |
+          dotnet ef database update \
+            --project src/CompanyCommunicator.Core/CompanyCommunicator.Core.csproj \
+            --startup-project src/CompanyCommunicator.Api/CompanyCommunicator.Api.csproj \
+            --no-build \
+            --verbose
+
+      # -----------------------------------------------------------------------
+      # Health check – verify the API is responding after deployment
+      # Retry up to 10 times with 30-second intervals (total wait: up to 5 min)
+      # to account for web app warm-up time.
+      # -----------------------------------------------------------------------
+      - name: Health check – Web App
+        id: health-check
+        run: |
+          WEB_APP_NAME="${{ steps.names.outputs.web_app_name }}"
+          HEALTH_URL="https://${WEB_APP_NAME}.azurewebsites.net/health/ready"
+          echo "Waiting for health endpoint: $HEALTH_URL"
+
+          for i in $(seq 1 10); do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$HEALTH_URL" || echo "000")
+            echo "Attempt $i/10 – HTTP status: $HTTP_STATUS"
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "Health check passed."
+              break
+            fi
+            if [ $i -eq 10 ]; then
+              echo "ERROR: Health check failed after 10 attempts. Last HTTP status: $HTTP_STATUS"
+              exit 1
+            fi
+            echo "Retrying in 30 seconds..."
+            sleep 30
+          done
+
+      - name: Write deployment summary
+        if: always()
+        run: |
+          echo "## Application Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Resource Name | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Web App | ${{ steps.names.outputs.web_app_name }} | ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Prep Function | ${{ steps.names.outputs.func_prep_name }} | ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Send Function | ${{ steps.names.outputs.func_send_name }} | ${{ job.status }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ env.TARGET_ENV }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Web App URL:** https://${{ steps.names.outputs.web_app_name }}.azurewebsites.net" >> $GITHUB_STEP_SUMMARY

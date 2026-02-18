@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>CompanyCommunicator.Functions.Prep</RootNamespace>
+    <AssemblyName>CompanyCommunicator.Functions.Prep</AssemblyName>
+    <AzureFunctionsVersion>v4</AzureFunctionsVersion>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Azure Functions isolated worker host -->
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.0.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.24.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask" Version="1.1.7" />
+
+    <!-- Observability -->
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.0.0" />
+
+    <!-- Azure Identity for Managed Identity -->
+    <PackageReference Include="Azure.Identity" Version="1.17.1" />
+
+    <!-- Azure SDK clients (needed by Program.cs) -->
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
+
+    <!-- Microsoft Graph v5 (needed by Program.cs for GraphServiceClient) -->
+    <PackageReference Include="Microsoft.Graph" Version="5.102.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CompanyCommunicator.Core\CompanyCommunicator.Core.csproj" />
+  </ItemGroup>
+
+</Project>

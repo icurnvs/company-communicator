@@ -1,0 +1,144 @@
+# =============================================================================
+# ci.yml – Company Communicator v2 Continuous Integration
+#
+# Triggers on every push to main and every pull request targeting main.
+# Runs build, test, security scans, and frontend validation.
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# Cancel any in-progress CI run for the same branch/PR when a new push arrives.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write          # Required to publish test results as check runs
+  pull-requests: write   # Required to annotate PRs with test results
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  NODE_VERSION: "20"
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  # Prevent npm from polluting the runner cache with audit report output
+  NPM_CONFIG_FUND: "false"
+
+jobs:
+  build-and-test:
+    name: Build, Test, and Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Checkout
+      # -----------------------------------------------------------------------
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # 2. Setup toolchains
+      # -----------------------------------------------------------------------
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: src/CompanyCommunicator.Api/ClientApp/package-lock.json
+
+      # -----------------------------------------------------------------------
+      # 3. Restore NuGet packages
+      # -----------------------------------------------------------------------
+      - name: Restore NuGet packages
+        run: dotnet restore CompanyCommunicator.sln
+
+      # -----------------------------------------------------------------------
+      # 4. Build solution (Release configuration, warnings-as-errors enforced
+      #    via Directory.Build.props TreatWarningsAsErrors=true)
+      # -----------------------------------------------------------------------
+      - name: Build solution
+        run: dotnet build CompanyCommunicator.sln --no-restore -c Release
+
+      # -----------------------------------------------------------------------
+      # 5. Run all unit tests
+      #    - TRX format for upload action compatibility
+      #    - Code coverage collected for future reporting
+      # -----------------------------------------------------------------------
+      - name: Run tests
+        run: |
+          dotnet test CompanyCommunicator.sln \
+            --no-build \
+            -c Release \
+            --logger "trx;LogFileName=results.trx" \
+            --results-directory ./test-results \
+            --collect:"XPlat Code Coverage"
+
+      - name: Upload test results
+        if: always()   # Upload even when tests fail so results are always visible
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./test-results/**/*.trx
+          retention-days: 30
+
+      # -----------------------------------------------------------------------
+      # 6. Security – .NET vulnerable package scan
+      #    dotnet list package --vulnerable writes its report to stdout when
+      #    vulnerabilities are found and outputs "has the following vulnerable
+      #    packages" in that case.  We fail the step if that phrase appears.
+      # -----------------------------------------------------------------------
+      - name: Security scan – NuGet vulnerable packages
+        run: |
+          echo "Scanning NuGet packages for known vulnerabilities..."
+          VULN_OUTPUT=$(dotnet list CompanyCommunicator.sln package --vulnerable --include-transitive 2>&1)
+          echo "$VULN_OUTPUT"
+          if echo "$VULN_OUTPUT" | grep -q "has the following vulnerable packages"; then
+            echo ""
+            echo "ERROR: One or more projects reference packages with known vulnerabilities."
+            echo "Resolve or suppress the issues listed above before merging."
+            exit 1
+          fi
+          echo "No vulnerable packages found."
+
+      # -----------------------------------------------------------------------
+      # 7. Security – npm audit (high and critical only)
+      # -----------------------------------------------------------------------
+      - name: Install npm dependencies
+        working-directory: src/CompanyCommunicator.Api/ClientApp
+        run: npm ci
+
+      - name: Security scan – npm audit
+        working-directory: src/CompanyCommunicator.Api/ClientApp
+        # --audit-level=high fails on high or critical severity advisories only.
+        # Moderate/low advisories generate a warning but do not block CI.
+        run: npm audit --audit-level=high
+
+      # -----------------------------------------------------------------------
+      # 8. Frontend production build verification
+      #    Catches TypeScript errors and Vite bundling failures early, without
+      #    waiting for the full dotnet publish cycle in the deploy workflow.
+      # -----------------------------------------------------------------------
+      - name: Verify frontend production build
+        working-directory: src/CompanyCommunicator.Api/ClientApp
+        run: npm run build
+
+      - name: Upload frontend build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: src/CompanyCommunicator.Api/ClientApp/dist/
+          retention-days: 1   # Short retention; deploy workflow rebuilds from source

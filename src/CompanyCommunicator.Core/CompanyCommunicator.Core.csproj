@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>CompanyCommunicator.Core</RootNamespace>
+    <AssemblyName>CompanyCommunicator.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Data access -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+
+    <!-- DI abstractions -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+
+    <!-- Microsoft Graph v5 -->
+    <PackageReference Include="Microsoft.Graph" Version="5.102.0" />
+
+    <!-- Azure SDK -->
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
+
+    <!-- Polly 8 resilience -->
+    <PackageReference Include="Microsoft.Extensions.Resilience" Version="8.10.0" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.10.0" />
+  </ItemGroup>
+
+</Project>

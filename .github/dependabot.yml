@@ -1,0 +1,150 @@
+# =============================================================================
+# dependabot.yml – Automated dependency update configuration
+#
+# Dependabot monitors three package ecosystems:
+#   - NuGet  (.NET packages for all four src/ projects)
+#   - npm    (React frontend packages in ClientApp/)
+#   - GitHub Actions (workflow action versions)
+#
+# Update schedule: weekly on Monday mornings (UTC) to batch updates into a
+# manageable set of PRs while keeping dependencies reasonably current.
+#
+# Security alerts are handled separately by GitHub's security advisories
+# and are raised immediately regardless of this schedule.
+# =============================================================================
+
+version: 2
+
+updates:
+  # ---------------------------------------------------------------------------
+  # NuGet – .NET solution packages
+  # Covers all .csproj files discovered under the solution root.
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - dotnet
+    groups:
+      # Group all Microsoft.Agents.* packages into a single PR (they version together)
+      microsoft-agents-sdk:
+        patterns:
+          - "Microsoft.Agents.*"
+      # Group all Azure SDK packages
+      azure-sdk:
+        patterns:
+          - "Azure.*"
+      # Group all EF Core packages
+      ef-core:
+        patterns:
+          - "Microsoft.EntityFrameworkCore.*"
+      # Group all Microsoft.Extensions.* packages
+      microsoft-extensions:
+        patterns:
+          - "Microsoft.Extensions.*"
+      # Group Application Insights packages
+      app-insights:
+        patterns:
+          - "Microsoft.ApplicationInsights.*"
+          - "Microsoft.Azure.Functions.Worker.ApplicationInsights"
+      # Group Azure Functions worker packages
+      azure-functions-worker:
+        patterns:
+          - "Microsoft.Azure.Functions.Worker*"
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
+
+  # ---------------------------------------------------------------------------
+  # npm – React frontend (ClientApp)
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: npm
+    directory: "/src/CompanyCommunicator.Api/ClientApp"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:30"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - frontend
+    groups:
+      # Group Fluent UI packages (they version together)
+      fluent-ui:
+        patterns:
+          - "@fluentui/*"
+      # Group React core packages
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      # Group TanStack packages
+      tanstack:
+        patterns:
+          - "@tanstack/*"
+      # Group Teams JS SDK
+      teams-js:
+        patterns:
+          - "@microsoft/teams-js"
+      # Group Vite and its plugins
+      vite:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+      # Group TypeScript toolchain
+      typescript:
+        patterns:
+          - "typescript"
+          - "typescript-eslint"
+          - "@typescript-eslint/*"
+      # Group ESLint packages
+      eslint:
+        patterns:
+          - "eslint"
+          - "@eslint/*"
+          - "eslint-plugin-*"
+      # Group i18n packages
+      i18n:
+        patterns:
+          - "i18next"
+          - "react-i18next"
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
+
+  # ---------------------------------------------------------------------------
+  # GitHub Actions – workflow action versions
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions
+    groups:
+      # Group all actions/* packages
+      actions:
+        patterns:
+          - "actions/*"
+      # Group all azure/* packages
+      azure:
+        patterns:
+          - "azure/*"
+          - "Azure/*"
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope

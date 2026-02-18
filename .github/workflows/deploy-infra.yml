@@ -1,0 +1,235 @@
+# =============================================================================
+# deploy-infra.yml – Company Communicator v2 Infrastructure Deployment
+#
+# Deploys Bicep templates to Azure using OIDC federated credentials.
+# No client secrets are stored; authentication uses GitHub's OIDC token.
+#
+# Triggers:
+#   - Manual (workflow_dispatch) with environment selection
+#   - Automatically on push to main when infra/** files change
+#
+# Required GitHub Environments: dev, stg, prod
+# Each environment must have the following secrets configured:
+#   AZURE_CLIENT_ID          – App registration client ID for OIDC federation
+#   AZURE_TENANT_ID          – Entra ID tenant ID
+#   AZURE_SUBSCRIPTION_ID    – Azure subscription ID
+#   AZURE_RESOURCE_GROUP     – Target resource group name
+#   SQL_ADMIN_OBJECT_ID      – Object ID of Entra ID principal for SQL admin
+#   ALERT_EMAIL              – Email address for operational alert notifications
+#   BOT_APP_ID               – Entra ID Application (client) ID of the bot app reg
+#
+# OIDC Setup (one-time, per environment):
+#   az ad app federated-credential create \
+#     --id <client-id> \
+#     --parameters '{"name":"gh-<env>","issuer":"https://token.actions.githubusercontent.com",
+#       "subject":"repo:<org>/<repo>:environment:<env>","audiences":["api://AzureADTokenExchange"]}'
+# =============================================================================
+
+name: Deploy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - dev
+          - stg
+          - prod
+
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/**"
+
+# Only one infra deployment per environment at a time.
+concurrency:
+  group: deploy-infra-${{ github.event.inputs.environment || 'dev' }}
+  cancel-in-progress: false   # Queue rather than cancel – infra deploys must complete
+
+permissions:
+  id-token: write   # Required for OIDC token acquisition
+  contents: read
+
+# ---------------------------------------------------------------------------
+# Resolve which environment to target.
+# On push (no dispatch input), default to dev.
+# ---------------------------------------------------------------------------
+env:
+  TARGET_ENV: ${{ github.event.inputs.environment || 'dev' }}
+  DOTNET_NOLOGO: "true"
+
+jobs:
+  validate:
+    name: Validate Bicep (${{ github.event.inputs.environment || 'dev' }})
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Bicep CLI
+        run: az bicep install
+
+      - name: Validate Bicep template
+        run: |
+          az deployment group validate \
+            --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
+            --template-file infra/main.bicep \
+            --parameters \
+              environmentName="${{ env.TARGET_ENV }}" \
+              appName="cc" \
+              sqlAdminObjectId="${{ secrets.SQL_ADMIN_OBJECT_ID }}" \
+              alertEmailAddress="${{ secrets.ALERT_EMAIL }}" \
+              botAppId="${{ secrets.BOT_APP_ID }}"
+
+      # -----------------------------------------------------------------------
+      # What-if analysis: shows exactly which resources will change before
+      # applying. Output is captured as a step summary for PR review.
+      # -----------------------------------------------------------------------
+      - name: Bicep what-if analysis
+        id: whatif
+        run: |
+          echo "## Infrastructure What-If Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ env.TARGET_ENV }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Resource Group:** ${{ secrets.AZURE_RESOURCE_GROUP }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          az deployment group what-if \
+            --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
+            --template-file infra/main.bicep \
+            --parameters \
+              environmentName="${{ env.TARGET_ENV }}" \
+              appName="cc" \
+              sqlAdminObjectId="${{ secrets.SQL_ADMIN_OBJECT_ID }}" \
+              alertEmailAddress="${{ secrets.ALERT_EMAIL }}" \
+              botAppId="${{ secrets.BOT_APP_ID }}" \
+            --result-format FullResourcePayloads \
+            2>&1 | tee what-if-output.txt
+
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload what-if output
+        uses: actions/upload-artifact@v4
+        with:
+          name: whatif-${{ env.TARGET_ENV }}-${{ github.run_id }}
+          path: what-if-output.txt
+          retention-days: 14
+
+  deploy:
+    name: Deploy (${{ github.event.inputs.environment || 'dev' }})
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+
+    # Production deployments require manual approval configured in the
+    # GitHub environment protection rules (Settings > Environments > prod).
+
+    outputs:
+      web_app_url: ${{ steps.capture-outputs.outputs.web_app_url }}
+      func_prep_url: ${{ steps.capture-outputs.outputs.func_prep_url }}
+      func_send_url: ${{ steps.capture-outputs.outputs.func_send_url }}
+      bot_handle: ${{ steps.capture-outputs.outputs.bot_handle }}
+      key_vault_uri: ${{ steps.capture-outputs.outputs.key_vault_uri }}
+      app_insights_name: ${{ steps.capture-outputs.outputs.app_insights_name }}
+      web_app_name: ${{ steps.capture-outputs.outputs.web_app_name }}
+      func_prep_name: ${{ steps.capture-outputs.outputs.func_prep_name }}
+      func_send_name: ${{ steps.capture-outputs.outputs.func_send_name }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Bicep CLI
+        run: az bicep install
+
+      # -----------------------------------------------------------------------
+      # Deploy infrastructure. The --name flag creates a named deployment so
+      # it can be referenced from the portal and subsequent runs are idempotent.
+      # -----------------------------------------------------------------------
+      - name: Deploy Bicep template
+        id: deploy
+        run: |
+          DEPLOYMENT_NAME="cc-infra-${{ env.TARGET_ENV }}-$(date +%Y%m%d%H%M%S)"
+
+          az deployment group create \
+            --name "$DEPLOYMENT_NAME" \
+            --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
+            --template-file infra/main.bicep \
+            --parameters \
+              environmentName="${{ env.TARGET_ENV }}" \
+              appName="cc" \
+              sqlAdminObjectId="${{ secrets.SQL_ADMIN_OBJECT_ID }}" \
+              alertEmailAddress="${{ secrets.ALERT_EMAIL }}" \
+              botAppId="${{ secrets.BOT_APP_ID }}" \
+            --output json \
+          | tee deployment-output.json
+
+          echo "DEPLOYMENT_NAME=$DEPLOYMENT_NAME" >> $GITHUB_ENV
+
+      # -----------------------------------------------------------------------
+      # Parse and expose Bicep outputs as step outputs for downstream jobs.
+      # Resource names include a uniqueString suffix from the resource group:
+      #   Web App:       app-cc-{env}-{suffix}
+      #   Prep Function: func-cc-prep-{env}-{suffix}
+      #   Send Function: func-cc-send-{env}-{suffix}
+      # -----------------------------------------------------------------------
+      - name: Capture deployment outputs
+        id: capture-outputs
+        run: |
+          WEB_APP_URL=$(jq -r '.properties.outputs.webAppUrl.value' deployment-output.json)
+          FUNC_PREP_URL=$(jq -r '.properties.outputs.functionAppPrepUrl.value' deployment-output.json)
+          FUNC_SEND_URL=$(jq -r '.properties.outputs.functionAppSendUrl.value' deployment-output.json)
+          BOT_HANDLE=$(jq -r '.properties.outputs.botHandle.value' deployment-output.json)
+          KEY_VAULT_URI=$(jq -r '.properties.outputs.keyVaultUri.value' deployment-output.json)
+          APP_INSIGHTS_NAME=$(jq -r '.properties.outputs.appInsightsName.value' deployment-output.json)
+
+          # Derive resource names from URL hostnames (strip https:// and .azurewebsites.net)
+          WEB_APP_NAME=$(echo "$WEB_APP_URL" | sed 's|https://||' | sed 's|\.azurewebsites\.net||')
+          FUNC_PREP_NAME=$(echo "$FUNC_PREP_URL" | sed 's|https://||' | sed 's|\.azurewebsites\.net||')
+          FUNC_SEND_NAME=$(echo "$FUNC_SEND_URL" | sed 's|https://||' | sed 's|\.azurewebsites\.net||')
+
+          echo "web_app_url=$WEB_APP_URL" >> $GITHUB_OUTPUT
+          echo "func_prep_url=$FUNC_PREP_URL" >> $GITHUB_OUTPUT
+          echo "func_send_url=$FUNC_SEND_URL" >> $GITHUB_OUTPUT
+          echo "bot_handle=$BOT_HANDLE" >> $GITHUB_OUTPUT
+          echo "key_vault_uri=$KEY_VAULT_URI" >> $GITHUB_OUTPUT
+          echo "app_insights_name=$APP_INSIGHTS_NAME" >> $GITHUB_OUTPUT
+          echo "web_app_name=$WEB_APP_NAME" >> $GITHUB_OUTPUT
+          echo "func_prep_name=$FUNC_PREP_NAME" >> $GITHUB_OUTPUT
+          echo "func_send_name=$FUNC_SEND_NAME" >> $GITHUB_OUTPUT
+
+      - name: Write deployment summary
+        run: |
+          echo "## Infrastructure Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | ${{ env.TARGET_ENV }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource Group | ${{ secrets.AZURE_RESOURCE_GROUP }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Web App URL | ${{ steps.capture-outputs.outputs.web_app_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Prep Function URL | ${{ steps.capture-outputs.outputs.func_prep_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Send Function URL | ${{ steps.capture-outputs.outputs.func_send_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Bot Handle | ${{ steps.capture-outputs.outputs.bot_handle }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Key Vault URI | ${{ steps.capture-outputs.outputs.key_vault_uri }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| App Insights | ${{ steps.capture-outputs.outputs.app_insights_name }} |" >> $GITHUB_STEP_SUMMARY

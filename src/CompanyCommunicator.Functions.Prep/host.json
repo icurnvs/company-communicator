@@ -1,0 +1,24 @@
+{
+  "version": "2.0",
+  "logging": {
+    "applicationInsights": {
+      "samplingSettings": {
+        "isEnabled": true,
+        "excludedTypes": "Request"
+      }
+    }
+  },
+  "extensions": {
+    "durableTask": {
+      "storageProvider": {
+        "type": "AzureStorage"
+      }
+    },
+    "serviceBus": {
+      "prefetchCount": 0,
+      "maxConcurrentCalls": 5,
+      "autoCompleteMessages": true,
+      "maxAutoLockRenewalDuration": "00:10:00"
+    }
+  }
+}

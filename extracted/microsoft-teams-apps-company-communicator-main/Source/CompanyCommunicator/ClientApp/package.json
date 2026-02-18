@@ -1,0 +1,77 @@
+{
+  "name": "company-communicator",
+  "version": "5.5.2",
+  "private": true,
+  "dependencies": {
+    "@fluentui/react": "^8.110.3",
+    "@fluentui/react-components": "^9.20.2",
+    "@fluentui/react-datepicker-compat": "^0.1.4",
+    "@fluentui/react-utilities": "^9.9.0",
+    "@microsoft/teams-js": "^2.11.0",
+    "@reduxjs/toolkit": "^1.9.5",
+    "@types/react-redux": "^7.1.25",
+    "@types/react-router-dom": "^5.3.3",
+    "@types/validator": "^13.7.17",
+    "adaptivecards": "^1.2.0",
+    "color-hash": "^2.0.2",
+    "faker": "^5.5.3",
+    "font-awesome": "^4.7.0",
+    "i18next": "^22.5.0",
+    "i18next-browser-languagedetector": "^7.0.1",
+    "i18next-http-backend": "^2.2.1",
+    "markdown-it": "^13.0.1",
+    "moment": "2.29.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-i18next": "^12.3.1",
+    "react-redux": "^8.0.5",
+    "react-router-dom": "^6.11.2",
+    "sass": "^1.62.1",
+    "scheduler": "^0.20.2",
+    "typescript": "^3.9.7",
+    "typestyle": "^2.4.0",
+    "validator": "^13.9.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "overrides": {
+    "@babel/traverse": "7.23.9"
+  },
+  "devDependencies": {
+    "@fortawesome/fontawesome-free": "^6.4.0",
+    "@types/color-hash": "^1.0.2",
+    "@types/history": "^4.7.11",
+    "@types/jest": "29.5.1",
+    "@types/markdown-it": "^12.2.3",
+    "@types/node": "^20.2.3",
+    "@types/react": "^18.2.7",
+    "@types/react-dom": "^18.2.4",
+    "@typescript-eslint/eslint-plugin": "^5.59.7",
+    "eslint": "^8.41.0",
+    "eslint-config-standard-with-typescript": "^34.0.1",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-n": "^15.7.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-react": "^7.32.2",
+    "react-scripts": "^5.0.1"
+  }
+}

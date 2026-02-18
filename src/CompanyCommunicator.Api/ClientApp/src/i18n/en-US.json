@@ -1,0 +1,209 @@
+{
+  "app": {
+    "title": "Company Communicator",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search",
+    "noResults": "No results found",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "nav": {
+    "notifications": "Notifications",
+    "newNotification": "New Notification"
+  },
+  "notificationList": {
+    "title": "Notifications",
+    "newButton": "New Message",
+    "tabs": {
+      "draft": "Drafts",
+      "sent": "Sent",
+      "scheduled": "Scheduled"
+    },
+    "columns": {
+      "title": "Title",
+      "author": "Author",
+      "date": "Date",
+      "status": "Status",
+      "recipients": "Recipients",
+      "succeeded": "Succeeded",
+      "failed": "Failed"
+    },
+    "empty": {
+      "draft": "No draft messages. Create a new message to get started.",
+      "sent": "No sent messages yet.",
+      "scheduled": "No scheduled messages."
+    },
+    "pagination": {
+      "showing": "Showing {{from}}-{{to}} of {{total}}",
+      "previous": "Previous",
+      "next": "Next"
+    }
+  },
+  "status": {
+    "Draft": "Draft",
+    "Scheduled": "Scheduled",
+    "Queued": "Queued",
+    "SyncingRecipients": "Syncing Recipients",
+    "InstallingApp": "Installing App",
+    "Sending": "Sending",
+    "Sent": "Sent",
+    "Canceled": "Canceled",
+    "Failed": "Failed"
+  },
+  "notificationForm": {
+    "title": "Compose Message",
+    "editTitle": "Edit Message",
+    "steps": {
+      "content": "Content",
+      "audience": "Audience"
+    },
+    "fields": {
+      "title": {
+        "label": "Title",
+        "placeholder": "Enter message title",
+        "required": "Title is required",
+        "maxLength": "Title cannot exceed 200 characters"
+      },
+      "summary": {
+        "label": "Summary",
+        "placeholder": "Enter message summary (supports Markdown)"
+      },
+      "imageLink": {
+        "label": "Image URL",
+        "placeholder": "https://example.com/image.jpg",
+        "invalid": "Image URL must start with https://"
+      },
+      "buttonTitle": {
+        "label": "Button Title",
+        "placeholder": "Learn More"
+      },
+      "buttonLink": {
+        "label": "Button URL",
+        "placeholder": "https://example.com",
+        "invalid": "Button URL must start with https://",
+        "bothRequired": "Both button title and button URL are required when either is set"
+      }
+    },
+    "actions": {
+      "saveDraft": "Save as Draft",
+      "sendNow": "Send Now",
+      "schedule": "Schedule",
+      "preview": "Send Preview",
+      "saving": "Saving...",
+      "sending": "Sending...",
+      "scheduling": "Scheduling..."
+    },
+    "schedule": {
+      "title": "Schedule Message",
+      "dateLabel": "Scheduled Date and Time",
+      "dateRequired": "Scheduled date is required",
+      "dateFuture": "Scheduled date must be in the future",
+      "confirm": "Schedule"
+    },
+    "preview": {
+      "title": "Card Preview",
+      "sending": "Sending preview...",
+      "sent": "Preview sent to your Teams client",
+      "error": "Failed to send preview"
+    },
+    "validation": {
+      "audienceRequired": "At least one audience is required. Select 'All Users' or choose specific teams, groups, or rosters."
+    }
+  },
+  "audiencePicker": {
+    "title": "Select Audience",
+    "allUsers": {
+      "label": "All Users",
+      "description": "Send to all users in your organization"
+    },
+    "teams": {
+      "label": "Teams",
+      "placeholder": "Select teams...",
+      "loading": "Loading teams...",
+      "noTeams": "No teams available"
+    },
+    "groups": {
+      "label": "Groups",
+      "placeholder": "Search for groups...",
+      "searching": "Searching...",
+      "noGroups": "No groups found"
+    },
+    "roster": {
+      "label": "Include Roster",
+      "description": "Send to all members of selected teams as individual chats"
+    },
+    "selected": "{{count}} selected",
+    "removeItem": "Remove {{name}}"
+  },
+  "statusView": {
+    "title": "Delivery Status",
+    "overview": "Overview",
+    "progress": "Delivery Progress",
+    "stats": {
+      "total": "Total Recipients",
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "notFound": "Not Found",
+      "canceled": "Canceled",
+      "unknown": "Unknown"
+    },
+    "details": {
+      "title": "Title",
+      "author": "Author",
+      "createdDate": "Created",
+      "sentDate": "Sent",
+      "scheduledDate": "Scheduled For",
+      "status": "Status",
+      "allUsers": "Audience",
+      "allUsersValue": "All Users",
+      "specificAudience": "Specific Teams / Groups"
+    },
+    "actions": {
+      "cancel": "Cancel Notification",
+      "export": "Export Results",
+      "canceling": "Canceling..."
+    },
+    "confirmCancel": {
+      "title": "Cancel Notification",
+      "message": "Are you sure you want to cancel this notification? This action cannot be undone.",
+      "confirm": "Yes, Cancel It"
+    },
+    "autoRefresh": "Auto-refreshing every 10 seconds",
+    "errorMessage": "Error: {{message}}"
+  },
+  "exportManager": {
+    "title": "Export Delivery Results",
+    "description": "Export the delivery results for this notification to a CSV file.",
+    "requestExport": "Request Export",
+    "requesting": "Requesting export...",
+    "status": {
+      "Queued": "Export queued...",
+      "InProgress": "Generating export file...",
+      "Completed": "Export ready for download",
+      "Failed": "Export failed"
+    },
+    "download": "Download CSV",
+    "error": "Export failed: {{message}}"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "notFound": "The requested resource was not found.",
+    "unauthorized": "You are not authorized to perform this action.",
+    "network": "Network error. Please check your connection.",
+    "teamsInit": "Failed to initialize Microsoft Teams SDK.",
+    "authFailed": "Authentication failed. Please reload the page.",
+    "loadFailed": "Failed to load data. Please try again.",
+    "saveFailed": "Failed to save. Please try again.",
+    "sendFailed": "Failed to send notification.",
+    "cancelFailed": "Failed to cancel notification."
+  }
+}

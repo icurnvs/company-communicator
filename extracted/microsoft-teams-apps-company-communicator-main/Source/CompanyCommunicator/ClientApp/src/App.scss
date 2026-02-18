@@ -1,0 +1,137 @@
+@media screen and (min-width: 768px) {
+    .adaptive-task-grid {
+        display: grid;
+        min-height: 500px;
+        padding: 2rem 2rem 2rem 2rem;
+        grid-template-columns: 50% 50%;
+        grid-template-areas:
+            'form-area card-area'
+    }
+
+    .form-area {
+        grid-column: 1;
+        padding: 1rem;
+    }
+
+    .card-area {
+        grid-column: 2;
+        padding: 1rem;
+    }
+
+    .mobile-render {
+        display: none;
+    }
+
+    .desktop-render {
+        display: block;
+    }
+}
+
+@media screen and (max-width: 767px) {
+    .adaptive-task-grid {
+        display: grid;
+        min-height: 500px;
+        // padding: 2rem 2rem 2rem 2rem;
+        grid-template-rows: auto 1fr;
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            'form-area card-area'
+    }
+
+    .form-area {
+        grid-row: 1;
+        padding: 1rem;
+    }
+
+    .card-area {
+        grid-row: 2;
+        padding: 1rem;
+        max-width: 767px;
+    }
+
+    .mobile-render {
+        display: block;
+    }
+
+    .desktop-render {
+        display: none;
+    }
+}
+
+.card-area-border {
+    border: 2px solid var(--colorNeutralBackground5Hover);
+    border-top-color: var(--colorBrandForegroundInvertedPressed);
+}
+
+.dialog-padding {
+    padding: 2rem 2rem 8rem 2rem;
+}
+
+.fixed-footer {
+    display: inline;
+    // position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    padding-bottom: 2rem;
+}
+
+.footer-actions-flex {
+    display: inline-flex;
+}
+
+.footer-action-right {
+    float: right;
+    margin: 2.5rem;
+}
+
+.footer-action-left {
+    float: left;
+    margin: 2.5rem;
+}
+
+.ac-pushButton {
+    padding: 1rem;
+    height: 4rem;
+    color: var(--colorNeutralForeground2BrandHover);
+    border: 0.2rem solid var(--colorNeutralForeground2BrandHover);
+    border-radius: 0.4rem;
+    cursor: pointer;
+
+    &:hover {
+        background: var(--colorBrandBackgroundInvertedSelected);
+    }
+}
+
+.ul-no-bullets {
+    list-style-type: none;
+    padding: 5px;
+}
+
+.info-text {
+    color: var(--colorPalettePumpkinForeground2);
+}
+
+.recipient-text {
+    vertical-align: middle;
+    padding-left: 1px;
+    display: inline-block;
+    width: 32px;
+    padding-right: 8px;
+}
+
+// this can be removed in future. setting this as fluent_ui table has offset issues.
+.fui-TableCell {
+    outline-offset: -2px;
+}
+
+.fui-Persona__primaryText {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    width: 100%;
+}
+
+.delete-messages {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}

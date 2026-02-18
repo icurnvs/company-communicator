@@ -1,0 +1,83 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "2.0.0",
+  "id": "{{BOT_APP_ID}}",
+  "developer": {
+    "name": "Contoso",
+    "websiteUrl": "https://{{WEB_APP_HOSTNAME}}",
+    "privacyUrl": "https://{{WEB_APP_HOSTNAME}}/privacy",
+    "termsOfUseUrl": "https://{{WEB_APP_HOSTNAME}}/terms"
+  },
+  "name": {
+    "short": "Company Communicator",
+    "full": "Company Communicator v2"
+  },
+  "description": {
+    "short": "Broadcast messages to employees via Teams",
+    "full": "Company Communicator enables corporate communications teams to create and send targeted messages to employees through Microsoft Teams. Create text-based or Adaptive Card notifications, target specific teams, groups, or the entire organization, and track delivery status in real-time."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#0078D4",
+  "staticTabs": [
+    {
+      "entityId": "dashboard",
+      "name": "Dashboard",
+      "contentUrl": "https://{{WEB_APP_HOSTNAME}}/clientapp/",
+      "websiteUrl": "https://{{WEB_APP_HOSTNAME}}/clientapp/",
+      "scopes": [
+        "personal"
+      ],
+      "context": [
+        "personalTab"
+      ]
+    }
+  ],
+  "bots": [
+    {
+      "botId": "{{BOT_APP_ID}}",
+      "scopes": [
+        "personal",
+        "team"
+      ],
+      "supportsFiles": false,
+      "isNotificationOnly": false,
+      "commandLists": [
+        {
+          "scopes": [
+            "personal"
+          ],
+          "commands": []
+        }
+      ]
+    }
+  ],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "validDomains": [
+    "{{WEB_APP_HOSTNAME}}"
+  ],
+  "webApplicationInfo": {
+    "id": "{{BOT_APP_ID}}",
+    "resource": "api://{{WEB_APP_HOSTNAME}}/{{BOT_APP_ID}}"
+  },
+  "authorization": {
+    "permissions": {
+      "resourceSpecific": [
+        {
+          "name": "TeamsActivity.Send.User",
+          "type": "Application"
+        },
+        {
+          "name": "ChatMessage.Read.Chat",
+          "type": "Application"
+        }
+      ]
+    }
+  }
+}

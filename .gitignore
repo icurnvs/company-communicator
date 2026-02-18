@@ -1,0 +1,168 @@
+## =============================================================================
+## .gitignore – Company Communicator v2
+## Covers: .NET 8, ASP.NET Core, Azure Functions, React/Vite, VS/Rider/VSCode
+## =============================================================================
+
+## .NET Core
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Build tools
+.msbuildEmitSolution
+.msbuild/
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+artifacts/
+!**/packages/repositories.config
+
+# MSTest
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# NCrunch
+_NCrunch_*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+# dotCover
+*.dotCover
+
+# Visual Studio code coverage
+*.coverage
+*.coveragexml
+
+# Coverlet
+coverage*.json
+coverage*.xml
+coverage*.info
+
+# Azure Functions
+local.settings.json
+
+# Secrets
+*.pfx
+*.key
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+
+# Rider
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
+
+# JetBrains
+.idea/
+*.iml
+*.ipr
+
+# Output
+publish/
+PublishProfiles/
+
+# Terraform / Bicep state
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =============================================================================
+# Node.js / npm / Vite (ClientApp)
+# =============================================================================
+node_modules/
+
+# Vite production build output – rebuilt during dotnet publish via
+# PublishRunWebpack MSBuild target; committing dist conflicts with that process
+src/CompanyCommunicator.Api/ClientApp/dist/
+
+# npm debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# dotenv files
+.env
+.env.local
+.env.*.local
+
+# Vite preview / cache
+.vite/
+
+# =============================================================================
+# Test results and code coverage
+# =============================================================================
+test-results/
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+coverage.json
+
+# =============================================================================
+# MSBuild binary logs
+# =============================================================================
+*.binlog
+
+# =============================================================================
+# EF Core migration bundle (generated build artifact)
+# =============================================================================
+efbundle
+efbundle.exe
+
+# =============================================================================
+# Azure Functions publish output
+# =============================================================================
+.publish/
+
+# =============================================================================
+# GitHub Actions – local CI artifacts
+# =============================================================================
+what-if-output.txt
+deployment-output.json
+manifest-staging/
+manifest-*.zip
+
+# =============================================================================
+# Azure Developer CLI (azd) – if adopted later
+# =============================================================================
+.azure/

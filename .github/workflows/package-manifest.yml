@@ -1,0 +1,156 @@
+# =============================================================================
+# package-manifest.yml – Company Communicator v2 Teams App Manifest Packaging
+#
+# Substitutes environment-specific tokens into manifest.json, then bundles
+# the manifest with the app icons into a deployable manifest.zip.
+#
+# The resulting zip can be:
+#   - Sideloaded via Teams Admin Center > Manage apps > Upload an app
+#   - Published to your organization's app catalog
+#   - Used with the Teams Developer Portal
+#
+# Triggers:
+#   - Manual only (workflow_dispatch)
+#
+# Required inputs:
+#   environment – Target environment (dev / stg / prod)
+#   web_app_hostname – FQDN of the web app (e.g. app-cc-dev-a1b2c.azurewebsites.net)
+#
+# Required secrets (per environment):
+#   BOT_APP_ID – Entra ID Application (client) ID of the registered bot
+# =============================================================================
+
+name: Package Teams Manifest
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - dev
+          - stg
+          - prod
+      web_app_hostname:
+        description: "Web app FQDN (without https://) e.g. app-cc-dev-a1b2c.azurewebsites.net"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-manifest-${{ github.event.inputs.environment }}
+  cancel-in-progress: true
+
+env:
+  TARGET_ENV: ${{ github.event.inputs.environment }}
+  WEB_APP_HOSTNAME: ${{ github.event.inputs.web_app_hostname }}
+
+jobs:
+  package:
+    name: Package manifest for ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # Validate that the manifest source and icon files exist
+      # -----------------------------------------------------------------------
+      - name: Validate manifest source files
+        run: |
+          echo "Validating Manifest/ directory contents..."
+          test -f Manifest/manifest.json || (echo "ERROR: Manifest/manifest.json not found" && exit 1)
+          test -f Manifest/color.png     || (echo "ERROR: Manifest/color.png not found" && exit 1)
+          test -f Manifest/outline.png   || (echo "ERROR: Manifest/outline.png not found" && exit 1)
+          echo "All required manifest files are present."
+
+      # -----------------------------------------------------------------------
+      # Token substitution
+      # Replace {{BOT_APP_ID}} and {{WEB_APP_HOSTNAME}} with actual values.
+      # sed is used for portability; no external tools required.
+      # -----------------------------------------------------------------------
+      - name: Substitute manifest tokens
+        env:
+          BOT_APP_ID: ${{ secrets.BOT_APP_ID }}
+        run: |
+          mkdir -p manifest-staging
+
+          # Copy icons unchanged
+          cp Manifest/color.png   manifest-staging/color.png
+          cp Manifest/outline.png manifest-staging/outline.png
+
+          # Substitute tokens in manifest.json
+          sed \
+            -e "s|{{BOT_APP_ID}}|${BOT_APP_ID}|g" \
+            -e "s|{{WEB_APP_HOSTNAME}}|${WEB_APP_HOSTNAME}|g" \
+            Manifest/manifest.json > manifest-staging/manifest.json
+
+          echo "Token substitution complete. Preview of substituted manifest:"
+          cat manifest-staging/manifest.json
+
+      # -----------------------------------------------------------------------
+      # Validate that no unreplaced tokens remain
+      # -----------------------------------------------------------------------
+      - name: Verify all tokens replaced
+        run: |
+          if grep -q '{{' manifest-staging/manifest.json; then
+            echo "ERROR: Unreplaced tokens found in manifest.json:"
+            grep -n '{{' manifest-staging/manifest.json
+            exit 1
+          fi
+          echo "All tokens successfully replaced."
+
+      # -----------------------------------------------------------------------
+      # Validate JSON syntax
+      # -----------------------------------------------------------------------
+      - name: Validate manifest JSON
+        run: |
+          python3 -c "
+          import json, sys
+          with open('manifest-staging/manifest.json') as f:
+              data = json.load(f)
+          print('manifest.json is valid JSON')
+          print(f'  manifestVersion: {data.get(\"manifestVersion\")}')
+          print(f'  version: {data.get(\"version\")}')
+          print(f'  id: {data.get(\"id\")}')
+          "
+
+      # -----------------------------------------------------------------------
+      # Create the manifest zip
+      # Teams requires the zip to contain manifest.json, color.png, and
+      # outline.png at the root level (not in a subfolder).
+      # -----------------------------------------------------------------------
+      - name: Create manifest.zip
+        run: |
+          cd manifest-staging
+          zip -j ../manifest-${{ env.TARGET_ENV }}.zip manifest.json color.png outline.png
+          cd ..
+          echo "Created manifest-${{ env.TARGET_ENV }}.zip"
+          ls -lh manifest-${{ env.TARGET_ENV }}.zip
+
+      - name: Upload manifest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: teams-manifest-${{ env.TARGET_ENV }}-${{ github.run_id }}
+          path: manifest-${{ env.TARGET_ENV }}.zip
+          retention-days: 90
+
+      - name: Write packaging summary
+        run: |
+          echo "## Teams Manifest Packaged" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | ${{ env.TARGET_ENV }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Web App Hostname | ${{ env.WEB_APP_HOSTNAME }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Artifact | teams-manifest-${{ env.TARGET_ENV }}-${{ github.run_id }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download the artifact and upload **manifest-${{ env.TARGET_ENV }}.zip** to:" >> $GITHUB_STEP_SUMMARY
+          echo "- Teams Admin Center > Manage apps > Upload an app" >> $GITHUB_STEP_SUMMARY
+          echo "- Or the Teams Developer Portal for sideloading during testing" >> $GITHUB_STEP_SUMMARY
