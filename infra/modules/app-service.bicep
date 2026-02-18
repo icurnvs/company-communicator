@@ -154,10 +154,6 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
           value: environmentName
         }
         {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
-        }
-        {
           // Allow up to 10 minutes for the container to start.
           // The Linux App Service container updates CA certificates and runs
           // Oryx startup detection before the app process begins, which can
