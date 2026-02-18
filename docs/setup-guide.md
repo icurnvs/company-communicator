@@ -272,27 +272,9 @@ This step sets up GitHub environments and OIDC federation for zero-secret deploy
    - **Required reviewers**: Add team members who must approve production deployments
    - Click **Save protection rules**
 
-### 3.2 Set Up OIDC Federated Credentials
+### 3.2 Create Deployment Service Principal
 
-For each environment, create an OIDC federated credential in Azure so GitHub can authenticate without storing secrets.
-
-**Per-environment setup (repeat for dev, stg, prod):**
-
-1. In Azure Portal, go to your app registration > **Certificates & secrets**.
-
-2. Click **Federated credentials > Add credential**:
-   - **Federated credential scenario**: GitHub Actions deploying Azure resources
-   - **Organization**: Your GitHub organization name
-   - **Repository**: Your repository name
-   - **Entity type**: Environment
-   - **Environment name**: `dev` (or `stg`, `prod`)
-   - Click **Add**
-
-Verify it was created; you should see a credential with subject like: `repo:{owner}/{repo}:environment:dev` (where `{owner}` is your GitHub username or organization name — an organization is not required)
-
-### 3.3 Create Azure Service Principals
-
-Create a service principal for each environment to own the OIDC credential:
+Create a service principal for each environment to own the OIDC credential and deploy resources:
 
 **Bash:**
 ```bash
@@ -328,21 +310,42 @@ az role assignment create `
 
 Repeat for `stg` and `prod` with appropriate app names and resource groups.
 
+Save the `appId` (application ID) from the output; you'll need it in step 3.3.
+
+### 3.3 Add OIDC Federated Credentials
+
+For each environment, create an OIDC federated credential on the deployment service principal so GitHub Actions can authenticate without storing secrets.
+
+**Per-environment setup (repeat for dev, stg, prod):**
+
+1. In Azure Portal, go to the **gh-cc-deploy-dev** app registration (or the corresponding stg/prod deployment SP) > **Certificates & secrets**.
+
+2. Click **Federated credentials > Add credential**:
+   - **Federated credential scenario**: GitHub Actions deploying Azure resources
+   - **Organization**: Your GitHub username or organization name
+   - **Repository**: Your repository name (e.g., `company-communicator`)
+   - **Entity type**: Environment
+   - **Environment name**: `dev` (or `stg`, `prod`)
+   - **Name**: `gh-cc-deploy-dev` (or `gh-cc-deploy-stg`, `gh-cc-deploy-prod`)
+   - Click **Add**
+
+Verify it was created; you should see a credential with subject like: `repo:{owner}/{repo}:environment:dev` (where `{owner}` is your GitHub username or organization name — an organization is not required)
+
 ### 3.4 Configure Environment Secrets
 
 For each GitHub environment (`dev`, `stg`, `prod`), set these secrets:
 
 | Secret | Value | How to Get |
 |--------|-------|-----------|
-| `AZURE_CLIENT_ID` | App registration client ID from step 1 | Azure Portal > Entra ID > App registrations > Your app > Client ID |
+| `AZURE_CLIENT_ID` | Deployment service principal client ID from step 3.2 | Azure Portal > Entra ID > App registrations > gh-cc-deploy-dev > Client ID |
 | `AZURE_TENANT_ID` | Entra ID tenant ID | Azure Portal > Entra ID > Overview > Tenant ID |
 | `AZURE_SUBSCRIPTION_ID` | Your Azure subscription ID | Azure Portal > Subscriptions > Subscription ID |
 | `AZURE_RESOURCE_GROUP` | Resource group name (e.g., `rg-cc-dev`) | Azure Portal > Resource groups |
 | `SQL_ADMIN_OBJECT_ID` | Your Entra ID user object ID (for initial setup) | `az ad signed-in-user show --query id -o tsv` |
 | `ALERT_EMAIL` | Email for alert notifications | Your team's ops email |
 | `BOT_APP_ID` | App registration client ID from step 1 | Azure Portal > App registration > Client ID |
-| `SQL_CONNECTION_STRING` | ADO.NET connection string for EF migrations | Will be generated after infra deploy; see step 5 |
-| `BOT_APP_SECRET` | Client secret from step 1.5 | Copy from Entra ID (create new if lost) |
+| `SQL_CONNECTION_STRING` | ADO.NET connection string for EF migrations | Set after infra deploy; see step 4.6.3 |
+| `BOT_APP_SECRET` | Client secret from step 1.5 | Copy from Entra ID (create new if lost); see step 4.6.4 |
 
 Add these via GitHub UI: **Settings > Environments > [environment] > Environment secrets > Add Secret**
 
@@ -358,7 +361,7 @@ ALERT_EMAIL=ops-team@contoso.com
 BOT_APP_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
-You'll add `SQL_CONNECTION_STRING` and `BOT_APP_SECRET` after infrastructure deployment.
+You'll add `SQL_CONNECTION_STRING` and `BOT_APP_SECRET` after infrastructure deployment (see steps 4.6.3 and 4.6.4).
 
 ---
 
@@ -557,6 +560,97 @@ az keyvault secret set `
   --value "<bot-client-secret-from-step-1.5>"
 ```
 
+### 4.6 Configure SQL Access for GitHub Actions
+
+The deploy workflow runs EF Core migrations against Azure SQL. Since the SQL Server uses Entra ID-only authentication (no SQL passwords), the GitHub Actions deployment service principal needs database access.
+
+#### 4.6.1 Open SQL Server Firewall for GitHub Actions
+
+GitHub Actions runners connect from outside Azure. Add a temporary firewall rule:
+
+**Bash:**
+```bash
+SQL_SERVER_NAME=$(az sql server list --resource-group rg-cc-dev \
+  --query "[?starts_with(name, 'sql-cc-dev')].name" -o tsv)
+
+az sql server firewall-rule create \
+  --resource-group rg-cc-dev \
+  --server "$SQL_SERVER_NAME" \
+  --name AllowGitHubActions \
+  --start-ip-address 0.0.0.0 \
+  --end-ip-address 255.255.255.255
+```
+
+**PowerShell:**
+```powershell
+$SQL_SERVER_NAME = az sql server list --resource-group rg-cc-dev `
+  --query "[?starts_with(name, 'sql-cc-dev')].name" -o tsv
+
+az sql server firewall-rule create `
+  --resource-group rg-cc-dev `
+  --server $SQL_SERVER_NAME `
+  --name AllowGitHubActions `
+  --start-ip-address 0.0.0.0 `
+  --end-ip-address 255.255.255.255
+```
+
+> **Security note:** This allows connections from any IP. After initial deployment you can tighten this to [GitHub's published IP ranges](https://api.github.com/meta) or remove it entirely if you run migrations locally.
+
+#### 4.6.2 Grant the Deployment Service Principal Database Access
+
+Connect to the Azure SQL database as the Entra ID admin (the `sqlAdminObjectId` principal you specified during infrastructure deployment) and create a database user for the GitHub Actions service principal.
+
+You can connect using Azure Data Studio, SSMS, or the Azure Portal Query Editor:
+
+1. In Azure Portal, go to **SQL databases** > `db-cc-dev` > **Query editor (preview)**.
+2. Sign in with your Entra ID account (the one whose Object ID you used for `sqlAdminObjectId`).
+3. Run the following SQL:
+
+```sql
+-- Create a user for the GitHub Actions deployment service principal.
+-- The name MUST match the display name of the app registration from step 3.2.
+CREATE USER [gh-cc-deploy-dev] FROM EXTERNAL PROVIDER;
+
+-- Grant DDL permissions for running EF Core migrations
+ALTER ROLE db_ddladmin ADD MEMBER [gh-cc-deploy-dev];
+
+-- Grant read/write for migration seed data
+ALTER ROLE db_datareader ADD MEMBER [gh-cc-deploy-dev];
+ALTER ROLE db_datawriter ADD MEMBER [gh-cc-deploy-dev];
+```
+
+Repeat for `stg` and `prod` environments with the corresponding service principal names.
+
+#### 4.6.3 Set the SQL_CONNECTION_STRING GitHub Secret
+
+Get the SQL server FQDN:
+
+**Bash:**
+```bash
+az sql server list --resource-group rg-cc-dev \
+  --query "[?starts_with(name, 'sql-cc-dev')].fullyQualifiedDomainName" -o tsv
+```
+
+**PowerShell:**
+```powershell
+az sql server list --resource-group rg-cc-dev `
+  --query "[?starts_with(name, 'sql-cc-dev')].fullyQualifiedDomainName" -o tsv
+```
+
+Add `SQL_CONNECTION_STRING` to **Settings > Environments > dev > Environment secrets** with this value:
+
+```
+Server=tcp:<server-fqdn>,1433;Initial Catalog=db-cc-dev;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;
+```
+
+Replace `<server-fqdn>` with the output from above (e.g., `sql-cc-dev-a1b2c.database.windows.net`).
+
+> **How this works:** The GitHub Actions workflow authenticates via `azure/login@v2` (OIDC). The `Active Directory Default` authentication mode in the connection string picks up that credential, so the deployment service principal's database user (created in 4.6.2) is used to run migrations.
+
+#### 4.6.4 Set the BOT_APP_SECRET GitHub Secret
+
+Add `BOT_APP_SECRET` to the same environment with the client secret you created in step 1.5.
+
 ---
 
 ## Step 5: Deploy Application Code
@@ -682,16 +776,24 @@ az functionapp deployment source config-zip `
 
 **Bash:**
 ```bash
+# Set the connection string (replace with your actual value from step 4.6.3)
+export ConnectionStrings__SqlConnection="Server=tcp:<server-fqdn>,1433;Initial Catalog=db-cc-dev;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;"
+
 dotnet ef database update \
   --project src/CompanyCommunicator.Core/CompanyCommunicator.Core.csproj \
-  --startup-project src/CompanyCommunicator.Api/CompanyCommunicator.Api.csproj
+  --startup-project src/CompanyCommunicator.Api/CompanyCommunicator.Api.csproj \
+  --connection "$ConnectionStrings__SqlConnection"
 ```
 
 **PowerShell:**
 ```powershell
+# Set the connection string (replace with your actual value from step 4.6.3)
+$env:ConnectionStrings__SqlConnection = "Server=tcp:<server-fqdn>,1433;Initial Catalog=db-cc-dev;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;"
+
 dotnet ef database update `
   --project src/CompanyCommunicator.Core/CompanyCommunicator.Core.csproj `
-  --startup-project src/CompanyCommunicator.Api/CompanyCommunicator.Api.csproj
+  --startup-project src/CompanyCommunicator.Api/CompanyCommunicator.Api.csproj `
+  --connection "$env:ConnectionStrings__SqlConnection"
 ```
 
 ### 5.3 Verify Deployment
@@ -728,7 +830,7 @@ Connect to the database and verify tables were created:
 ```bash
 SQL_SERVER=$(az sql server show --resource-group rg-cc-dev --name sql-cc-dev-<suffix> --query fullyQualifiedDomainName -o tsv)
 
-az sql db query --resource-group rg-cc-dev --server sql-cc-dev-<suffix> --database CompanyCommunicator \
+az sql db query --resource-group rg-cc-dev --server sql-cc-dev-<suffix> --database db-cc-dev \
   --query-text "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo'"
 ```
 
@@ -736,7 +838,7 @@ az sql db query --resource-group rg-cc-dev --server sql-cc-dev-<suffix> --databa
 ```powershell
 $SQL_SERVER = az sql server show --resource-group rg-cc-dev --name sql-cc-dev-<suffix> --query fullyQualifiedDomainName -o tsv
 
-az sql db query --resource-group rg-cc-dev --server sql-cc-dev-<suffix> --database CompanyCommunicator `
+az sql db query --resource-group rg-cc-dev --server sql-cc-dev-<suffix> --database db-cc-dev `
   --query-text "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo'"
 ```
 
@@ -883,7 +985,7 @@ For organization-wide installation:
 
 Verify telemetry is flowing:
 
-1. Azure Portal > App Insights > `app-ins-cc-dev`.
+1. Azure Portal > App Insights > `appi-cc-dev`.
 
 2. Go to **Live Metrics** (real-time events) or **Requests** (last 24 hours).
 
@@ -893,7 +995,7 @@ Verify telemetry is flowing:
 
 Verify diagnostic logs are flowing:
 
-1. Azure Portal > Log Analytics > `log-cc-dev`.
+1. Azure Portal > Log Analytics > `law-cc-dev`.
 
 2. Run a test query:
    ```kusto
@@ -1023,7 +1125,7 @@ az identity show --resource-group rg-cc-dev --name id-cc-dev
 **Solutions**:
 - Check SQL Database DTU/vCores:
   ```bash
-  az sql db show --resource-group rg-cc-dev --server sql-cc-dev-<suffix> --name CompanyCommunicator
+  az sql db show --resource-group rg-cc-dev --server sql-cc-dev-<suffix> --name db-cc-dev
   ```
 - If DTU is >80%, scale up the SQL tier
 - Review slow query logs in Log Analytics:

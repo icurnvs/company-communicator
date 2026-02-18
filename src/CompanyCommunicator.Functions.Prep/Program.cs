@@ -22,9 +22,9 @@ var host = new HostBuilder()
         // Database
         // -----------------------------------------------------------------------
         services.AddAppDbContext(
-            config.GetConnectionString("SqlDb")
+            config.GetConnectionString("SqlConnection")
             ?? throw new InvalidOperationException(
-                "ConnectionStrings:SqlDb is not configured."));
+                "ConnectionStrings:SqlConnection is not configured."));
 
         // -----------------------------------------------------------------------
         // Azure credential (Managed Identity in Azure, dev credential locally)
@@ -42,10 +42,10 @@ var host = new HostBuilder()
         services.AddSingleton(new ServiceBusClient(sbNamespace, credential));
 
         // Blob Storage client (used by BlobStorageService for card and export uploads)
-        var blobUri = new Uri(
-            config["BlobStorage:ServiceUri"]
+        var storageAccountName = config["Storage:AccountName"]
             ?? throw new InvalidOperationException(
-                "BlobStorage:ServiceUri is not configured."));
+                "Storage:AccountName is not configured.");
+        var blobUri = new Uri($"https://{storageAccountName}.blob.core.windows.net");
         services.AddSingleton(new BlobServiceClient(blobUri, credential));
 
         // -----------------------------------------------------------------------

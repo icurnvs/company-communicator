@@ -32,8 +32,8 @@ services.AddApplicationInsightsTelemetry();
 // ---------------------------------------------------------------------------
 // Database
 // ---------------------------------------------------------------------------
-var connectionString = config.GetConnectionString("SqlDb")
-    ?? throw new InvalidOperationException("ConnectionStrings:SqlDb is not configured.");
+var connectionString = config.GetConnectionString("SqlConnection")
+    ?? throw new InvalidOperationException("ConnectionStrings:SqlConnection is not configured.");
 services.AddAppDbContext(connectionString);
 
 // ---------------------------------------------------------------------------
@@ -89,10 +89,10 @@ services.AddSingleton(serviceBusClient);
 services.AddSingleton<IServiceBusSenderFactory>(
     new ServiceBusSenderFactory(serviceBusClient));
 
-// Blob Storage
-var blobServiceUri = new Uri(
-    config["BlobStorage:ServiceUri"]
-    ?? throw new InvalidOperationException("BlobStorage:ServiceUri is not configured."));
+// Blob Storage — construct the blob endpoint URI from the storage account name
+var storageAccountName = config["Storage:AccountName"]
+    ?? throw new InvalidOperationException("Storage:AccountName is not configured.");
+var blobServiceUri = new Uri($"https://{storageAccountName}.blob.core.windows.net");
 services.AddSingleton(new BlobServiceClient(blobServiceUri, azureCredential));
 
 // ---------------------------------------------------------------------------
