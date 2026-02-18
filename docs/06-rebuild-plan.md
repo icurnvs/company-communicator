@@ -300,7 +300,7 @@ CREATE NONCLUSTERED INDEX IX_SentNotifications_NotificationId_DeliveryStatus
 | FileName | nvarchar(500) | Private container; short-lived read-only SAS for download |
 | ErrorMessage | nvarchar(max) | |
 
-### AppConfigurations
+### AppConfiguration
 | Column | Type | Notes |
 |--------|------|-------|
 | Key | nvarchar(200) PK | |

@@ -122,23 +122,23 @@ jobs:
           "
 
       # -----------------------------------------------------------------------
-      # Create the manifest zip
+      # Upload manifest artifact
       # Teams requires the zip to contain manifest.json, color.png, and
       # outline.png at the root level (not in a subfolder).
+      #
+      # NOTE: actions/upload-artifact@v4 wraps a single zip in another zip
+      # when downloaded, which breaks Teams upload. By uploading the individual
+      # files instead, GitHub's artifact download produces a single zip with the
+      # files at the root — exactly what Teams expects.
       # -----------------------------------------------------------------------
-      - name: Create manifest.zip
-        run: |
-          cd manifest-staging
-          zip -j ../manifest-${{ env.TARGET_ENV }}.zip manifest.json color.png outline.png
-          cd ..
-          echo "Created manifest-${{ env.TARGET_ENV }}.zip"
-          ls -lh manifest-${{ env.TARGET_ENV }}.zip
-
       - name: Upload manifest artifact
         uses: actions/upload-artifact@v4
         with:
           name: teams-manifest-${{ env.TARGET_ENV }}-${{ github.run_id }}
-          path: manifest-${{ env.TARGET_ENV }}.zip
+          path: |
+            manifest-staging/manifest.json
+            manifest-staging/color.png
+            manifest-staging/outline.png
           retention-days: 90
 
       - name: Write packaging summary
@@ -151,6 +151,6 @@ jobs:
           echo "| Web App Hostname | ${{ env.WEB_APP_HOSTNAME }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Artifact | teams-manifest-${{ env.TARGET_ENV }}-${{ github.run_id }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Download the artifact and upload **manifest-${{ env.TARGET_ENV }}.zip** to:" >> $GITHUB_STEP_SUMMARY
+          echo "Download the artifact zip and upload it directly to:" >> $GITHUB_STEP_SUMMARY
           echo "- Teams Admin Center > Manage apps > Upload an app" >> $GITHUB_STEP_SUMMARY
           echo "- Or the Teams Developer Portal for sideloading during testing" >> $GITHUB_STEP_SUMMARY

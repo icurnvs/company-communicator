@@ -19,6 +19,9 @@
 #   AZURE_RESOURCE_GROUP     – Target resource group name
 #   SQL_CONNECTION_STRING    – ADO.NET connection string for EF migration runner
 #                              (only needs schema-change DDL permissions)
+#   BOT_APP_ID               – Client ID of the Teams/bot Entra ID app registration
+#   AUTHOR_GROUP_ID          – Object ID of the Entra ID group granted Author access
+#   ADMIN_GROUP_ID           – Object ID of the Entra ID group granted Admin access
 #
 # Resource name convention (Bicep appends a uniqueString suffix):
 #   Web App:       app-cc-{env}-{suffix}
@@ -226,6 +229,33 @@ jobs:
           echo "web_app_name=${WEB}" >> $GITHUB_OUTPUT
           echo "func_prep_name=${PREP}" >> $GITHUB_OUTPUT
           echo "func_send_name=${SEND}" >> $GITHUB_OUTPUT
+
+      # -----------------------------------------------------------------------
+      # Configure identity app settings on the Web App.
+      # Bicep provisions infrastructure settings (Service Bus, Storage, etc.).
+      # Identity settings (tenant, app registration, group IDs) come from
+      # GitHub environment secrets and are applied here so the app starts with
+      # correct configuration on first boot after each deployment.
+      # -----------------------------------------------------------------------
+      - name: Configure Web App identity settings
+        run: |
+          TENANT_ID="${{ secrets.AZURE_TENANT_ID }}"
+          BOT_APP_ID="${{ secrets.BOT_APP_ID }}"
+          az webapp config appsettings set \
+            --resource-group "rg-cc-${{ env.TARGET_ENV }}" \
+            --name "${{ steps.names.outputs.web_app_name }}" \
+            --settings \
+              "AzureAd__TenantId=${TENANT_ID}" \
+              "AzureAd__ClientId=${BOT_APP_ID}" \
+              "TokenValidation__TenantId=${TENANT_ID}" \
+              "TokenValidation__Audiences__0=${BOT_APP_ID}" \
+              "Connections__ServiceConnection__Settings__AuthorityEndpoint=https://login.microsoftonline.com/${TENANT_ID}" \
+              "Connections__ServiceConnection__Settings__ClientId=${BOT_APP_ID}" \
+              "Bot__TenantId=${TENANT_ID}" \
+              "AllowedTenants__0=${TENANT_ID}" \
+              "Authorization__AuthorGroupId=${{ secrets.AUTHOR_GROUP_ID }}" \
+              "Authorization__AdminGroupId=${{ secrets.ADMIN_GROUP_ID }}" \
+            --output none
 
       # -----------------------------------------------------------------------
       # Deploy Web App

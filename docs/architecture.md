@@ -421,7 +421,7 @@ public async Task<IActionResult> DeleteNotification(...)
 | **Teams** | Cached team metadata | TeamId, Name, ServiceUrl |
 | **ThrottleState** | Send Function coordination | Id, RetryAfterUtc, ConcurrentSends, RowVersion (optimistic lock) |
 | **ExportJobs** | Async export task tracking | Id, NotificationId (FK), Status, FileName, ErrorMessage |
-| **AppConfigurations** | App settings | Key (PK), Value, LastUpdated |
+| **AppConfiguration** | App settings | Key (PK), Value, LastUpdated |
 
 ### Key Indexes
 

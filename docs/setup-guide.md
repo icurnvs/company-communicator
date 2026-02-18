@@ -344,10 +344,14 @@ For each GitHub environment (`dev`, `stg`, `prod`), set these secrets:
 | `SQL_ADMIN_OBJECT_ID` | Your Entra ID user object ID (for initial setup) | `az ad signed-in-user show --query id -o tsv` |
 | `ALERT_EMAIL` | Email for alert notifications | Your team's ops email |
 | `BOT_APP_ID` | App registration client ID from step 1 | Azure Portal > App registration > Client ID |
+| `AUTHOR_GROUP_ID` | Object ID of the Entra ID group for Authors | `az ad group show --group "CC-Authors" --query id -o tsv` |
+| `ADMIN_GROUP_ID` | Object ID of the Entra ID group for Admins | `az ad group show --group "CC-Admins" --query id -o tsv` |
 | `SQL_CONNECTION_STRING` | ADO.NET connection string for EF migrations | Set after infra deploy; see step 4.6.3 |
 | `BOT_APP_SECRET` | Client secret from step 1.5 | Copy from Entra ID (create new if lost); see step 4.6.4 |
 
 Add these via GitHub UI: **Settings > Environments > [environment] > Environment secrets > Add Secret**
+
+> `AUTHOR_GROUP_ID` and `ADMIN_GROUP_ID` can point to the same group if you want all admins to also be authors.
 
 **Minimal starter set** (without SQL connection string and bot secret):
 
@@ -359,6 +363,8 @@ AZURE_RESOURCE_GROUP=rg-cc-dev
 SQL_ADMIN_OBJECT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ALERT_EMAIL=ops-team@contoso.com
 BOT_APP_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+AUTHOR_GROUP_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+ADMIN_GROUP_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
 You'll add `SQL_CONNECTION_STRING` and `BOT_APP_SECRET` after infrastructure deployment (see steps 4.6.3 and 4.6.4).
@@ -824,22 +830,30 @@ You should see the managed identity listed.
 
 ### 6.2 Verify Database Schema
 
-Connect to the database and verify tables were created:
+Connect to the database and verify tables were created.
 
-**Bash:**
-```bash
-SQL_SERVER=$(az sql server show --resource-group rg-cc-dev --name sql-cc-dev-<suffix> --query fullyQualifiedDomainName -o tsv)
+> **Note:** `az sql db query` has been removed from Azure CLI. Use one of the options below.
 
-az sql db query --resource-group rg-cc-dev --server sql-cc-dev-<suffix> --database db-cc-dev \
-  --query-text "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo'"
+**Option A — Azure Portal (easiest, no tools required)**
+1. Go to [portal.azure.com](https://portal.azure.com) → your SQL database `db-cc-dev`
+2. Left menu → **Query editor (preview)**
+3. Authenticate and run:
+   ```sql
+   SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo'
+   ```
+
+**Option B — sqlcmd (install once, reuse)**
+
+Install if not present:
+```powershell
+winget install Microsoft.SqlServer.CmdLineUtils
 ```
 
-**PowerShell:**
+Then query:
 ```powershell
 $SQL_SERVER = az sql server show --resource-group rg-cc-dev --name sql-cc-dev-<suffix> --query fullyQualifiedDomainName -o tsv
-
-az sql db query --resource-group rg-cc-dev --server sql-cc-dev-<suffix> --database db-cc-dev `
-  --query-text "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo'"
+sqlcmd -S $SQL_SERVER -d db-cc-dev -U sqladmin -P "<your-password>" `
+  -Q "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo'"
 ```
 
 You should see tables:
@@ -850,7 +864,7 @@ You should see tables:
 - `Teams`
 - `ThrottleState`
 - `ExportJobs`
-- `AppConfigurations`
+- `AppConfiguration`
 
 If the tables are missing, run migrations manually (see section 5.2.3).
 

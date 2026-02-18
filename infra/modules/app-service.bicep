@@ -98,7 +98,8 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
       minTlsVersion: '1.2'
       ftpsState: 'Disabled'
       http20Enabled: true
-      healthCheckPath: '/api/health'
+      healthCheckPath: '/health/ready'
+      appCommandLine: 'dotnet CompanyCommunicator.Api.dll'
       use32BitWorkerProcess: false
       appSettings: [
         // ---- Identity ----
