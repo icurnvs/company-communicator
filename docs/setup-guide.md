@@ -1162,7 +1162,7 @@ To test the dead-letter queue alert:
 
 **Symptom**: Bot doesn't send notifications, or Service Bus triggers don't fire.
 
-**Diagnosis**: Check Function App logs.
+**Diagnosis**: Check Function App logs and Key Vault reference resolution.
 
 **Solutions**:
 ```bash
@@ -1171,11 +1171,29 @@ az functionapp log tail --resource-group rg-cc-dev --name func-cc-prep-dev-<suff
 
 # View Send Function App logs
 az functionapp log tail --resource-group rg-cc-dev --name func-cc-send-dev-<suffix>
+
+# Check if messages are stuck in the prepare queue
+az servicebus queue list --resource-group rg-cc-dev \
+  --namespace-name sb-cc-dev-<suffix> \
+  --query "[].{name:name, active:countDetails.activeMessageCount, deadLetter:countDetails.deadLetterMessageCount}" -o table
 ```
 
 Look for:
-- `Unable to connect to Service Bus` – Check Key Vault secret permissions
-- `Orchestration failed` – Check SQL connection string
+- **Messages accumulating in `cc-prepare` queue** – The Prep Function isn't processing. Check that `keyVaultReferenceIdentity` is set to the MI's resource ID (not `SystemAssigned`):
+  ```bash
+  az rest --method get \
+    --url "/subscriptions/<sub-id>/resourceGroups/rg-cc-dev/providers/Microsoft.Web/sites/func-cc-prep-dev-<suffix>?api-version=2023-12-01" \
+    --query "properties.keyVaultReferenceIdentity" -o tsv
+  ```
+  If it shows `SystemAssigned`, fix with:
+  ```bash
+  MI_ID=$(az identity show --resource-group rg-cc-dev --name id-cc-dev --query id -o tsv)
+  az rest --method patch \
+    --url "/subscriptions/<sub-id>/resourceGroups/rg-cc-dev/providers/Microsoft.Web/sites/func-cc-prep-dev-<suffix>?api-version=2023-12-01" \
+    --body "{\"properties\":{\"keyVaultReferenceIdentity\":\"${MI_ID}\"}}"
+  ```
+- `Unable to connect to Service Bus` – Check Key Vault secret permissions and that `ServiceBus__FullyQualifiedNamespace` app setting is configured
+- `Orchestration failed` – Check SQL connection string (see [SendFedAuthToken troubleshooting](#sql-connection-reset-by-peer-during-sendfedauthtoken) above)
 - `Activity 'SendMessageActivity' failed` – Check bot endpoint and managed identity Graph permissions
 
 ### "Forbidden" on API Calls

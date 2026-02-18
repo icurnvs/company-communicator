@@ -381,6 +381,8 @@ Copy the template and fill in values from your user-secrets:
 }
 ```
 
+> **Service Bus trigger connection:** The `ServiceBusTrigger` attributes use `Connection = "ServiceBus"` as a prefix. The Azure Functions extension resolves this to `ServiceBus:FullyQualifiedNamespace` for identity-based auth in Azure, or falls back to the connection string locally. The `ServiceBus:FullyQualifiedNamespace` key above provides the FQDN for local development.
+
 **Important**: Do NOT commit this file. It contains secrets.
 
 ### 3. Start the Function App

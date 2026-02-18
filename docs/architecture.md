@@ -522,6 +522,10 @@ NONCLUSTERED INDEX IX_NotificationAudiences_NotificationId
   - Storage Queue Data Contributor
   - Storage Table Data Contributor
   - Key Vault Secrets User
+- **Graph application permissions**: User.Read.All, Group.Read.All, TeamMember.Read.All (granted to the MI's service principal, not the bot app registration)
+- **Key Vault reference identity**: All compute resources (Web App, both Function Apps) have `keyVaultReferenceIdentity` set to the MI's resource ID so KV-referenced app settings resolve correctly
+- **SQL connection string**: Uses `Authentication=Active Directory Managed Identity;User Id=<MI-client-id>` (not `Active Directory Default`, because `Microsoft.Data.SqlClient` does not read the `AZURE_CLIENT_ID` environment variable)
+- **Service Bus triggers**: Use identity-based connection with `Connection = "ServiceBus"` prefix — the Functions extension resolves `ServiceBus__fullyQualifiedNamespace` from app settings
 
 ---
 
