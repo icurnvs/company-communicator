@@ -157,6 +157,14 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'WEBSITE_RUN_FROM_PACKAGE'
           value: '1'
         }
+        {
+          // Allow up to 10 minutes for the container to start.
+          // The Linux App Service container updates CA certificates and runs
+          // Oryx startup detection before the app process begins, which can
+          // push cold-start time past the default 230-second limit.
+          name: 'WEBSITES_CONTAINER_START_TIME_LIMIT'
+          value: '600'
+        }
       ]
       cors: {
         allowedOrigins: [

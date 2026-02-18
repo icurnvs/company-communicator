@@ -149,6 +149,13 @@ var app = builder.Build();
 // ---------------------------------------------------------------------------
 // Middleware pipeline
 // ---------------------------------------------------------------------------
+
+// Azure App Service (and most reverse proxies) terminate TLS and forward
+// requests as HTTP internally. UseForwardedHeaders must come first so that
+// UseHttpsRedirection can read X-Forwarded-Proto and know the original
+// request was already HTTPS (and skip the redirect).
+app.UseForwardedHeaders();
+
 app.UseSecurityHeaders();
 app.UseHttpsRedirection();
 

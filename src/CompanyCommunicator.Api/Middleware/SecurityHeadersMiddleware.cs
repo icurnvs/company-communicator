@@ -26,9 +26,13 @@ internal sealed class SecurityHeadersMiddleware
         var headers = context.Response.Headers;
 
         // Allow framing only within Teams/Skype origins (required for Teams tab embedding).
+        // Includes both legacy teams.microsoft.com and the newer teams.cloud.microsoft
+        // domains used by the Microsoft 365 unified experience.
         headers["Content-Security-Policy"] =
             "frame-ancestors 'self' https://teams.microsoft.com " +
-            "https://*.teams.microsoft.com https://*.skype.com";
+            "https://*.teams.microsoft.com https://*.skype.com " +
+            "https://teams.cloud.microsoft https://*.cloud.microsoft " +
+            "https://*.office.com";
 
         // Prevent MIME-type sniffing.
         headers["X-Content-Type-Options"] = "nosniff";
