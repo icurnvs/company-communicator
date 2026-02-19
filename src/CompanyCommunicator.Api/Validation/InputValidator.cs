@@ -150,6 +150,11 @@ internal static class InputValidator
                 {
                     return (false, "AudienceId must not be empty.");
                 }
+
+                if (!Guid.TryParse(audience.AudienceId, out _))
+                {
+                    return (false, $"AudienceId '{audience.AudienceId}' must be a valid GUID for audience type {audience.AudienceType}.");
+                }
             }
         }
 
