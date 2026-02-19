@@ -56,5 +56,20 @@ internal sealed class SentNotificationConfiguration : IEntityTypeConfiguration<S
         builder.HasIndex(sn => new { sn.NotificationId, sn.DeliveryStatus })
             .HasDatabaseName("IX_SentNotifications_NotificationId_DeliveryStatus")
             .IncludeProperties(sn => new { sn.SentDate, sn.StatusCode });
+
+        // Filtered partial index for proactive install batch queries (personal scope).
+        // Only contains rows needing install (ConversationId IS NULL, Queued, User).
+        // Auto-shrinks as rows get ConversationIds — gives O(log(remaining)) seeks.
+        // Keyset pagination on (NotificationId, Id); covers SELECT projection.
+        // v5-R1: Replaces v4's 4-key composite index per efficiency + scalability review.
+        builder.HasIndex(sn => new { sn.NotificationId, sn.Id })
+            .HasDatabaseName("IX_SentNotifications_Install_Lookup_User")
+            .HasFilter("[ConversationId] IS NULL AND [DeliveryStatus] = 'Queued' AND [RecipientType] = 'User'")
+            .IncludeProperties(sn => new { sn.RecipientId, sn.ServiceUrl });
+
+        // Narrow filtered index for team-scope install lookups (~50 rows max).
+        // NOTE: Added via raw SQL in migration because key columns (NotificationId, DeliveryStatus)
+        // conflict with the aggregation index above. EF Core can't model two indexes with same key columns.
+        // See migration AddInstallLookupIndexAndTeamAadGroupId for the CREATE INDEX statement.
     }
 }

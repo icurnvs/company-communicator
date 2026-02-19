@@ -28,5 +28,13 @@ internal sealed class TeamConfiguration : IEntityTypeConfiguration<Team>
 
         builder.Property(t => t.TenantId)
             .HasMaxLength(100);
+
+        builder.Property(t => t.AadGroupId)
+            .HasMaxLength(100);
+
+        builder.HasIndex(t => t.AadGroupId)
+            .HasDatabaseName("IX_Teams_AadGroupId")
+            .IsUnique()
+            .HasFilter("[AadGroupId] IS NOT NULL");
     }
 }

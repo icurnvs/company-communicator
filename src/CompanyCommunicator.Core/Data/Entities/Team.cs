@@ -12,6 +12,14 @@ public sealed class Team
     [MaxLength(200)]
     public string TeamId { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Gets or sets the AAD group ID (GUID) backing this team.
+    /// Used to map from NotificationAudience.AudienceId to this Team record.
+    /// Populated by OnTeamsMembersAddedAsync from teamInfo.AadGroupId.
+    /// </summary>
+    [MaxLength(100)]
+    public string? AadGroupId { get; set; }
+
     /// <summary>Gets or sets the display name of the team.</summary>
     [MaxLength(200)]
     public string? Name { get; set; }
