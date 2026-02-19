@@ -327,8 +327,9 @@ internal sealed class GraphService : IGraphService
         {
             // 403 = admin policy blocks install; 404 = user not found or no Teams license.
             _logger.LogWarning(
-                "InstallAppForUserAsync: Cannot install for user {UserAadId}. Status={StatusCode}",
-                userAadId, odataError.ResponseStatusCode);
+                "InstallAppForUserAsync: Cannot install for user {UserAadId}. Status={StatusCode}, Code={ErrorCode}, Message={ErrorMessage}",
+                userAadId, odataError.ResponseStatusCode,
+                odataError.Error?.Code, odataError.Error?.Message);
             return false;
         }
         catch (Polly.CircuitBreaker.BrokenCircuitException)
@@ -388,8 +389,9 @@ internal sealed class GraphService : IGraphService
         catch (ODataError odataError) when (odataError.ResponseStatusCode is 403 or 404)
         {
             _logger.LogWarning(
-                "InstallAppInTeamAsync: Cannot install in team {TeamGroupId}. Status={StatusCode}",
-                teamGroupId, odataError.ResponseStatusCode);
+                "InstallAppInTeamAsync: Cannot install in team {TeamGroupId}. Status={StatusCode}, Code={ErrorCode}, Message={ErrorMessage}",
+                teamGroupId, odataError.ResponseStatusCode,
+                odataError.Error?.Code, odataError.Error?.Message);
             return false;
         }
         catch (Polly.CircuitBreaker.BrokenCircuitException)
