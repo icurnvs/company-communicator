@@ -147,6 +147,15 @@ resource functionAppSend 'Microsoft.Web/sites@2023-12-01' = {
           name: 'ConnectionStrings__ServiceBusConnection'
           value: kvRefServiceBusConnection
         }
+        // ---- Scale controller ----
+        // Enables runtime-based scale monitoring so the external scale controller
+        // can trigger cold-starts based on queue depth via identity-based auth.
+        // Without this, the function only restarts on deployment (synctriggers),
+        // not when new messages arrive on the cc-send queue.
+        {
+          name: 'WEBSITE_ENABLE_RUNTIME_SCALE_MONITORING'
+          value: '1'
+        }
       ]
     }
   }
