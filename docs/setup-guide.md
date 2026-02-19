@@ -1041,7 +1041,7 @@ This app uses **two separate Teams app packages** to avoid recipients being show
 
 | Package | Source file | Who installs | Purpose |
 |---|---|---|---|
-| **Author** | `Manifest/manifest.json` | Admins/authors — manual policy | Dashboard tab + bot; used by message authors |
+| **Author** | `Manifest/manifest.json` | Admins/authors — manual policy | Dashboard tab only; used by message authors |
 | **Recipient** | `Manifest/manifest-recipient.json` | All employees — proactive install / policy | Bot only; receives broadcast notifications |
 
 The **recipient** package is what gets proactively installed for every message recipient. The catalog ID from the recipient package becomes `teamsAppCatalogId`.
@@ -1061,10 +1061,12 @@ The workflow produces two artifacts:
 
 | Artifact name | Contents |
 |---|---|
-| `teams-manifest-author-dev-<run_id>` | `manifest.json` (Dashboard tab + bot) |
+| `teams-manifest-author-dev-<run_id>` | `manifest.json` (Dashboard tab only) |
 | `teams-manifest-recipient-dev-<run_id>` | `manifest.json` (bot only, no Dashboard tab) |
 
 Both zips contain `manifest.json`, `color.png`, and `outline.png` at the root as required by Teams.
+
+> **Important — Author app identity:** The Author manifest uses a hard-coded `id` GUID (`a3e10636-6eee-41f5-ba88-9a480929eb9f`) that is distinct from the bot App ID. This separation is required: if the Author app's Teams catalog `id` matched the bot App ID, Teams would attribute all bot messages to "Company Communicator (Author)" in teams where both apps are installed. The `webApplicationInfo.id` inside the manifest still references `{{BOT_APP_ID}}` (needed for Teams SSO).
 
 ### 7.2 Upload Recipient Package to Teams Admin Center
 
@@ -1108,6 +1110,8 @@ The author package includes the Dashboard tab and is installed only for message 
    - Click **Save**
 
 > **Tip:** You can also distribute the author package by having admins sideload it directly: Teams > **Apps > Manage your apps > Upload a custom app**.
+
+> **Upgrading from a previous deployment:** If your existing Author app was uploaded with `id` equal to the bot App ID (i.e., the Entra app client ID), Teams will continue to attribute bot messages to that Author app until it is replaced. Re-run the Package Manifest workflow, remove the old Author app from Teams Admin Center, then upload the new package. The new Author app's `id` is `a3e10636-6eee-41f5-ba88-9a480929eb9f`, which is distinct from the bot App ID.
 
 ### 7.4 Set `teamsAppCatalogId`
 
@@ -1406,7 +1410,7 @@ Both the Prep and Send Function Apps require specific app settings to operate co
 
 | Setting | Value | Purpose |
 |---------|-------|---------|
-| `Bot__TeamsAppId` | Teams app catalog ID from Teams Admin Center (see Step 7.3) | Enables proactive app installation before message delivery. **This is the catalog GUID assigned by Teams Admin Center, NOT the Entra app client ID.** Leave empty to disable proactive install. |
+| `Bot__TeamsAppId` | Teams app catalog ID from Teams Admin Center (see Step 7.2) | Enables proactive app installation before message delivery. **This is the catalog GUID assigned by Teams Admin Center, NOT the Entra app client ID.** Leave empty to disable proactive install. |
 | `Bot__InstallWaitSeconds` | `60` (default) | Seconds between install waves and ConversationId refresh |
 | `Bot__MaxRefreshAttempts` | `20` (default) | Maximum polling cycles for ConversationId refresh |
 
@@ -1444,6 +1448,21 @@ az functionapp config appsettings set --resource-group rg-cc-dev \
 curl -s -o /dev/null -w "%{http_code}" "https://func-cc-send-dev-<suffix>.azurewebsites.net/"
 ```
 The function should start processing within 30 seconds after the ping. If this happens frequently, consider switching to an Elastic Premium (EP1) plan.
+
+### Bot Messages Appear as "Company Communicator (Author)"
+
+**Symptom**: Broadcast notifications delivered to a Teams channel (or to users who have the Author app installed) show the sender as "Company Communicator (Author)" instead of "Company Communicator".
+
+**Root cause**: The Author app's Teams catalog `id` matched the bot App ID. When both the Author app and the Recipient app are installed in a team, Teams attributes bot messages to whichever installed app has an `id` that matches the bot — finding the Author app first (by `id`) rather than the Recipient app (by `botId`).
+
+**Solution**: Re-package and re-upload the Author app. The current Author manifest (`Manifest/manifest.json`) now uses a separate hard-coded `id` (`a3e10636-6eee-41f5-ba88-9a480929eb9f`) that does not match the bot App ID. Steps:
+
+1. Run the "Package Teams Manifest" GitHub Actions workflow.
+2. In Teams Admin Center > **Manage apps**, remove the old "Company Communicator (Author)" app.
+3. Upload the new `teams-manifest-author-<env>-<run_id>.zip` artifact.
+4. Redistribute to authors via app setup policy or direct install.
+
+After the new Author app is installed, Teams will correctly attribute bot messages to the Recipient app ("Company Communicator").
 
 ### Function App Timeout
 
