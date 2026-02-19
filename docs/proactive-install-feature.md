@@ -1,10 +1,30 @@
-# Feature Gap: Proactive Bot Installation for Recipients
+# Feature: Proactive Bot Installation for Recipients
 
-## Problem
+**Status: Implemented (Personal + Team Scope)**
 
-When a notification is sent, **every recipient is marked as `RecipientNotFound`** because no user has a `ConversationId` in the database. The bot must be installed in each user's personal scope before proactive messages can be delivered. Without a `ConversationId`, the Send Function has no way to reach the user.
+## Delivery Paths
 
-The original Company Communicator solved this with a proactive installation step that used the Graph API to install the bot for each recipient before sending. Our rebuild is missing this step entirely.
+The proactive installation feature now supports two delivery paths:
+
+### Personal Scope (User DMs)
+- **Audience type**: `AudienceType.Roster` (individual users within a team)
+- **Handler**: `SyncTeamMembersActivity` resolves to individual user AadIds
+- **Install flow**: Windowed fan-out with keyset pagination, up to 50k users
+- **ConversationId source**: Bot installed via Graph, `conversationUpdate` event flows back to bot endpoint, populates `Users.ConversationId`
+- **Delivery**: Proactive messages sent to 1:1 conversations in Teams
+
+### Team Scope (General Channel)
+- **Audience type**: `AudienceType.Team` (all team members in one team's General channel)
+- **Handler**: `SyncTeamChannelActivity` creates a single SentNotification per team (not per user)
+- **Install flow**: Simple sequential install; no windowed batching
+- **ConversationId source**: Bot installed in team scope via Graph, `conversationUpdate` event includes team channel reference
+- **Delivery**: Proactive messages sent to team's General channel
+
+Both paths use the `InstallAppOrchestrator` and `RefreshConversationIdsActivity` to:
+1. Proactively install the bot via Graph API for users/teams without prior installation
+2. Poll for `ConversationId` population (with configurable `Bot__InstallWaitSeconds` and `Bot__MaxRefreshAttempts`)
+3. Refresh `SentNotification.ConversationId` from the `Users` table after install completes
+4. Mark recipients as `RecipientNotFound` if installation fails or `ConversationId` is never populated
 
 ## Current Data Flow (Broken)
 

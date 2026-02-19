@@ -175,11 +175,17 @@ Company Communicator enables corporate communications teams to:
 - `PrepareToSendOrchestrator`: Master orchestration flow
   1. Store Adaptive Card to blob
   2. Sync recipients (all users, team rosters, or groups) via Graph
-  3. Create 1:1 conversations if needed
-  4. Batch recipients and queue to cc-send queue
-  5. Poll delivery status with adaptive delays until complete
+  3. Update recipient count snapshot
+  4. **NEW: InstallAppOrchestrator** – Proactively install bot for recipients without ConversationId
+  5. **NEW: RefreshConversationIdsActivity** – Copy ConversationId from Users to SentNotifications after install
+  6. Batch recipients and queue to cc-send queue
+  7. Poll delivery status with adaptive delays until complete
 - `SyncRecipientsOrchestrator`: Fan-out recipient sync (by audience type)
-- `TeamsConversationOrchestrator`: Fan-out conversation creation
+- `InstallAppOrchestrator`: Sub-orchestrator managing proactive bot installation
+  - `InstallAppForUsersActivity`: Windowed fan-out for personal scope (supports 50k+ users)
+  - `InstallAppForTeamsActivity`: Sequential installation for team scope
+  - Shared polling loop for ConversationId population
+  - `MarkUnreachableActivity`: Marks failed installs as RecipientNotFound
 - `SendQueueOrchestrator`: Batch and queue 100 recipients per message
 - `DataAggregationActivity`: SQL GROUP BY to aggregate delivery counts
 - Timer-triggered sync check (every 10 minutes)
@@ -288,10 +294,22 @@ User -> [UI] -> "Send" button -> POST /api/notifications/{id}/send
          v
 [Prep Function] -> PrepareToSendOrchestrator triggered
          |
-         +-- [SyncRecipientsOrchestrator] -> Graph delta sync
+         +-- [StoreCardActivity] -> Store Adaptive Card to blob
+         |
+         +-- [SyncRecipientsOrchestrator] -> Graph delta sync (Users + Teams)
          |   (scope: AllUsers / TeamRosters / GroupMembers)
          |
-         +-- [TeamsConversationOrchestrator] -> Create 1:1 chats if needed
+         +-- [UpdateRecipientCountActivity] -> Snapshot recipient count
+         |
+         +-- [ReadConfigActivity] -> Load install wait config
+         |
+         +-- [InstallAppOrchestrator] -> Proactive bot install
+         |   +-- [InstallAppForUsersActivity] -> Windowed fan-out (personal scope)
+         |   +-- [InstallAppForTeamsActivity] -> Sequential install (team scope)
+         |   +-- [Shared polling loop] -> Wait for ConversationId population
+         |   +-- [MarkUnreachableActivity] -> Mark failed installs as RecipientNotFound
+         |
+         +-- [RefreshConversationIdsActivity] -> Copy ConversationId from Users to SentNotifications
          |
          +-- [SendQueueOrchestrator] -> Batch 100 recipients, queue to "cc-send"
          |
@@ -314,6 +332,10 @@ User -> [UI] -> "Send" button -> POST /api/notifications/{id}/send
                    v
 [Alert] -> DLQ metric fires, email alert sent
 ```
+
+**Two delivery paths:**
+- **Personal scope** (Roster): Individual user DMs with windowed install fan-out via `InstallAppOrchestrator`
+- **Team scope** (Team): General channel delivery with sequential install
 
 ### Status Aggregation Flow
 

@@ -588,14 +588,15 @@ $GRAPH_SP_ID = az ad sp show --id 00000003-0000-0000-c000-000000000000 --query i
 
 2. Grant the required application permissions:
 
-| Permission | Purpose |
-|---|---|
-| `User.Read.All` | User sync, delta queries, profile photos |
-| `Group.Read.All` | Search groups |
-| `GroupMember.Read.All` | Read group members for recipient resolution |
-| `Directory.Read.All` | Broad directory reads, delta query support |
-| `TeamMember.Read.All` | Read team membership for recipient resolution |
-| `TeamsAppInstallation.ReadWriteForUser.All` | Proactive bot installation for users |
+| Permission | Type | Purpose |
+|---|---|---|
+| `User.Read.All` | Application | User sync, delta queries, profile photos |
+| `Group.Read.All` | Application | Search groups |
+| `GroupMember.Read.All` | Application | Read group members for recipient resolution |
+| `Directory.Read.All` | Application | Broad directory reads, delta query support |
+| `TeamMember.Read.All` | Application | Read team membership for recipient resolution |
+| `TeamsAppInstallation.ReadWriteForUser.All` | Application | Install bot in user's personal scope |
+| `TeamsAppInstallation.ReadWriteForTeam.All` | Application | Install bot in team scope (**NEW — must be admin-consented**) |
 
 **Bash:**
 ```bash
@@ -1183,6 +1184,32 @@ To test the dead-letter queue alert:
 
 ---
 
+## Scaling Guidance
+
+Company Communicator scales to handle large-scale broadcasts. Choose your App Service plan based on the maximum notification recipient size:
+
+| Notification size | Recommended plan | Reason |
+|---|---|---|
+| Up to 5,000 users | S1 (1 vCore) | Default |
+| 5,000 – 10,000 users | S2 (2 vCores) | Doubles callback throughput |
+| 10,000 – 50,000 users | P1v2 or S3 | Required for burst handling |
+
+**Key scaling components**:
+- **App Service Plan (S1 by default)**: Hosts the Web App and Prep Function. Scale up to handle concurrent orchestration callbacks during large broadcasts.
+- **Send Function (Windows Consumption)**: Automatically scales to 200+ instances. No configuration needed — it scales independently based on Service Bus queue depth.
+- **Azure SQL (Serverless, Gen5 2vCore)**: For 10k+ recipients, scale up to 4-6 vCores to handle aggregation queries and SentNotification inserts.
+- **Service Bus (Standard tier)**: Handles all queue traffic. Standard tier supports up to 1000 messages/sec; rarely needs scaling.
+
+To scale the App Service Plan:
+
+```bash
+az appservice plan update --resource-group rg-cc-dev \
+  --name "plan-cc-dev-<suffix>" \
+  --sku S2
+```
+
+---
+
 ## Troubleshooting
 
 ### SSO Token Errors
@@ -1337,7 +1364,27 @@ az webapp restart --resource-group rg-cc-dev --name app-cc-dev-<suffix>
 
 > **Note:** The Bicep templates generate the correct connection string automatically. This manual fix is only needed if a deployment used an older version of the templates.
 
-### Send Function: "Bot:AppId is not configured"
+### Function App Configuration
+
+Both the Prep and Send Function Apps require specific app settings to operate correctly.
+
+#### Prep Function App Settings
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `Bot__TeamsAppId` | Bot's Entra app registration client ID | Used for Graph API proactive install. **NOT** the managed identity client ID. |
+| `Bot__InstallWaitSeconds` | `60` (default) | Seconds between install waves and ConversationId refresh |
+| `Bot__MaxRefreshAttempts` | `20` (default) | Maximum polling cycles for ConversationId refresh |
+
+The Bicep templates configure these automatically. If you need to update them manually:
+
+```bash
+az functionapp config appsettings set --resource-group rg-cc-dev \
+  --name func-cc-prep-dev-<suffix> \
+  --settings "Bot__TeamsAppId=<bot-app-registration-client-id>" "Bot__InstallWaitSeconds=60" "Bot__MaxRefreshAttempts=20"
+```
+
+#### Send Function: "Bot:AppId is not configured"
 
 **Symptom**: `SendMessageFunction` fails instantly (4-10ms) with `InvalidOperationException: Bot:AppId is not configured.` Messages exhaust delivery count and move to the dead-letter queue.
 
