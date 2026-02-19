@@ -36,28 +36,8 @@
       ]
     }
   ],
-  "bots": [
-    {
-      "botId": "{{BOT_APP_ID}}",
-      "scopes": [
-        "personal",
-        "team"
-      ],
-      "supportsFiles": false,
-      "isNotificationOnly": false,
-      "commandLists": [
-        {
-          "scopes": [
-            "personal"
-          ],
-          "commands": []
-        }
-      ]
-    }
-  ],
   "permissions": [
-    "identity",
-    "messageTeamMembers"
+    "identity"
   ],
   "validDomains": [
     "{{WEB_APP_HOSTNAME}}"
