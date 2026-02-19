@@ -237,8 +237,10 @@ module functionAppSend 'modules/function-app-send.bicep' = {
     storageAccountName: storage.outputs.accountName
     kvRefSqlConnection: keyVault.outputs.kvRefSqlConnection
     kvRefServiceBusConnection: keyVault.outputs.kvRefServiceBusConnection
+    kvRefBotAppSecret: keyVault.outputs.kvRefBotAppSecret
     serviceBusFullyQualifiedNamespace: serviceBus.outputs.fullyQualifiedNamespace
     botAppId: botAppId
+    botTenantId: tenant().tenantId
   }
 }
 

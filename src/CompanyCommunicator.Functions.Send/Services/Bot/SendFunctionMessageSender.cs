@@ -30,24 +30,35 @@ internal sealed class SendFunctionMessageSender : IMessageSender
         PooledConnectionLifetime = TimeSpan.FromMinutes(5),
     });
 
-    private readonly TokenCredential _credential;
+    private readonly TokenCredential _botCredential;
     private readonly string _botAppId;
     private readonly ILogger<SendFunctionMessageSender> _logger;
 
     /// <summary>
     /// Initializes a new instance of <see cref="SendFunctionMessageSender"/>.
     /// </summary>
-    /// <param name="credential">Azure credential used for Bot Framework token acquisition.</param>
-    /// <param name="configuration">Application configuration (reads <c>Bot:AppId</c>).</param>
+    /// <param name="configuration">Application configuration (reads Bot:TenantId, Bot:AppId, Bot:AppSecret).</param>
     /// <param name="logger">Logger.</param>
+    /// <remarks>
+    /// Bot Framework validates that the JWT bearer token's <c>appid</c> claim matches the registered
+    /// bot's Microsoft App ID. A managed identity token carries the MI's client ID as <c>appid</c>,
+    /// not the bot's app registration ID, so managed identity cannot be used here. A
+    /// <see cref="ClientSecretCredential"/> using the bot's own client credentials is required.
+    /// </remarks>
     public SendFunctionMessageSender(
-        TokenCredential credential,
         IConfiguration configuration,
         ILogger<SendFunctionMessageSender> logger)
     {
-        _credential = credential;
+        var tenantId = configuration["Bot:TenantId"]
+            ?? throw new InvalidOperationException("Bot:TenantId is not configured.");
         _botAppId = configuration["Bot:AppId"]
             ?? throw new InvalidOperationException("Bot:AppId is not configured.");
+        var clientSecret = configuration["Bot:AppSecret"]
+            ?? throw new InvalidOperationException("Bot:AppSecret is not configured.");
+
+        // ClientSecretCredential so that the acquired JWT has appid == bot's App ID,
+        // which is what the Bot Framework connector service validates.
+        _botCredential = new ClientSecretCredential(tenantId, _botAppId, clientSecret);
         _logger = logger;
     }
 
@@ -157,7 +168,7 @@ internal sealed class SendFunctionMessageSender : IMessageSender
     private async Task<string> GetBotTokenAsync(CancellationToken ct)
     {
         var tokenRequest = new TokenRequestContext(new[] { BotFrameworkScope });
-        var tokenResult = await _credential
+        var tokenResult = await _botCredential
             .GetTokenAsync(tokenRequest, ct)
             .ConfigureAwait(false);
 

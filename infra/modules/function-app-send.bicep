@@ -46,6 +46,12 @@ param serviceBusFullyQualifiedNamespace string
 @description('Bot (Entra) app registration client ID — needed by SendFunctionMessageSender for Bot Framework REST API calls.')
 param botAppId string
 
+@description('Entra tenant ID — used with botAppId + botAppSecret to obtain a Bot Framework token.')
+param botTenantId string
+
+@description('Key Vault reference expression for the bot app client secret.')
+param kvRefBotAppSecret string
+
 // ---------------------------------------------------------------------------
 // Dedicated Consumption Plan (Y1 dynamic) for independent auto-scaling
 // ---------------------------------------------------------------------------
@@ -128,6 +134,14 @@ resource functionAppSend 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'Bot__AppId'
           value: botAppId
+        }
+        {
+          name: 'Bot__TenantId'
+          value: botTenantId
+        }
+        {
+          name: 'Bot__AppSecret'
+          value: kvRefBotAppSecret
         }
         // ---- SQL (Key Vault reference) ----
         {
