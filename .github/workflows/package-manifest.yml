@@ -1,13 +1,15 @@
 # =============================================================================
 # package-manifest.yml – Company Communicator v2 Teams App Manifest Packaging
 #
-# Substitutes environment-specific tokens into manifest.json, then bundles
-# the manifest with the app icons into a deployable manifest.zip.
+# Substitutes environment-specific tokens into both manifests, then bundles
+# each with the app icons into two separate deployable artifacts:
 #
-# The resulting zip can be:
-#   - Sideloaded via Teams Admin Center > Manage apps > Upload an app
-#   - Published to your organization's app catalog
-#   - Used with the Teams Developer Portal
+#   teams-manifest-author-{env}-{run_id}    ← manifest.json (Dashboard tab + bot)
+#   teams-manifest-recipient-{env}-{run_id} ← manifest-recipient.json (bot only)
+#
+# The author package is installed manually by admins/authors via Teams Admin
+# Center or app setup policy. The recipient package is proactively installed
+# for all message recipients — its catalog ID becomes teamsAppCatalogId.
 #
 # Triggers:
 #   - Manual only (workflow_dispatch)
@@ -51,7 +53,7 @@ env:
 
 jobs:
   package:
-    name: Package manifest for ${{ github.event.inputs.environment }}
+    name: Package manifests for ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
 
@@ -60,69 +62,112 @@ jobs:
         uses: actions/checkout@v4
 
       # -----------------------------------------------------------------------
-      # Validate that the manifest source and icon files exist
+      # Validate that both manifest source files and icon files exist
       # -----------------------------------------------------------------------
       - name: Validate manifest source files
         run: |
           echo "Validating Manifest/ directory contents..."
-          test -f Manifest/manifest.json || (echo "ERROR: Manifest/manifest.json not found" && exit 1)
-          test -f Manifest/color.png     || (echo "ERROR: Manifest/color.png not found" && exit 1)
-          test -f Manifest/outline.png   || (echo "ERROR: Manifest/outline.png not found" && exit 1)
+          test -f Manifest/manifest.json           || (echo "ERROR: Manifest/manifest.json not found" && exit 1)
+          test -f Manifest/manifest-recipient.json || (echo "ERROR: Manifest/manifest-recipient.json not found" && exit 1)
+          test -f Manifest/color.png               || (echo "ERROR: Manifest/color.png not found" && exit 1)
+          test -f Manifest/outline.png             || (echo "ERROR: Manifest/outline.png not found" && exit 1)
           echo "All required manifest files are present."
 
       # -----------------------------------------------------------------------
-      # Token substitution
+      # Token substitution — Author manifest (manifest.json)
       # Replace {{BOT_APP_ID}} and {{WEB_APP_HOSTNAME}} with actual values.
-      # sed is used for portability; no external tools required.
       # -----------------------------------------------------------------------
-      - name: Substitute manifest tokens
+      - name: Substitute tokens – author manifest
         env:
           BOT_APP_ID: ${{ secrets.BOT_APP_ID }}
         run: |
-          mkdir -p manifest-staging
+          mkdir -p manifest-author-staging
 
           # Copy icons unchanged
-          cp Manifest/color.png   manifest-staging/color.png
-          cp Manifest/outline.png manifest-staging/outline.png
+          cp Manifest/color.png   manifest-author-staging/color.png
+          cp Manifest/outline.png manifest-author-staging/outline.png
 
           # Substitute tokens in manifest.json
           sed \
             -e "s|{{BOT_APP_ID}}|${BOT_APP_ID}|g" \
             -e "s|{{WEB_APP_HOSTNAME}}|${WEB_APP_HOSTNAME}|g" \
-            Manifest/manifest.json > manifest-staging/manifest.json
+            Manifest/manifest.json > manifest-author-staging/manifest.json
 
-          echo "Token substitution complete. Preview of substituted manifest:"
-          cat manifest-staging/manifest.json
+          echo "Author manifest token substitution complete. Preview:"
+          cat manifest-author-staging/manifest.json
 
       # -----------------------------------------------------------------------
-      # Validate that no unreplaced tokens remain
+      # Token substitution — Recipient manifest (manifest-recipient.json)
+      # The recipient manifest has a hard-coded id GUID; only BOT_APP_ID and
+      # WEB_APP_HOSTNAME tokens remain (used in bots[].botId and
+      # webApplicationInfo). The same sed substitution applies.
+      # -----------------------------------------------------------------------
+      - name: Substitute tokens – recipient manifest
+        env:
+          BOT_APP_ID: ${{ secrets.BOT_APP_ID }}
+        run: |
+          mkdir -p manifest-recipient-staging
+
+          # Copy icons unchanged
+          cp Manifest/color.png   manifest-recipient-staging/color.png
+          cp Manifest/outline.png manifest-recipient-staging/outline.png
+
+          # Substitute tokens in manifest-recipient.json, output as manifest.json
+          # (Teams requires the file inside the zip to be named manifest.json)
+          sed \
+            -e "s|{{BOT_APP_ID}}|${BOT_APP_ID}|g" \
+            -e "s|{{WEB_APP_HOSTNAME}}|${WEB_APP_HOSTNAME}|g" \
+            Manifest/manifest-recipient.json > manifest-recipient-staging/manifest.json
+
+          echo "Recipient manifest token substitution complete. Preview:"
+          cat manifest-recipient-staging/manifest.json
+
+      # -----------------------------------------------------------------------
+      # Validate that no unreplaced tokens remain in either manifest
       # -----------------------------------------------------------------------
       - name: Verify all tokens replaced
         run: |
-          if grep -q '{{' manifest-staging/manifest.json; then
-            echo "ERROR: Unreplaced tokens found in manifest.json:"
-            grep -n '{{' manifest-staging/manifest.json
-            exit 1
+          FAILED=0
+
+          if grep -q '{{' manifest-author-staging/manifest.json; then
+            echo "ERROR: Unreplaced tokens found in author manifest.json:"
+            grep -n '{{' manifest-author-staging/manifest.json
+            FAILED=1
           fi
-          echo "All tokens successfully replaced."
+
+          if grep -q '{{' manifest-recipient-staging/manifest.json; then
+            echo "ERROR: Unreplaced tokens found in recipient manifest.json:"
+            grep -n '{{' manifest-recipient-staging/manifest.json
+            FAILED=1
+          fi
+
+          [ "$FAILED" -eq 0 ] && echo "All tokens successfully replaced in both manifests."
+          exit "$FAILED"
 
       # -----------------------------------------------------------------------
-      # Validate JSON syntax
+      # Validate JSON syntax for both manifests
       # -----------------------------------------------------------------------
       - name: Validate manifest JSON
         run: |
           python3 -c "
-          import json, sys
-          with open('manifest-staging/manifest.json') as f:
-              data = json.load(f)
-          print('manifest.json is valid JSON')
-          print(f'  manifestVersion: {data.get(\"manifestVersion\")}')
-          print(f'  version: {data.get(\"version\")}')
-          print(f'  id: {data.get(\"id\")}')
+          import json
+
+          for label, path in [('author', 'manifest-author-staging/manifest.json'),
+                              ('recipient', 'manifest-recipient-staging/manifest.json')]:
+              with open(path) as f:
+                  data = json.load(f)
+              print(f'{label} manifest.json is valid JSON')
+              print(f'  manifestVersion: {data.get(\"manifestVersion\")}')
+              print(f'  version: {data.get(\"version\")}')
+              print(f'  id: {data.get(\"id\")}')
+              print(f'  name.short: {data.get(\"name\", {}).get(\"short\")}')
+              static_tabs = data.get('staticTabs', [])
+              print(f'  staticTabs count: {len(static_tabs)}')
+              print()
           "
 
       # -----------------------------------------------------------------------
-      # Upload manifest artifact
+      # Upload author manifest artifact
       # Teams requires the zip to contain manifest.json, color.png, and
       # outline.png at the root level (not in a subfolder).
       #
@@ -131,26 +176,45 @@ jobs:
       # files instead, GitHub's artifact download produces a single zip with the
       # files at the root — exactly what Teams expects.
       # -----------------------------------------------------------------------
-      - name: Upload manifest artifact
+      - name: Upload author manifest artifact
         uses: actions/upload-artifact@v4
         with:
-          name: teams-manifest-${{ env.TARGET_ENV }}-${{ github.run_id }}
+          name: teams-manifest-author-${{ env.TARGET_ENV }}-${{ github.run_id }}
           path: |
-            manifest-staging/manifest.json
-            manifest-staging/color.png
-            manifest-staging/outline.png
+            manifest-author-staging/manifest.json
+            manifest-author-staging/color.png
+            manifest-author-staging/outline.png
+          retention-days: 90
+
+      # -----------------------------------------------------------------------
+      # Upload recipient manifest artifact
+      # -----------------------------------------------------------------------
+      - name: Upload recipient manifest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: teams-manifest-recipient-${{ env.TARGET_ENV }}-${{ github.run_id }}
+          path: |
+            manifest-recipient-staging/manifest.json
+            manifest-recipient-staging/color.png
+            manifest-recipient-staging/outline.png
           retention-days: 90
 
       - name: Write packaging summary
         run: |
-          echo "## Teams Manifest Packaged" >> $GITHUB_STEP_SUMMARY
+          echo "## Teams Manifests Packaged" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
           echo "| Environment | ${{ env.TARGET_ENV }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Web App Hostname | ${{ env.WEB_APP_HOSTNAME }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Artifact | teams-manifest-${{ env.TARGET_ENV }}-${{ github.run_id }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Download the artifact zip and upload it directly to:" >> $GITHUB_STEP_SUMMARY
-          echo "- Teams Admin Center > Manage apps > Upload an app" >> $GITHUB_STEP_SUMMARY
-          echo "- Or the Teams Developer Portal for sideloading during testing" >> $GITHUB_STEP_SUMMARY
+          echo "### Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Artifact | Purpose | Who installs |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| \`teams-manifest-author-${{ env.TARGET_ENV }}-${{ github.run_id }}\` | Dashboard tab + bot | Admins/authors (manual policy) |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`teams-manifest-recipient-${{ env.TARGET_ENV }}-${{ github.run_id }}\` | Bot only (no Dashboard tab) | All employees (proactive/policy) |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> **teamsAppCatalogId** should be set to the catalog ID of the **recipient** package." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Upload each zip to Teams Admin Center > Manage apps > Upload an app." >> $GITHUB_STEP_SUMMARY
