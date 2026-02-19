@@ -148,7 +148,21 @@ resource functionAppSend 'Microsoft.Web/sites@2023-12-01' = {
           name: 'ConnectionStrings__SqlConnection'
           value: kvRefSqlConnection
         }
-        // ---- Service Bus (identity-based trigger connection) ----
+        // ---- Service Bus ----
+        // ServiceBus (bare) = connection string for the trigger and the external
+        // scale controller. The scale controller on Windows Consumption cannot
+        // cold-start a function using identity-based (ServiceBus__*) settings
+        // because it polls the queue from outside the function runtime. A direct
+        // connection string lets the scale controller reliably detect queue depth
+        // and start instances from cold.
+        //
+        // ServiceBus__FullyQualifiedNamespace + ServiceBus__clientId are kept so
+        // the Azure SDK clients (ServiceBusSenderFactory) can continue to use
+        // passwordless auth when sending messages (re-queue on throttle, etc.).
+        {
+          name: 'ServiceBus'
+          value: kvRefServiceBusConnection
+        }
         {
           name: 'ServiceBus__FullyQualifiedNamespace'
           value: serviceBusFullyQualifiedNamespace
@@ -161,11 +175,6 @@ resource functionAppSend 'Microsoft.Web/sites@2023-12-01' = {
           name: 'ConnectionStrings__ServiceBusConnection'
           value: kvRefServiceBusConnection
         }
-        // ---- Scale controller ----
-        // Enables runtime-based scale monitoring so the external scale controller
-        // can trigger cold-starts based on queue depth via identity-based auth.
-        // Without this, the function only restarts on deployment (synctriggers),
-        // not when new messages arrive on the cc-send queue.
         {
           name: 'WEBSITE_ENABLE_RUNTIME_SCALE_MONITORING'
           value: '1'
