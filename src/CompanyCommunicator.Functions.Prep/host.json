@@ -10,6 +10,7 @@
   },
   "extensions": {
     "durableTask": {
+      "maxConcurrentActivityFunctions": 50,
       "storageProvider": {
         "type": "AzureStorage"
       }

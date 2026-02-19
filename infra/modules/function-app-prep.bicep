@@ -46,6 +46,19 @@ param kvRefServiceBusConnection string
 @description('Fully-qualified namespace for Service Bus (for passwordless AMQP).')
 param serviceBusFullyQualifiedNamespace string
 
+@description('Teams app external ID for proactive bot installation (bot Entra app client ID).')
+param botTeamsAppId string
+
+@description('Seconds to wait between install waves and ConversationId refresh.')
+@minValue(10)
+@maxValue(300)
+param installWaitSeconds int = 60
+
+@description('Maximum ConversationId refresh attempts.')
+@minValue(1)
+@maxValue(30)
+param maxRefreshAttempts int = 20
+
 // ---------------------------------------------------------------------------
 // Function App: Prep + Data (Durable Functions)
 // Runs on the shared S1 plan alongside the Web App
@@ -129,6 +142,19 @@ resource functionAppPrep 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'DurableTask__HubName'
           value: 'CompanyCommunicatorHub'
+        }
+        // ---- Proactive bot installation ----
+        {
+          name: 'Bot__TeamsAppId'
+          value: botTeamsAppId
+        }
+        {
+          name: 'Bot__InstallWaitSeconds'
+          value: string(installWaitSeconds)
+        }
+        {
+          name: 'Bot__MaxRefreshAttempts'
+          value: string(maxRefreshAttempts)
         }
       ]
     }

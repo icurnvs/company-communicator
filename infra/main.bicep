@@ -42,6 +42,16 @@ param alertEmailAddress string
 @description('Entra ID Application (client) ID of the registered bot application.')
 param botAppId string
 
+@description('Seconds to wait between install waves. Default: 60.')
+@minValue(10)
+@maxValue(300)
+param installWaitSeconds int = 60
+
+@description('Maximum ConversationId refresh attempts. Default: 20.')
+@minValue(1)
+@maxValue(30)
+param maxRefreshAttempts int = 20
+
 // ---------------------------------------------------------------------------
 // Standard tags applied to every resource
 // ---------------------------------------------------------------------------
@@ -199,6 +209,9 @@ module functionAppPrep 'modules/function-app-prep.bicep' = {
     kvRefSqlConnection: keyVault.outputs.kvRefSqlConnection
     kvRefServiceBusConnection: keyVault.outputs.kvRefServiceBusConnection
     serviceBusFullyQualifiedNamespace: serviceBus.outputs.fullyQualifiedNamespace
+    botTeamsAppId: botAppId
+    installWaitSeconds: installWaitSeconds
+    maxRefreshAttempts: maxRefreshAttempts
   }
 }
 
