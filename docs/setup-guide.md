@@ -588,15 +588,16 @@ $GRAPH_SP_ID = az ad sp show --id 00000003-0000-0000-c000-000000000000 --query i
 
 2. Grant the required application permissions:
 
-| Permission | Type | Purpose |
-|---|---|---|
-| `User.Read.All` | Application | User sync, delta queries, profile photos |
-| `Group.Read.All` | Application | Search groups |
-| `GroupMember.Read.All` | Application | Read group members for recipient resolution |
-| `Directory.Read.All` | Application | Broad directory reads, delta query support |
-| `TeamMember.Read.All` | Application | Read team membership for recipient resolution |
-| `TeamsAppInstallation.ReadWriteForUser.All` | Application | Install bot in user's personal scope |
-| `TeamsAppInstallation.ReadWriteForTeam.All` | Application | Install bot in team scope (**NEW — must be admin-consented**) |
+| Permission | Type | Role ID | Purpose |
+|---|---|---|---|
+| `User.Read.All` | Application | `df021288-bdef-4463-88db-98f22de89214` | User sync, delta queries, profile photos |
+| `Group.Read.All` | Application | `5b567255-7703-4780-807c-7be8301ae99b` | Search groups |
+| `GroupMember.Read.All` | Application | `98830695-27a2-44f7-8c18-0c3ebc9698f6` | Read group members for recipient resolution |
+| `Directory.Read.All` | Application | `7ab1d382-f21e-4acd-a863-ba3e13f7da61` | Broad directory reads, delta query support |
+| `TeamMember.Read.All` | Application | `660b7406-55f1-41ca-a0ed-0b035e182f3e` | Read team membership for recipient resolution |
+| `TeamsActivity.Send` | Application | `a267235f-af13-44dc-8385-c1dc93023186` | Send activity feed notifications |
+| `TeamsAppInstallation.ReadWriteForUser.All` | Application | `74ef0291-ca83-4d02-8c7e-d2391e6a444f` | Proactively install bot in user's personal scope |
+| `TeamsAppInstallation.ReadWriteForTeam.All` | Application | `5dad17ba-f6cc-4954-a5a2-a0dcc95154f0` | Proactively install bot in team scope |
 
 **Bash:**
 ```bash
@@ -630,11 +631,23 @@ az rest --method POST \
   --headers "Content-Type=application/json" \
   --body "{\"principalId\":\"${MI_PRINCIPAL_ID}\",\"resourceId\":\"${GRAPH_SP_ID}\",\"appRoleId\":\"660b7406-55f1-41ca-a0ed-0b035e182f3e\"}"
 
-# TeamsAppInstallation.ReadWriteForUser.All
+# TeamsActivity.Send
 az rest --method POST \
   --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${MI_PRINCIPAL_ID}/appRoleAssignments" \
   --headers "Content-Type=application/json" \
   --body "{\"principalId\":\"${MI_PRINCIPAL_ID}\",\"resourceId\":\"${GRAPH_SP_ID}\",\"appRoleId\":\"a267235f-af13-44dc-8385-c1dc93023186\"}"
+
+# TeamsAppInstallation.ReadWriteForUser.All
+az rest --method POST \
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${MI_PRINCIPAL_ID}/appRoleAssignments" \
+  --headers "Content-Type=application/json" \
+  --body "{\"principalId\":\"${MI_PRINCIPAL_ID}\",\"resourceId\":\"${GRAPH_SP_ID}\",\"appRoleId\":\"74ef0291-ca83-4d02-8c7e-d2391e6a444f\"}"
+
+# TeamsAppInstallation.ReadWriteForTeam.All
+az rest --method POST \
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${MI_PRINCIPAL_ID}/appRoleAssignments" \
+  --headers "Content-Type=application/json" \
+  --body "{\"principalId\":\"${MI_PRINCIPAL_ID}\",\"resourceId\":\"${GRAPH_SP_ID}\",\"appRoleId\":\"5dad17ba-f6cc-4954-a5a2-a0dcc95154f0\"}"
 ```
 
 **PowerShell:**
@@ -669,11 +682,23 @@ az rest --method POST `
   --headers "Content-Type=application/json" `
   --body "{`"principalId`":`"$MI_PRINCIPAL_ID`",`"resourceId`":`"$GRAPH_SP_ID`",`"appRoleId`":`"660b7406-55f1-41ca-a0ed-0b035e182f3e`"}"
 
-# TeamsAppInstallation.ReadWriteForUser.All
+# TeamsActivity.Send
 az rest --method POST `
   --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$MI_PRINCIPAL_ID/appRoleAssignments" `
   --headers "Content-Type=application/json" `
   --body "{`"principalId`":`"$MI_PRINCIPAL_ID`",`"resourceId`":`"$GRAPH_SP_ID`",`"appRoleId`":`"a267235f-af13-44dc-8385-c1dc93023186`"}"
+
+# TeamsAppInstallation.ReadWriteForUser.All
+az rest --method POST `
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$MI_PRINCIPAL_ID/appRoleAssignments" `
+  --headers "Content-Type=application/json" `
+  --body "{`"principalId`":`"$MI_PRINCIPAL_ID`",`"resourceId`":`"$GRAPH_SP_ID`",`"appRoleId`":`"74ef0291-ca83-4d02-8c7e-d2391e6a444f`"}"
+
+# TeamsAppInstallation.ReadWriteForTeam.All
+az rest --method POST `
+  --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$MI_PRINCIPAL_ID/appRoleAssignments" `
+  --headers "Content-Type=application/json" `
+  --body "{`"principalId`":`"$MI_PRINCIPAL_ID`",`"resourceId`":`"$GRAPH_SP_ID`",`"appRoleId`":`"5dad17ba-f6cc-4954-a5a2-a0dcc95154f0`"}"
 ```
 
 3. Verify the assignments:
@@ -1303,14 +1328,14 @@ Look for:
 **Diagnosis**: The managed identity cannot acquire a Graph token with the correct permissions. This is typically caused by `DefaultAzureCredential` not targeting the user-assigned MI, even when `AZURE_CLIENT_ID` is set.
 
 **Solutions**:
-1. Verify all 6 Graph permissions are granted to the MI (not the bot app registration):
+1. Verify all 8 Graph permissions are granted to the MI (not the bot app registration):
    ```bash
    MI_PRINCIPAL_ID=$(az identity show --resource-group rg-cc-dev --name id-cc-dev --query principalId -o tsv)
    az rest --method GET \
      --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${MI_PRINCIPAL_ID}/appRoleAssignments" \
      --query "value[].appRoleId" -o tsv
    ```
-   Expected role IDs: `df021288` (User.Read.All), `5b567255` (Group.Read.All), `98830695` (GroupMember.Read.All), `7ab1d382` (Directory.Read.All), `660b7406` (TeamMember.Read.All), `a267235f` (TeamsAppInstallation.ReadWriteForUser.All).
+   Expected role IDs: `df021288` (User.Read.All), `5b567255` (Group.Read.All), `98830695` (GroupMember.Read.All), `7ab1d382` (Directory.Read.All), `660b7406` (TeamMember.Read.All), `a267235f` (TeamsActivity.Send), `74ef0291` (TeamsAppInstallation.ReadWriteForUser.All), `5dad17ba` (TeamsAppInstallation.ReadWriteForTeam.All).
 
 2. Verify the code uses explicit `ManagedIdentityClientId`:
    All three apps (API, Prep Function, Send Function) must create `DefaultAzureCredential` with `ManagedIdentityClientId = config["AZURE_CLIENT_ID"]`. Using bare `new DefaultAzureCredential()` may not reliably target the user-assigned MI for Graph token acquisition.
