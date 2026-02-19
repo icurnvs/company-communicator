@@ -2,7 +2,7 @@
   "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
   "manifestVersion": "1.17",
   "version": "2.1.0",
-  "id": "{{BOT_APP_ID}}",
+  "id": "2db5ed75-c409-4e29-9095-d3571e61c28c",
   "developer": {
     "name": "Contoso",
     "websiteUrl": "https://{{WEB_APP_HOSTNAME}}",
@@ -10,8 +10,8 @@
     "termsOfUseUrl": "https://{{WEB_APP_HOSTNAME}}/terms"
   },
   "name": {
-    "short": "Company Communicator (Author)",
-    "full": "Company Communicator v2 (Author)"
+    "short": "Company Communicator",
+    "full": "Company Communicator v2"
   },
   "description": {
     "short": "Broadcast messages to employees via Teams",
@@ -22,20 +22,7 @@
     "outline": "outline.png"
   },
   "accentColor": "#0078D4",
-  "staticTabs": [
-    {
-      "entityId": "dashboard",
-      "name": "Dashboard",
-      "contentUrl": "https://{{WEB_APP_HOSTNAME}}/clientapp/",
-      "websiteUrl": "https://{{WEB_APP_HOSTNAME}}/clientapp/",
-      "scopes": [
-        "personal"
-      ],
-      "context": [
-        "personalTab"
-      ]
-    }
-  ],
+  "staticTabs": [],
   "bots": [
     {
       "botId": "{{BOT_APP_ID}}",
