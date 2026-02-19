@@ -46,8 +46,8 @@ param kvRefServiceBusConnection string
 @description('Fully-qualified namespace for Service Bus (for passwordless AMQP).')
 param serviceBusFullyQualifiedNamespace string
 
-@description('Teams app external ID for proactive bot installation (bot Entra app client ID).')
-param botTeamsAppId string
+@description('Teams app catalog ID assigned by Teams Admin Center after manifest upload. Empty string disables proactive installation.')
+param botTeamsAppId string = ''
 
 @description('Seconds to wait between install waves and ConversationId refresh.')
 @minValue(10)

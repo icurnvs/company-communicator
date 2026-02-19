@@ -42,6 +42,9 @@ param alertEmailAddress string
 @description('Entra ID Application (client) ID of the registered bot application.')
 param botAppId string
 
+@description('Teams app catalog ID for proactive installation. This is the ID assigned by Teams Admin Center when you upload the app manifest — NOT the Entra app client ID. Leave empty to disable proactive installation.')
+param teamsAppCatalogId string = ''
+
 @description('Seconds to wait between install waves. Default: 60.')
 @minValue(10)
 @maxValue(300)
@@ -209,7 +212,7 @@ module functionAppPrep 'modules/function-app-prep.bicep' = {
     kvRefSqlConnection: keyVault.outputs.kvRefSqlConnection
     kvRefServiceBusConnection: keyVault.outputs.kvRefServiceBusConnection
     serviceBusFullyQualifiedNamespace: serviceBus.outputs.fullyQualifiedNamespace
-    botTeamsAppId: botAppId
+    botTeamsAppId: teamsAppCatalogId
     installWaitSeconds: installWaitSeconds
     maxRefreshAttempts: maxRefreshAttempts
   }

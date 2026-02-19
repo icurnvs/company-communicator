@@ -1099,6 +1099,34 @@ For organization-wide installation:
 
 5. The app is now available in the app store for targeted users.
 
+6. **Copy the Teams App Catalog ID** — click on the app name in the list. The URL will contain the catalog ID (a GUID), e.g.:
+   ```
+   https://admin.teams.microsoft.com/policies/manage-apps/<catalog-id>
+   ```
+   You can also retrieve it via Graph API:
+   ```bash
+   az rest --method GET \
+     --uri "https://graph.microsoft.com/v1.0/appCatalog/teamsApps?\$filter=externalId eq '<your-bot-app-id>'" \
+     --query "value[0].id" -o tsv
+   ```
+
+7. Pass this catalog ID as `teamsAppCatalogId` when running the infra deployment:
+   ```bash
+   az deployment group create \
+     --resource-group rg-cc-<env> \
+     --template-file infra/main.bicep \
+     --parameters ... teamsAppCatalogId=<catalog-id-from-step-6>
+   ```
+   Or set it directly on the Prep Function App if already deployed:
+   ```bash
+   az functionapp config appsettings set \
+     --resource-group rg-cc-<env> \
+     --name func-cc-prep-<env>-<suffix> \
+     --settings "Bot__TeamsAppId=<catalog-id-from-step-6>"
+   ```
+
+> **Note:** If you skip this step, `Bot__TeamsAppId` defaults to empty and proactive installation is disabled. Messages are only delivered to recipients who already have an open conversation with the bot. Proactive installation can be enabled at any time by completing this step and redeploying infra.
+
 ---
 
 ## Step 8: Verify the Deployment
@@ -1372,7 +1400,7 @@ Both the Prep and Send Function Apps require specific app settings to operate co
 
 | Setting | Value | Purpose |
 |---------|-------|---------|
-| `Bot__TeamsAppId` | Bot's Entra app registration client ID | Used for Graph API proactive install. **NOT** the managed identity client ID. |
+| `Bot__TeamsAppId` | Teams app catalog ID from Teams Admin Center (see Step 7.3) | Enables proactive app installation before message delivery. **This is the catalog GUID assigned by Teams Admin Center, NOT the Entra app client ID.** Leave empty to disable proactive install. |
 | `Bot__InstallWaitSeconds` | `60` (default) | Seconds between install waves and ConversationId refresh |
 | `Bot__MaxRefreshAttempts` | `20` (default) | Maximum polling cycles for ConversationId refresh |
 
@@ -1381,7 +1409,7 @@ The Bicep templates configure these automatically. If you need to update them ma
 ```bash
 az functionapp config appsettings set --resource-group rg-cc-dev \
   --name func-cc-prep-dev-<suffix> \
-  --settings "Bot__TeamsAppId=<bot-app-registration-client-id>" "Bot__InstallWaitSeconds=60" "Bot__MaxRefreshAttempts=20"
+  --settings "Bot__TeamsAppId=<teams-app-catalog-id>" "Bot__InstallWaitSeconds=60" "Bot__MaxRefreshAttempts=20"
 ```
 
 #### Send Function: "Bot:AppId is not configured"
