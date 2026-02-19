@@ -4,6 +4,7 @@ using CompanyCommunicator.Core.Services.Graph;
 using CompanyCommunicator.Functions.Prep.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Polly.CircuitBreaker;
 
@@ -13,13 +14,18 @@ public sealed class InstallAppForTeamsActivity
 {
     private readonly AppDbContext _db;
     private readonly IGraphService _graphService;
+    private readonly string _teamsServiceUrl;
     private readonly ILogger<InstallAppForTeamsActivity> _logger;
 
     public InstallAppForTeamsActivity(
-        AppDbContext db, IGraphService graphService, ILogger<InstallAppForTeamsActivity> logger)
+        AppDbContext db,
+        IGraphService graphService,
+        IConfiguration config,
+        ILogger<InstallAppForTeamsActivity> logger)
     {
         _db = db;
         _graphService = graphService;
+        _teamsServiceUrl = config["Bot:TeamsServiceUrl"] ?? "https://smba.trafficmanager.net/amer/";
         _logger = logger;
     }
 
@@ -57,7 +63,23 @@ public sealed class InstallAppForTeamsActivity
                 var success = await _graphService
                     .InstallAppInTeamAsync(groupId, input.TeamsAppId, ct)
                     .ConfigureAwait(false);
-                if (success) installed++; else failed++;
+
+                if (!success) { failed++; continue; }
+
+                installed++;
+
+                // Immediately retrieve the General channel ID from Graph so we can
+                // populate Teams.TeamId without waiting for the conversationUpdate callback.
+                // This mirrors the personal-scope pattern in InstallAppForUsersActivity.
+                var channelId = await _graphService
+                    .GetTeamPrimaryChannelIdAsync(groupId, ct)
+                    .ConfigureAwait(false);
+
+                if (channelId is not null)
+                {
+                    await UpsertTeamRecordAsync(groupId, channelId, ct)
+                        .ConfigureAwait(false);
+                }
             }
             catch (BrokenCircuitException) { throw; }
             catch (Exception ex) when (ex is not OperationCanceledException)
@@ -72,5 +94,39 @@ public sealed class InstallAppForTeamsActivity
             "InstallAppForTeamsActivity: Notification {NotificationId} — Installed={Installed}, Failed={Failed}.",
             input.NotificationId, installed, failed);
         return new InstallBatchResult(installed, failed);
+    }
+
+    /// <summary>
+    /// Upserts the Team record with the primary channel ID and service URL so that
+    /// <see cref="RefreshConversationIdsActivity"/> can copy them to SentNotifications.
+    /// </summary>
+    private async Task UpsertTeamRecordAsync(string groupId, string channelId, CancellationToken ct)
+    {
+        var team = await _db.Teams
+            .FirstOrDefaultAsync(t => t.AadGroupId == groupId, ct)
+            .ConfigureAwait(false);
+
+        if (team is null)
+        {
+            team = new Team
+            {
+                TeamId = channelId,
+                AadGroupId = groupId,
+                ServiceUrl = _teamsServiceUrl,
+                InstalledDate = DateTime.UtcNow,
+            };
+            _db.Teams.Add(team);
+        }
+        else
+        {
+            team.TeamId = channelId;
+            team.ServiceUrl ??= _teamsServiceUrl;
+        }
+
+        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        _logger.LogInformation(
+            "InstallAppForTeamsActivity: Stored channel {ChannelId} for team {GroupId}.",
+            channelId, groupId);
     }
 }

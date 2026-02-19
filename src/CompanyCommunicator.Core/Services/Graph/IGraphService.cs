@@ -104,6 +104,19 @@ public interface IGraphService
     Task<string?> GetPersonalChatIdAsync(string userAadId, string teamsAppId, CancellationToken ct);
 
     /// <summary>
+    /// Gets the primary (General) channel ID for a team via Graph API.
+    /// The returned ID is the Bot Framework conversation ID (format: <c>19:xxx@thread.tacv2</c>)
+    /// needed for proactive channel messaging, without relying on the conversationUpdate callback.
+    /// </summary>
+    /// <param name="teamGroupId">The AAD group ID of the team.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>
+    /// The primary channel's thread ID (usable as a Bot Framework conversation ID), or
+    /// <c>null</c> if the channel is not accessible (403/404).
+    /// </returns>
+    Task<string?> GetTeamPrimaryChannelIdAsync(string teamGroupId, CancellationToken ct);
+
+    /// <summary>
     /// Proactively installs the Teams app in a team via Graph API.
     /// This triggers a conversationUpdate event back to the bot endpoint,
     /// which populates the Team record with the channel ConversationId.

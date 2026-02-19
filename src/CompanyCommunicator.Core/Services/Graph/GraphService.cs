@@ -449,6 +449,48 @@ internal sealed class GraphService : IGraphService
     }
 
     /// <inheritdoc/>
+    public async Task<string?> GetTeamPrimaryChannelIdAsync(string teamGroupId, CancellationToken ct)
+    {
+        if (!Guid.TryParse(teamGroupId, out _))
+            throw new ArgumentException($"teamGroupId must be a valid GUID, got: '{teamGroupId}'", nameof(teamGroupId));
+
+        try
+        {
+            var channel = await _resilience.ExecuteAsync(async token =>
+                await _graphClient.Teams[teamGroupId].PrimaryChannel
+                    .GetAsync(config =>
+                    {
+                        config.QueryParameters.Select = new[] { "id" };
+                    }, token)
+                    .ConfigureAwait(false), ct).ConfigureAwait(false);
+
+            _logger.LogDebug(
+                "GetTeamPrimaryChannelIdAsync: Retrieved channel {ChannelId} for team {TeamGroupId}.",
+                channel?.Id, teamGroupId);
+
+            return channel?.Id;
+        }
+        catch (ODataError odataError) when (odataError.ResponseStatusCode is 404 or 403)
+        {
+            _logger.LogDebug(
+                "GetTeamPrimaryChannelIdAsync: Channel not accessible for team {TeamGroupId}. Status={Status}.",
+                teamGroupId, odataError.ResponseStatusCode);
+            return null;
+        }
+        catch (Polly.CircuitBreaker.BrokenCircuitException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "GetTeamPrimaryChannelIdAsync: Unexpected error for team {TeamGroupId}.",
+                teamGroupId);
+            return null;
+        }
+    }
+
+    /// <inheritdoc/>
     public async Task<bool> InstallAppInTeamAsync(string teamGroupId, string teamsAppId, CancellationToken ct)
     {
         if (!Guid.TryParse(teamGroupId, out _))
