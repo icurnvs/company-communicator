@@ -311,6 +311,17 @@ jobs:
       - name: Restore packages for EF Core migrations
         run: dotnet restore src/CompanyCommunicator.Api/CompanyCommunicator.Api.csproj
 
+      # Re-authenticate immediately before migrations. The OIDC assertion from
+      # the earlier login step has a ~5-minute validity window; the build steps
+      # above can take longer than that, causing AzureCliCredential to fail when
+      # DefaultAzureCredential tries to refresh the SQL access token.
+      - name: Re-authenticate before migrations
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Run EF Core migrations
         env:
           ConnectionStrings__SqlConnection: ${{ secrets.SQL_CONNECTION_STRING }}
