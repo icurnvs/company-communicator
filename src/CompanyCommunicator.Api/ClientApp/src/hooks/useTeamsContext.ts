@@ -63,11 +63,12 @@ export function useTeamsContext(): TeamsContextState {
 
         const context = await app.getContext();
 
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- mounted is set false by cleanup; TS can't track async closure mutation
         if (!mounted) return;
 
         const themeName = context.app.theme;
         const { theme, teamsTheme } = mapTheme(themeName);
-        const locale = context.app.locale ?? 'en-US';
+        const locale = context.app.locale;
         const userObjectId = context.user?.id ?? null;
         const tenantId = context.user?.tenant?.id ?? null;
 

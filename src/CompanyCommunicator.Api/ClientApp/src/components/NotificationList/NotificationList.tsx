@@ -229,7 +229,7 @@ export function NotificationList({
                   <TableRow
                     key={notification.id}
                     className={styles.clickableRow}
-                    onClick={() => handleRowClick(notification)}
+                    onClick={() => { handleRowClick(notification); }}
                     aria-label={`${notification.title} - ${notification.status}`}
                   >
                     <TableCell>
@@ -324,7 +324,7 @@ export function NotificationList({
                   <Button
                     size="small"
                     disabled={page === 1}
-                    onClick={() => setPage((p) => p - 1)}
+                    onClick={() => { setPage((p) => p - 1); }}
                     aria-label={t('notificationList.pagination.previous')}
                   >
                     {t('notificationList.pagination.previous')}
@@ -332,7 +332,7 @@ export function NotificationList({
                   <Button
                     size="small"
                     disabled={page >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
+                    onClick={() => { setPage((p) => p + 1); }}
                     aria-label={t('notificationList.pagination.next')}
                   >
                     {t('notificationList.pagination.next')}

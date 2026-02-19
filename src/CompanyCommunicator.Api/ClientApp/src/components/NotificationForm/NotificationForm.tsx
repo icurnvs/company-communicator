@@ -187,7 +187,7 @@ export function NotificationForm() {
     scheduleMutation.isPending ||
     previewMutation.isPending;
 
-  const clearError = () => setApiError(null);
+  const clearError = () => { setApiError(null); };
 
   // Save the notification (create or update), returns the notification ID
   const saveNotification = useCallback(
@@ -271,7 +271,7 @@ export function NotificationForm() {
     try {
       await previewMutation.mutateAsync(id);
       setPreviewSent(true);
-      setTimeout(() => setPreviewSent(false), 5000);
+      setTimeout(() => { setPreviewSent(false); }, 5000);
     } catch (err) {
       setApiError(
         err instanceof ApiResponseError
@@ -508,11 +508,11 @@ export function NotificationForm() {
               control={control}
               render={({ field }) => (
                 <AudiencePicker
-                  value={(field.value as AudienceDto[]) ?? []}
+                  value={(field.value as AudienceDto[] | undefined) ?? []}
                   allUsers={watchedValues.allUsers}
-                  onAllUsersChange={(v) => setValue('allUsers', v)}
+                  onAllUsersChange={(v) => { setValue('allUsers', v); }}
                   onAudiencesChange={(audiences) =>
-                    field.onChange(audiences)
+                    { field.onChange(audiences); }
                   }
                   error={errors.audiences?.message ?? errors.allUsers?.message}
                 />
@@ -542,7 +542,7 @@ export function NotificationForm() {
         <div>
           {step === 'audience' && (
             <Button
-              onClick={() => setStep('content')}
+              onClick={() => { setStep('content'); }}
               disabled={isBusy}
             >
               {t('app.back')}
@@ -595,7 +595,7 @@ export function NotificationForm() {
 
               <Dialog
                 open={scheduleDialogOpen}
-                onOpenChange={(_e, d) => setScheduleDialogOpen(d.open)}
+                onOpenChange={(_e, d) => { setScheduleDialogOpen(d.open); }}
               >
                 <DialogTrigger disableButtonEnhancement>
                   <Button appearance="secondary" disabled={isBusy}>
@@ -628,7 +628,7 @@ export function NotificationForm() {
                     <DialogActions>
                       <Button
                         appearance="secondary"
-                        onClick={() => setScheduleDialogOpen(false)}
+                        onClick={() => { setScheduleDialogOpen(false); }}
                       >
                         {t('app.cancel')}
                       </Button>

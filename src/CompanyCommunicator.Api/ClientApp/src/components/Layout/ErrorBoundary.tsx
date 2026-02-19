@@ -28,7 +28,7 @@ interface State {
   error: Error | null;
 }
 
-// Functional wrapper to use hooks with the class component
+// eslint-disable-next-line react-refresh/only-export-components -- helper for class component
 function ErrorDisplay({
   error,
   onReset,

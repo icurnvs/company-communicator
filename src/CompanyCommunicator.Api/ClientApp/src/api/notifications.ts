@@ -146,7 +146,7 @@ export function useSendNotification() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      apiClient.post<void>(`/api/notifications/${id}/send`),
+      apiClient.post<undefined>(`/api/notifications/${id}/send`),
     onSuccess: (_data, id) => {
       void qc.invalidateQueries({
         queryKey: queryKeys.notifications.detail(id),
@@ -192,6 +192,6 @@ export function useCancelNotification() {
 export function usePreviewNotification() {
   return useMutation({
     mutationFn: (id: string) =>
-      apiClient.post<void>(`/api/notifications/${id}/preview`),
+      apiClient.post<undefined>(`/api/notifications/${id}/preview`),
   });
 }

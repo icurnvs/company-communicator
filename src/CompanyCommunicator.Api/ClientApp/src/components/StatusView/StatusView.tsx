@@ -307,7 +307,7 @@ export function StatusView() {
                   appearance="transparent"
                   size="small"
                   icon={<Dismiss12Regular />}
-                  onClick={() => setActionError(null)}
+                  onClick={() => { setActionError(null); }}
                   aria-label="Dismiss error"
                 />
               }
@@ -484,7 +484,7 @@ export function StatusView() {
           {canCancel && (
             <Dialog
               open={cancelDialogOpen}
-              onOpenChange={(_e, d) => setCancelDialogOpen(d.open)}
+              onOpenChange={(_e, d) => { setCancelDialogOpen(d.open); }}
             >
               <DialogTrigger disableButtonEnhancement>
                 <Button
@@ -506,7 +506,7 @@ export function StatusView() {
                   <DialogActions>
                     <Button
                       appearance="secondary"
-                      onClick={() => setCancelDialogOpen(false)}
+                      onClick={() => { setCancelDialogOpen(false); }}
                     >
                       {t('app.no')}
                     </Button>

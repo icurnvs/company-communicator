@@ -87,7 +87,7 @@ async function request<T>(
   });
 
   if (!response.ok) {
-    let message = `HTTP ${response.status}: ${response.statusText}`;
+    let message = `HTTP ${String(response.status)}: ${response.statusText}`;
     let detail: string | undefined;
 
     try {
@@ -120,6 +120,7 @@ async function request<T>(
   return response.json() as Promise<T>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T constrains the return type for callers
 async function requestWithHeaders<T>(
   path: string,
   options: RequestOptions = {},
@@ -145,7 +146,7 @@ async function requestWithHeaders<T>(
   });
 
   if (!response.ok) {
-    let message = `HTTP ${response.status}: ${response.statusText}`;
+    let message = `HTTP ${String(response.status)}: ${response.statusText}`;
     let detail: string | undefined;
 
     try {
@@ -171,6 +172,7 @@ export const apiClient = {
   get: <T>(path: string, signal?: AbortSignal) =>
     request<T>(path, { method: 'GET', signal }),
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters -- T constrains return type for callers
   getWithHeaders: <T>(path: string, signal?: AbortSignal) =>
     requestWithHeaders<T>(path, { method: 'GET', signal }),
 

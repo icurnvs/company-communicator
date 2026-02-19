@@ -131,7 +131,7 @@ export function ExportManager() {
                 appearance="transparent"
                 size="small"
                 icon={<Dismiss12Regular />}
-                onClick={() => setError(null)}
+                onClick={() => { setError(null); }}
                 aria-label="Dismiss error"
               />
             }

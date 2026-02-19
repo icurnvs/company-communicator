@@ -272,7 +272,7 @@ export function AudiencePicker({
           <People24Regular />
           <Switch
             checked={allUsers}
-            onChange={(_e, data) => onAllUsersChange(data.checked)}
+            onChange={(_e, data) => { onAllUsersChange(data.checked); }}
             label={t('audiencePicker.allUsers.label')}
             aria-describedby="allUsersDescription"
           />
@@ -347,7 +347,7 @@ export function AudiencePicker({
                         appearance="subtle"
                         size="small"
                         icon={<Dismiss16Regular />}
-                        onClick={() => removeTeam(team.id)}
+                        onClick={() => { removeTeam(team.id); }}
                         aria-label={t('audiencePicker.removeItem', {
                           name: team.name,
                         })}
@@ -355,7 +355,7 @@ export function AudiencePicker({
                     </div>
                     <Checkbox
                       checked={team.hasRoster}
-                      onChange={() => toggleRoster(team.id)}
+                      onChange={() => { toggleRoster(team.id); }}
                       label={t('audiencePicker.roster.label')}
                     />
                   </div>
@@ -376,7 +376,7 @@ export function AudiencePicker({
                 className={styles.combobox}
                 placeholder={t('audiencePicker.groups.placeholder')}
                 value={groupSearch}
-                onChange={(e) => setGroupSearch(e.target.value)}
+                onChange={(e) => { setGroupSearch(e.target.value); }}
                 onOptionSelect={(_e, data) => {
                   if (data.optionValue) {
                     addGroup(data.optionValue);
@@ -425,7 +425,7 @@ export function AudiencePicker({
                         appearance="transparent"
                         size="small"
                         icon={<Dismiss16Regular />}
-                        onClick={() => removeGroup(audience.audienceId)}
+                        onClick={() => { removeGroup(audience.audienceId); }}
                         aria-label={t('audiencePicker.removeItem', { name })}
                         style={{ minWidth: 'unset', padding: '0 2px' }}
                       />
