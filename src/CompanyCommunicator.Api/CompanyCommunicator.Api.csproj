@@ -7,11 +7,6 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!-- Pre-compile assemblies at publish time to eliminate JIT overhead on cold start -->
-    <PublishReadyToRun>true</PublishReadyToRun>
-  </PropertyGroup>
-
-  <PropertyGroup>
     <!-- Build ClientApp before publishing -->
     <SpaRoot>ClientApp\</SpaRoot>
     <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**</DefaultItemExcludes>
