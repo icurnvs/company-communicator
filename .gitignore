@@ -166,3 +166,4 @@ manifest-*.zip
 # Azure Developer CLI (azd) – if adopted later
 # =============================================================================
 .azure/
+infra/main.json
