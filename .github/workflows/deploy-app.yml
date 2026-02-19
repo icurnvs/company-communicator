@@ -276,21 +276,21 @@ jobs:
       # Deploy Prep Function App
       # -----------------------------------------------------------------------
       - name: Deploy Prep Function App
-        uses: Azure/functions-action@v1
-        with:
-          app-name: ${{ steps.names.outputs.func_prep_name }}
-          package: artifacts/func-prep.zip
-          respect-funcignore: false
+        run: |
+          az functionapp deployment source config-zip \
+            --resource-group "rg-cc-${{ env.TARGET_ENV }}" \
+            --name "${{ steps.names.outputs.func_prep_name }}" \
+            --src artifacts/func-prep.zip
 
       # -----------------------------------------------------------------------
       # Deploy Send Function App
       # -----------------------------------------------------------------------
       - name: Deploy Send Function App
-        uses: Azure/functions-action@v1
-        with:
-          app-name: ${{ steps.names.outputs.func_send_name }}
-          package: artifacts/func-send.zip
-          respect-funcignore: false
+        run: |
+          az functionapp deployment source config-zip \
+            --resource-group "rg-cc-${{ env.TARGET_ENV }}" \
+            --name "${{ steps.names.outputs.func_send_name }}" \
+            --src artifacts/func-send.zip
 
       # -----------------------------------------------------------------------
       # Run EF Core database migrations
