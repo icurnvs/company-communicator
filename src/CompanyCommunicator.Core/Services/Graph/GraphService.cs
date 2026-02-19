@@ -285,6 +285,44 @@ internal sealed class GraphService : IGraphService
     }
 
     /// <inheritdoc/>
+    public async Task<IReadOnlyList<(string Id, string DisplayName)>> SearchTeamsAsync(
+        string query,
+        CancellationToken ct)
+    {
+        var results = new List<(string Id, string DisplayName)>();
+
+        await _resilience.ExecuteAsync(async token =>
+        {
+            var sanitizedQuery = query.Replace("'", string.Empty, StringComparison.Ordinal);
+
+            var page = await _graphClient.Groups.GetAsync(config =>
+            {
+                config.QueryParameters.Filter =
+                    $"startswith(displayName,'{sanitizedQuery}') and resourceProvisioningOptions/Any(x:x eq 'Team')";
+                config.QueryParameters.Select = new[] { "id", "displayName" };
+                config.QueryParameters.Top = 25;
+            }, token).ConfigureAwait(false);
+
+            if (page?.Value is not null)
+            {
+                foreach (var group in page.Value)
+                {
+                    if (group.Id is not null && group.DisplayName is not null)
+                    {
+                        results.Add((group.Id, group.DisplayName));
+                    }
+                }
+            }
+        }, ct).ConfigureAwait(false);
+
+        _logger.LogInformation(
+            "GraphService.SearchTeamsAsync found {Count} teams for query '{Query}'.",
+            results.Count, query);
+
+        return results;
+    }
+
+    /// <inheritdoc/>
     public async Task<bool> InstallAppForUserAsync(string userAadId, string teamsAppId, CancellationToken ct)
     {
         if (!Guid.TryParse(userAadId, out _))

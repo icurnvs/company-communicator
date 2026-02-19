@@ -1,10 +1,9 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import {
   makeStyles,
   tokens,
   Switch,
   Text,
-  Spinner,
   Badge,
   Button,
   Combobox,
@@ -21,7 +20,7 @@ import {
   Building24Regular,
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
-import { useTeams } from '@/api/teams';
+import { useSearchTeams } from '@/api/teams';
 import { useSearchGroups } from '@/api/groups';
 import type { AudienceDto } from '@/types';
 
@@ -128,19 +127,14 @@ function useAudienceState(
     [audiences],
   );
 
-  const toggleTeam = useCallback(
+  const addTeam = useCallback(
     (teamId: string) => {
-      const newAudiences = audiences.filter(
-        (a) =>
-          !(
-            (a.audienceType === 'Team' || a.audienceType === 'Roster') &&
-            a.audienceId === teamId
-          ),
-      );
       if (!selectedTeamIds.has(teamId)) {
-        newAudiences.push({ audienceType: 'Team', audienceId: teamId });
+        onChange([
+          ...audiences,
+          { audienceType: 'Team', audienceId: teamId },
+        ]);
       }
-      onChange(newAudiences);
     },
     [audiences, selectedTeamIds, onChange],
   );
@@ -205,7 +199,7 @@ function useAudienceState(
     selectedTeamIds,
     selectedRosterIds,
     selectedGroupIds,
-    toggleTeam,
+    addTeam,
     toggleRoster,
     addGroup,
     removeGroup,
@@ -222,45 +216,53 @@ export function AudiencePicker({
 }: AudiencePickerProps) {
   const styles = useStyles();
   const { t } = useTranslation();
+  const [teamSearch, setTeamSearch] = useState('');
   const [groupSearch, setGroupSearch] = useState('');
 
-  const { data: teams, isLoading: teamsLoading } = useTeams();
-  const { data: searchResults, isFetching: groupsSearching } =
+  const { data: teamSearchResults, isFetching: teamsSearching } =
+    useSearchTeams(teamSearch);
+  const { data: groupSearchResults, isFetching: groupsSearching } =
     useSearchGroups(groupSearch);
 
   const {
     selectedTeamIds,
     selectedRosterIds,
     selectedGroupIds,
-    toggleTeam,
+    addTeam,
     toggleRoster,
     addGroup,
     removeGroup,
     removeTeam,
   } = useAudienceState(value, onAudiencesChange);
 
+  // Persistent cache of team names across searches so selected teams
+  // retain display names even when the search query changes.
+  const teamNameCacheRef = useRef(new Map<string, string>());
+  (teamSearchResults ?? []).forEach((t) => {
+    teamNameCacheRef.current.set(t.teamId, t.name ?? t.teamId);
+  });
+
+  const getTeamName = useCallback(
+    (id: string) => teamNameCacheRef.current.get(id) ?? id,
+    [],
+  );
+
   // Build display maps for selected groups
   const selectedGroupAudiences = value.filter(
     (a) => a.audienceType === 'Group',
   );
 
-  const teamsById = useMemo(() => {
-    const map = new Map<string, string>();
-    (teams ?? []).forEach((t) => map.set(t.teamId, t.name ?? t.teamId));
-    return map;
-  }, [teams]);
-
   const groupDisplayNames = useMemo(() => {
     const map = new Map<string, string>();
-    (searchResults ?? []).forEach((g) =>
+    (groupSearchResults ?? []).forEach((g) =>
       map.set(g.groupId, g.displayName ?? g.groupId),
     );
     return map;
-  }, [searchResults]);
+  }, [groupSearchResults]);
 
   const selectedTeamList = Array.from(selectedTeamIds).map((id) => ({
     id,
-    name: teamsById.get(id) ?? id,
+    name: getTeamName(id),
     hasRoster: selectedRosterIds.has(id),
   }));
 
@@ -291,7 +293,7 @@ export function AudiencePicker({
           <Divider />
 
           <div className={styles.selectionSection}>
-            {/* Teams section */}
+            {/* Teams section - search via Graph */}
             <Field
               label={
                 <span className={styles.sectionTitle}>
@@ -300,34 +302,38 @@ export function AudiencePicker({
                 </span>
               }
             >
-              {teamsLoading ? (
-                <Spinner size="tiny" label={t('audiencePicker.teams.loading')} />
-              ) : (
-                <Combobox
-                  className={styles.combobox}
-                  placeholder={t('audiencePicker.teams.placeholder')}
-                  multiselect
-                  selectedOptions={Array.from(selectedTeamIds)}
-                  onOptionSelect={(_e, data) => {
-                    if (data.optionValue) {
-                      toggleTeam(data.optionValue);
-                    }
-                  }}
-                  aria-label={t('audiencePicker.teams.label')}
-                >
-                  {(teams ?? []).length === 0 ? (
-                    <Option value="" disabled>
-                      {t('audiencePicker.teams.noTeams')}
-                    </Option>
-                  ) : (
-                    (teams ?? []).map((team) => (
+              <Combobox
+                className={styles.combobox}
+                placeholder={t('audiencePicker.teams.placeholder')}
+                value={teamSearch}
+                onChange={(e) => { setTeamSearch(e.target.value); }}
+                onOptionSelect={(_e, data) => {
+                  if (data.optionValue) {
+                    addTeam(data.optionValue);
+                    setTeamSearch('');
+                  }
+                }}
+                aria-label={t('audiencePicker.teams.label')}
+              >
+                {teamsSearching ? (
+                  <Option value="" disabled>
+                    {t('audiencePicker.teams.searching')}
+                  </Option>
+                ) : (teamSearchResults ?? []).length === 0 &&
+                  teamSearch.length >= 2 ? (
+                  <Option value="" disabled>
+                    {t('audiencePicker.teams.noTeams')}
+                  </Option>
+                ) : (
+                  (teamSearchResults ?? [])
+                    .filter((t) => !selectedTeamIds.has(t.teamId))
+                    .map((team) => (
                       <Option key={team.teamId} value={team.teamId}>
                         {team.name ?? team.teamId}
                       </Option>
                     ))
-                  )}
-                </Combobox>
-              )}
+                )}
+              </Combobox>
             </Field>
 
             {/* Selected teams with roster option */}
@@ -389,13 +395,13 @@ export function AudiencePicker({
                   <Option value="" disabled>
                     {t('audiencePicker.groups.searching')}
                   </Option>
-                ) : (searchResults ?? []).length === 0 &&
+                ) : (groupSearchResults ?? []).length === 0 &&
                   groupSearch.length >= 2 ? (
                   <Option value="" disabled>
                     {t('audiencePicker.groups.noGroups')}
                   </Option>
                 ) : (
-                  (searchResults ?? [])
+                  (groupSearchResults ?? [])
                     .filter((g) => !selectedGroupIds.has(g.groupId))
                     .map((group) => (
                       <Option key={group.groupId} value={group.groupId}>

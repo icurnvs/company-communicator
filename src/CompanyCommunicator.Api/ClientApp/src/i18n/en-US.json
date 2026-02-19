@@ -127,9 +127,9 @@
     },
     "teams": {
       "label": "Teams",
-      "placeholder": "Select teams...",
-      "loading": "Loading teams...",
-      "noTeams": "No teams available"
+      "placeholder": "Search for teams...",
+      "searching": "Searching...",
+      "noTeams": "No teams found"
     },
     "groups": {
       "label": "Groups",

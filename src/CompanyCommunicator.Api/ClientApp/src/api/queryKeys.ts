@@ -14,7 +14,8 @@ export const queryKeys = {
   },
   teams: {
     all: ['teams'] as const,
-    list: () => [...queryKeys.teams.all, 'list'] as const,
+    search: (query: string) =>
+      [...queryKeys.teams.all, 'search', query] as const,
   },
   groups: {
     all: ['groups'] as const,

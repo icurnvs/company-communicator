@@ -1,14 +1,14 @@
 using CompanyCommunicator.Api.Authorization;
-using CompanyCommunicator.Core.Data;
 using CompanyCommunicator.Core.Models;
+using CompanyCommunicator.Core.Services.Graph;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CompanyCommunicator.Api.Controllers;
 
 /// <summary>
-/// REST API endpoints for querying Teams where the bot is installed.
+/// REST API endpoints for searching Teams (for General channel delivery).
+/// Searches Entra ID groups that are Teams-enabled via Microsoft Graph.
 /// </summary>
 [ApiController]
 [Route("api/teams")]
@@ -16,32 +16,46 @@ namespace CompanyCommunicator.Api.Controllers;
 [Produces("application/json")]
 public sealed class TeamsController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly IGraphService _graphService;
 
     /// <summary>
     /// Initializes a new instance of <see cref="TeamsController"/>.
     /// </summary>
-    public TeamsController(AppDbContext db)
+    public TeamsController(IGraphService graphService)
     {
-        _db = db;
+        _graphService = graphService;
     }
 
     /// <summary>
-    /// Lists all Teams where the Company Communicator bot is installed, ordered by name.
+    /// Searches for Teams whose display name starts with the given query string.
+    /// Returns up to 25 matching results, each identified by AAD group ID.
     /// </summary>
+    /// <param name="query">The search prefix (minimum 1 character).</param>
     /// <param name="ct">Cancellation token.</param>
-    /// <returns>Array of <see cref="TeamDto"/> ordered alphabetically by name.</returns>
+    /// <returns>Array of <see cref="TeamDto"/> matching the query.</returns>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<TeamDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<TeamDto>>> GetTeams(CancellationToken ct)
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyList<TeamDto>>> SearchTeams(
+        [FromQuery] string query,
+        CancellationToken ct)
     {
-        var teams = await _db.Teams
-            .AsNoTracking()
-            .OrderBy(t => t.Name)
-            .Select(t => new TeamDto(t.TeamId, t.Name))
-            .ToListAsync(ct)
-            .ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "Validation failed",
+                Detail = "The 'query' parameter is required.",
+                Status = StatusCodes.Status400BadRequest,
+            });
+        }
 
-        return Ok(teams);
+        var teams = await _graphService.SearchTeamsAsync(query, ct).ConfigureAwait(false);
+
+        var dtos = teams
+            .Select(t => new TeamDto(t.Id, t.DisplayName))
+            .ToList();
+
+        return Ok(dtos);
     }
 }

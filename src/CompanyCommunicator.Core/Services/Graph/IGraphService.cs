@@ -67,6 +67,17 @@ public interface IGraphService
     Task<IReadOnlyList<(string Id, string DisplayName)>> SearchGroupsAsync(string query, CancellationToken ct);
 
     /// <summary>
+    /// Searches Entra ID groups that are Teams-enabled whose display name starts with the specified query.
+    /// Returns up to 25 results. Used by the audience picker to find teams for General channel delivery.
+    /// </summary>
+    /// <param name="query">The prefix string to search for in team display names.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>
+    /// A read-only list of tuples containing the AAD group ID and display name.
+    /// </returns>
+    Task<IReadOnlyList<(string Id, string DisplayName)>> SearchTeamsAsync(string query, CancellationToken ct);
+
+    /// <summary>
     /// Proactively installs the Teams app for a user via Graph API.
     /// </summary>
     /// <param name="userAadId">The AAD Object ID of the target user.</param>
