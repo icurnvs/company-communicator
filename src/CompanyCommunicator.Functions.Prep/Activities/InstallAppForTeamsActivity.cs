@@ -36,10 +36,13 @@ public sealed class InstallAppForTeamsActivity
     {
         var ct = ctx.CancellationToken;
 
+        // v5-R12: No ConversationId filter — always attempt install for ALL queued team recipients.
+        // If a stale ConversationId exists (from old author-app-as-bot era), the install is
+        // idempotent (Graph returns 409 = already installed), and we then overwrite the stale
+        // ConversationId with the fresh channel ID from Graph's primaryChannel.
         var teamGroupIds = await _db.SentNotifications
             .Where(s => s.NotificationId == input.NotificationId
                 && s.RecipientType == "Team"
-                && s.ConversationId == null
                 && s.DeliveryStatus == DeliveryStatus.Queued)
             .Select(s => s.RecipientId)
             .AsNoTracking()
@@ -79,6 +82,17 @@ public sealed class InstallAppForTeamsActivity
                 {
                     await UpsertTeamRecordAsync(groupId, channelId, ct)
                         .ConfigureAwait(false);
+
+                    // Directly refresh SentNotification so RefreshConversationIdsActivity
+                    // doesn't need to handle the stale-ConversationId case for teams.
+                    await _db.Database.ExecuteSqlInterpolatedAsync($@"
+                        UPDATE SentNotifications
+                        SET ConversationId = {channelId},
+                            ServiceUrl     = {_teamsServiceUrl}
+                        WHERE NotificationId = {input.NotificationId}
+                          AND RecipientId    = {groupId}
+                          AND RecipientType  = 'Team'",
+                        ct).ConfigureAwait(false);
                 }
             }
             catch (BrokenCircuitException) { throw; }

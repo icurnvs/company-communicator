@@ -38,6 +38,8 @@ public sealed class RefreshConversationIdsActivity
               AND sn.DeliveryStatus = 'Queued'",
             ct).ConfigureAwait(false);
 
+        // v5-R12: No ConversationId IS NULL filter for teams — always overwrite from the Teams
+        // table so that stale ConversationIds (e.g. from old bot-app-as-author era) are corrected.
         var refreshedTeams = await _db.Database.ExecuteSqlInterpolatedAsync($@"
             UPDATE sn
             SET sn.ConversationId = t.TeamId,
@@ -45,7 +47,6 @@ public sealed class RefreshConversationIdsActivity
             FROM SentNotifications sn
             INNER JOIN Teams t ON t.AadGroupId = sn.RecipientId
             WHERE sn.NotificationId = {notificationId}
-              AND sn.ConversationId IS NULL
               AND sn.RecipientType = 'Team'
               AND sn.DeliveryStatus = 'Queued'",
             ct).ConfigureAwait(false);
