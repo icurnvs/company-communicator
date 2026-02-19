@@ -41,3 +41,75 @@ public sealed record AggregationResult(
 /// <see cref="CompanyCommunicator.Core.Data.Entities.SentNotification"/> records to load.
 /// </summary>
 public sealed record SendBatchInput(Guid NotificationId, int BatchNumber, int BatchSize);
+
+/// <summary>
+/// Input for <see cref="Activities.SetNotificationStatusActivity"/>.
+/// </summary>
+public sealed record SetStatusInput(Guid NotificationId, string Status);
+
+/// <summary>
+/// Input for <c>InstallAppForUsersActivity</c> — a batch of user AAD IDs.
+/// </summary>
+public sealed record InstallBatchInput(
+    Guid NotificationId,
+    string TeamsAppId,
+    IReadOnlyList<string> UserAadIds);
+
+/// <summary>
+/// Result returned by <c>InstallAppForUsersActivity</c> or <c>InstallAppForTeamsActivity</c>.
+/// </summary>
+public sealed record InstallBatchResult(int Installed, int Failed);
+
+/// <summary>
+/// Input for <c>GetInstallBatchActivity</c>. Keyset (cursor) pagination (v3-C2).
+/// Pass <c>LastSeenId = 0</c> for the first call.
+/// <c>PageCount</c> controls pages fetched per activity call (v3-H8).
+/// </summary>
+public sealed record GetInstallBatchInput(
+    Guid NotificationId,
+    long LastSeenId,
+    int PageSize,
+    int PageCount);
+
+/// <summary>
+/// Result from <c>GetInstallBatchActivity</c>.
+/// </summary>
+public sealed record GetInstallBatchResult(
+    IReadOnlyList<IReadOnlyList<string>> Pages,
+    long NextCursorId,
+    bool HasMore);
+
+/// <summary>
+/// Input for <c>InstallAppOrchestrator</c>. All parameters passed once
+/// so the orchestrator does not re-read config on replay.
+/// v5-R3: Added cursor/counter fields for ContinueAsNew checkpointing.
+/// Pass <c>LastSeenId = 0</c>, <c>CarriedInstalled = 0</c>, <c>CarriedFailed = 0</c>
+/// for the initial call.
+/// </summary>
+public sealed record InstallAppInput(
+    Guid NotificationId,
+    string TeamsAppId,
+    int InstallWaitSeconds,
+    int MaxRefreshAttempts,
+    long LastSeenId = 0,
+    int CarriedInstalled = 0,
+    int CarriedFailed = 0);
+
+/// <summary>
+/// Result from <c>RefreshConversationIdsActivity</c>.
+/// </summary>
+public sealed record RefreshResult(int Refreshed, int StillPending);
+
+/// <summary>
+/// Input for <c>InstallAppForTeamsActivity</c>. Team-scope install
+/// is simple (small scale) so no pagination is needed.
+/// </summary>
+public sealed record InstallTeamsInput(Guid NotificationId, string TeamsAppId);
+
+/// <summary>
+/// Install configuration read from app settings by <c>GetInstallConfigActivity</c>.
+/// </summary>
+public sealed record InstallConfig(
+    string TeamsAppId,
+    int InstallWaitSeconds,
+    int MaxRefreshAttempts);
