@@ -62,16 +62,39 @@ internal sealed class CommunicatorActivityHandler : TeamsActivityHandler
                 Name = teamInfo?.Name,
                 ServiceUrl = serviceUrl,
                 TenantId = tenantId,
+                AadGroupId = teamInfo?.AadGroupId,
                 InstalledDate = DateTime.UtcNow,
             };
             _db.Teams.Add(team);
-            _logger.LogInformation("Bot installed in team {TeamId} ({TeamName}).", teamId, teamInfo?.Name);
+            _logger.LogInformation("Bot installed in team {TeamId} (AadGroupId={AadGroupId}).",
+                teamId, teamInfo?.AadGroupId);
         }
         else
         {
             team.Name = teamInfo?.Name ?? team.Name;
             team.ServiceUrl = serviceUrl;
             team.TenantId = tenantId;
+            team.AadGroupId ??= teamInfo?.AadGroupId; // Backfill for existing teams
+        }
+
+        // Fallback if teamInfo.AadGroupId is not available
+        if (string.IsNullOrEmpty(team.AadGroupId) && turnContext.Activity.ChannelData is not null)
+        {
+            try
+            {
+                var channelData = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(
+                    turnContext.Activity.ChannelData.ToString()!);
+                if (channelData.TryGetProperty("team", out var teamData)
+                    && teamData.TryGetProperty("aadGroupId", out var aadId)
+                    && Guid.TryParse(aadId.GetString(), out _))
+                {
+                    team.AadGroupId = aadId.GetString();
+                }
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                _logger.LogDebug(ex, "Could not extract AadGroupId from ChannelData for team {TeamId}.", teamId);
+            }
         }
 
         // Update user records for members added to the team (excluding the bot itself).
