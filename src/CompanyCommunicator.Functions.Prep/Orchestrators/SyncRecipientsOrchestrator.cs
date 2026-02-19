@@ -55,9 +55,14 @@ public sealed class SyncRecipientsOrchestrator
 
                 Task<int> task = audience.AudienceType switch
                 {
-                    AudienceType.Roster or AudienceType.Team =>
+                    AudienceType.Roster =>
                         context.CallActivityAsync<int>(
                             nameof(SyncTeamMembersActivity),
+                            syncInput),
+
+                    AudienceType.Team =>
+                        context.CallActivityAsync<int>(
+                            nameof(SyncTeamChannelActivity),
                             syncInput),
 
                     AudienceType.Group =>
