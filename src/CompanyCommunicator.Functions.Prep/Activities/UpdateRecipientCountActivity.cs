@@ -8,8 +8,9 @@ using Microsoft.Extensions.Logging;
 namespace CompanyCommunicator.Functions.Prep.Activities;
 
 /// <summary>
-/// Activity: updates the notification's total recipient count and transitions
-/// its status from <c>SyncingRecipients</c> to <c>Sending</c>.
+/// Activity: updates the notification's total recipient count.
+/// Status transition to Sending is handled by PrepareToSendOrchestrator
+/// after the proactive install step completes.
 /// </summary>
 public sealed class UpdateRecipientCountActivity
 {
@@ -28,7 +29,7 @@ public sealed class UpdateRecipientCountActivity
     }
 
     /// <summary>
-    /// Activity entry point. Updates the total recipient count and changes status to Sending.
+    /// Activity entry point. Updates the total recipient count only.
     /// </summary>
     /// <param name="input">Contains the notification ID and the final recipient count.</param>
     /// <param name="ctx">Function execution context.</param>
@@ -53,13 +54,13 @@ public sealed class UpdateRecipientCountActivity
         }
 
         notification.TotalRecipientCount = input.TotalRecipientCount;
-        notification.Status = NotificationStatus.Sending;
+        // Status transition to Sending is now handled by PrepareToSendOrchestrator
+        // after the install step completes.
 
         await _db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         _logger.LogInformation(
-            "UpdateRecipientCountActivity: Notification {NotificationId} updated. " +
-            "TotalRecipientCount={Count}, Status=Sending.",
+            "UpdateRecipientCountActivity: Notification {NotificationId} TotalRecipientCount={Count}.",
             input.NotificationId, input.TotalRecipientCount);
     }
 }
