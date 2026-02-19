@@ -150,13 +150,21 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'ASPNETCORE_ENVIRONMENT'
           value: environmentName
         }
+        // ---- Run-from-package ----
+        // Mounts the deployed zip directly instead of extracting to Azure Files.
+        // This dramatically reduces cold-start time because DLL loads go through
+        // blob-backed storage rather than the high-latency Azure Files share.
+        // The Functions apps also set this and start significantly faster.
         {
-          // Allow up to 10 minutes for the container to start.
-          // The Linux App Service container updates CA certificates and runs
-          // Oryx startup detection before the app process begins, which can
-          // push cold-start time past the default 230-second limit.
+          name: 'WEBSITE_RUN_FROM_PACKAGE'
+          value: '1'
+        }
+        {
+          // Allow up to 5 minutes for the container to start.
+          // With WEBSITE_RUN_FROM_PACKAGE=1 the extraction step is gone, so
+          // the previous 600s limit was overly conservative.
           name: 'WEBSITES_CONTAINER_START_TIME_LIMIT'
-          value: '600'
+          value: '300'
         }
       ]
       cors: {
