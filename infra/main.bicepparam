@@ -45,5 +45,10 @@ param botAppId = '00000000-0000-0000-0000-000000000000'
 // Operational parameters
 // ---------------------------------------------------------------------------
 
+// Teams app catalog ID for the recipient-only app package (bot only, no Dashboard tab).
+// This is the GUID assigned by Teams Admin Center when the recipient manifest is uploaded.
+// Used by the Prep function to proactively install the app for message recipients.
+param teamsAppCatalogId = '02b257fd-3a40-42f3-a41e-e46ab3becdb5'
+
 // Email address for alert notifications (DLQ, SQL CPU, HTTP 5xx, Func errors).
 param alertEmailAddress = 'ops-team@contoso.com'
