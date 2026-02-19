@@ -346,6 +346,65 @@ internal sealed class GraphService : IGraphService
         }
     }
 
+    /// <inheritdoc/>
+    public async Task<bool> InstallAppInTeamAsync(string teamGroupId, string teamsAppId, CancellationToken ct)
+    {
+        if (!Guid.TryParse(teamGroupId, out _))
+            throw new ArgumentException($"teamGroupId must be a valid GUID, got: '{teamGroupId}'", nameof(teamGroupId));
+        if (!Guid.TryParse(teamsAppId, out _))
+            throw new ArgumentException($"teamsAppId must be a valid GUID, got: '{teamsAppId}'", nameof(teamsAppId));
+
+        try
+        {
+            await _resilience.ExecuteAsync(async token =>
+            {
+                // Team-scope uses TeamsAppInstallation (not UserScopeTeamsAppInstallation).
+                var requestBody = new Microsoft.Graph.Models.TeamsAppInstallation
+                {
+                    AdditionalData = new Dictionary<string, object>
+                    {
+                        ["teamsApp@odata.bind"] =
+                            $"https://graph.microsoft.com/v1.0/appCatalogs/teamsApps/{teamsAppId}",
+                    },
+                };
+
+                await _graphClient.Teams[teamGroupId].InstalledApps
+                    .PostAsync(requestBody, cancellationToken: token)
+                    .ConfigureAwait(false);
+            }, ct).ConfigureAwait(false);
+
+            _logger.LogDebug(
+                "InstallAppInTeamAsync: Successfully installed app in team {TeamGroupId}.",
+                teamGroupId);
+            return true;
+        }
+        catch (ODataError odataError) when (odataError.ResponseStatusCode == 409)
+        {
+            _logger.LogDebug(
+                "InstallAppInTeamAsync: App already installed in team {TeamGroupId}.",
+                teamGroupId);
+            return true;
+        }
+        catch (ODataError odataError) when (odataError.ResponseStatusCode is 403 or 404)
+        {
+            _logger.LogWarning(
+                "InstallAppInTeamAsync: Cannot install in team {TeamGroupId}. Status={StatusCode}",
+                teamGroupId, odataError.ResponseStatusCode);
+            return false;
+        }
+        catch (Polly.CircuitBreaker.BrokenCircuitException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "InstallAppInTeamAsync: Unexpected error for team {TeamGroupId}.",
+                teamGroupId);
+            return false;
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------

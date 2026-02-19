@@ -79,4 +79,18 @@ public interface IGraphService
     /// <c>false</c> if the user could not be reached (403/404).
     /// </returns>
     Task<bool> InstallAppForUserAsync(string userAadId, string teamsAppId, CancellationToken ct);
+
+    /// <summary>
+    /// Proactively installs the Teams app in a team via Graph API.
+    /// This triggers a conversationUpdate event back to the bot endpoint,
+    /// which populates the Team record with the channel ConversationId.
+    /// </summary>
+    /// <param name="teamGroupId">The AAD group ID of the target team.</param>
+    /// <param name="teamsAppId">The Teams app external ID (from manifest).</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>
+    /// <c>true</c> if the app was installed (or was already installed);
+    /// <c>false</c> if the team could not be reached (403/404).
+    /// </returns>
+    Task<bool> InstallAppInTeamAsync(string teamGroupId, string teamsAppId, CancellationToken ct);
 }
