@@ -1037,11 +1037,18 @@ If the tables are missing, run migrations manually (see section 5.2.3).
 
 ## Step 7: Package and Install Teams App
 
-Create the Teams app manifest and upload it to Teams Admin Center.
+This app uses **two separate Teams app packages** to avoid recipients being shown the Dashboard tab (which would trigger a confusing OAuth consent dialog):
 
-### 7.1 Package the Manifest
+| Package | Source file | Who installs | Purpose |
+|---|---|---|---|
+| **Author** | `Manifest/manifest.json` | Admins/authors — manual policy | Dashboard tab + bot; used by message authors |
+| **Recipient** | `Manifest/manifest-recipient.json` | All employees — proactive install / policy | Bot only; receives broadcast notifications |
 
-Use the GitHub Actions workflow:
+The **recipient** package is what gets proactively installed for every message recipient. The catalog ID from the recipient package becomes `teamsAppCatalogId`.
+
+### 7.1 Package Both Manifests
+
+Use the GitHub Actions workflow to produce both packages in one run:
 
 1. Go to GitHub Actions > **Package Teams Manifest**.
 
@@ -1050,105 +1057,79 @@ Use the GitHub Actions workflow:
    - **Web app hostname**: `app-cc-dev-<suffix>.azurewebsites.net`
    - Click **Run**
 
-The workflow substitutes tokens in `Manifest/manifest.json` and produces `manifest-dev.zip`.
+The workflow produces two artifacts:
 
-Alternatively, manually substitute tokens:
+| Artifact name | Contents |
+|---|---|
+| `teams-manifest-author-dev-<run_id>` | `manifest.json` (Dashboard tab + bot) |
+| `teams-manifest-recipient-dev-<run_id>` | `manifest.json` (bot only, no Dashboard tab) |
 
-**Bash:**
-```bash
-# Create staging directory
-mkdir -p manifest-staging
-cp Manifest/color.png manifest-staging/
-cp Manifest/outline.png manifest-staging/
+Both zips contain `manifest.json`, `color.png`, and `outline.png` at the root as required by Teams.
 
-# Substitute tokens
-sed -e "s|{{BOT_APP_ID}}|<your-app-id>|g" \
-    -e "s|{{WEB_APP_HOSTNAME}}|app-cc-dev-<suffix>.azurewebsites.net|g" \
-    Manifest/manifest.json > manifest-staging/manifest.json
+### 7.2 Upload Recipient Package to Teams Admin Center
 
-# Validate JSON
-python3 -c "import json; json.load(open('manifest-staging/manifest.json'))"
-
-# Create zip
-cd manifest-staging
-zip -j ../manifest-dev.zip manifest.json color.png outline.png
-cd ..
-```
-
-**PowerShell:**
-```powershell
-# Create staging directory
-New-Item -ItemType Directory -Force -Path manifest-staging
-Copy-Item Manifest/color.png manifest-staging/
-Copy-Item Manifest/outline.png manifest-staging/
-
-# Substitute tokens
-(Get-Content Manifest/manifest.json -Raw) `
-  -replace '{{BOT_APP_ID}}', '<your-app-id>' `
-  -replace '{{WEB_APP_HOSTNAME}}', 'app-cc-dev-<suffix>.azurewebsites.net' |
-  Set-Content manifest-staging/manifest.json
-
-# Validate JSON (will throw if invalid)
-Get-Content manifest-staging/manifest.json | ConvertFrom-Json | Out-Null
-
-# Create zip
-Compress-Archive -Path manifest-staging/* -DestinationPath manifest-dev.zip -Force
-```
-
-### 7.2 Sideload for Testing (Optional)
-
-To test with a single user before publishing:
-
-1. Download the `manifest-dev.zip` artifact from the workflow.
-
-2. In Microsoft Teams, go to **Apps > Manage your apps > Upload a custom app**.
-
-3. Select the zip file.
-
-4. Choose a team to install it in for testing.
-
-### 7.3 Upload to Teams Admin Center
-
-For organization-wide installation:
+The recipient package is installed for all employees (proactively or via policy). Upload it first to get the catalog ID.
 
 1. Go to **Teams Admin Center** > **Teams apps > Manage apps**.
 
 2. Click **Upload a custom app**.
 
-3. Select your `manifest-dev.zip`.
+3. Select `teams-manifest-recipient-dev-<run_id>.zip`.
 
-4. The app will be pending approval. After review:
+4. After review:
    - Set **Status**: **Allowed**
-   - Set **Permissions**: Configure which users can install the app (all users, specific teams, etc.)
+   - Configure which users can have the app installed (typically all users)
    - Click **Save**
 
-5. The app is now available in the app store for targeted users.
-
-6. **Copy the Teams App Catalog ID** — click on the app name in the list. The URL will contain the catalog ID (a GUID), e.g.:
+5. **Copy the catalog ID** — click on **Company Communicator** in the app list. The URL contains the catalog ID (a GUID):
    ```
    https://admin.teams.microsoft.com/policies/manage-apps/<catalog-id>
    ```
    You can also retrieve it via Graph API:
    ```bash
    az rest --method GET \
-     --uri "https://graph.microsoft.com/v1.0/appCatalog/teamsApps?\$filter=externalId eq '<your-bot-app-id>'" \
+     --uri "https://graph.microsoft.com/v1.0/appCatalog/teamsApps?\$filter=displayName eq 'Company Communicator'" \
      --query "value[0].id" -o tsv
    ```
 
-7. Pass this catalog ID as `teamsAppCatalogId` when running the infra deployment:
-   ```bash
-   az deployment group create \
-     --resource-group rg-cc-<env> \
-     --template-file infra/main.bicep \
-     --parameters ... teamsAppCatalogId=<catalog-id-from-step-6>
-   ```
-   Or set it directly on the Prep Function App if already deployed:
-   ```bash
-   az functionapp config appsettings set \
-     --resource-group rg-cc-<env> \
-     --name func-cc-prep-<env>-<suffix> \
-     --settings "Bot__TeamsAppId=<catalog-id-from-step-6>"
-   ```
+### 7.3 Upload Author Package to Teams Admin Center
+
+The author package includes the Dashboard tab and is installed only for message authors and admins.
+
+1. Go to **Teams Admin Center** > **Teams apps > Manage apps**.
+
+2. Click **Upload a custom app**.
+
+3. Select `teams-manifest-author-dev-<run_id>.zip`.
+
+4. After review:
+   - Set **Status**: **Allowed**
+   - Configure an **app setup policy** that targets only the author/admin group
+   - Click **Save**
+
+> **Tip:** You can also distribute the author package by having admins sideload it directly: Teams > **Apps > Manage your apps > Upload a custom app**.
+
+### 7.4 Set `teamsAppCatalogId`
+
+Use the catalog ID from the **recipient** package (Step 7.2, not the author package).
+
+Pass it as `teamsAppCatalogId` when running the infra deployment:
+
+```bash
+az deployment group create \
+  --resource-group rg-cc-<env> \
+  --template-file infra/main.bicep \
+  --parameters ... teamsAppCatalogId=<recipient-catalog-id-from-step-7.2>
+```
+
+Or set it directly on the Prep Function App if already deployed:
+
+```bash
+az functionapp config appsettings set \
+  --resource-group rg-cc-<env> \
+  --name func-cc-prep-<env>-<suffix> \
+  --settings "Bot__TeamsAppId=<recipient-catalog-id-from-step-7.2>"
+```
 
 > **Note:** If you skip this step, `Bot__TeamsAppId` defaults to empty and proactive installation is disabled. Messages are only delivered to recipients who already have an open conversation with the bot. Proactive installation can be enabled at any time by completing this step and redeploying infra.
 
