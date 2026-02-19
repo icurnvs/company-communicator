@@ -21,17 +21,17 @@ public sealed class GetInstallConfigActivity
         [ActivityTrigger] Guid notificationId,
         FunctionContext ctx)
     {
-        var teamsAppId = _config["Bot__TeamsAppId"] ?? string.Empty;
+        var teamsAppId = _config["Bot:TeamsAppId"] ?? string.Empty;
 
         if (!string.IsNullOrEmpty(teamsAppId) && !Guid.TryParse(teamsAppId, out _))
         {
             throw new InvalidOperationException(
-                $"Bot__TeamsAppId '{teamsAppId}' is not a valid GUID. " +
+                $"Bot:TeamsAppId '{teamsAppId}' is not a valid GUID. " +
                 "Set it to a valid Entra app registration client ID, or leave it empty to disable proactive installation.");
         }
 
-        int waitSeconds = int.TryParse(_config["Bot__InstallWaitSeconds"], out var ws) && ws > 0 ? ws : 60;
-        int maxAttempts = int.TryParse(_config["Bot__MaxRefreshAttempts"], out var ma) && ma > 0 ? ma : 20;
+        int waitSeconds = int.TryParse(_config["Bot:InstallWaitSeconds"], out var ws) && ws > 0 ? ws : 60;
+        int maxAttempts = int.TryParse(_config["Bot:MaxRefreshAttempts"], out var ma) && ma > 0 ? ma : 20;
 
         _logger.LogInformation(
             "GetInstallConfigActivity: Notification {NotificationId} — " +
