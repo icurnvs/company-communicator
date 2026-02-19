@@ -49,6 +49,9 @@ param serviceBusFullyQualifiedNamespace string
 @description('Teams app catalog ID assigned by Teams Admin Center after manifest upload. Empty string disables proactive installation.')
 param botTeamsAppId string = ''
 
+@description('Bot Framework service URL for the tenant region. Commercial AMER default.')
+param botTeamsServiceUrl string = 'https://smba.trafficmanager.net/amer/'
+
 @description('Seconds to wait between install waves and ConversationId refresh.')
 @minValue(10)
 @maxValue(300)
@@ -155,6 +158,14 @@ resource functionAppPrep 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'Bot__MaxRefreshAttempts'
           value: string(maxRefreshAttempts)
+        }
+        // Bot Framework service URL for the tenant's region.
+        // Commercial Americas: https://smba.trafficmanager.net/amer/
+        // Commercial EMEA:     https://smba.trafficmanager.net/emea/
+        // Commercial APAC:     https://smba.trafficmanager.net/apac/
+        {
+          name: 'Bot__TeamsServiceUrl'
+          value: botTeamsServiceUrl
         }
       ]
     }

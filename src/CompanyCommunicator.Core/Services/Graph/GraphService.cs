@@ -348,6 +348,69 @@ internal sealed class GraphService : IGraphService
     }
 
     /// <inheritdoc/>
+    public async Task<string?> GetPersonalChatIdAsync(string userAadId, string teamsAppId, CancellationToken ct)
+    {
+        if (!Guid.TryParse(userAadId, out _))
+            throw new ArgumentException($"userAadId must be a valid GUID, got: '{userAadId}'", nameof(userAadId));
+        if (!Guid.TryParse(teamsAppId, out _))
+            throw new ArgumentException($"teamsAppId must be a valid GUID, got: '{teamsAppId}'", nameof(teamsAppId));
+
+        try
+        {
+            // Step 1: Find the installation record for this specific app.
+            // Use the OData filter to scope to our app only.
+            var installations = await _resilience.ExecuteAsync(async token =>
+                await _graphClient.Users[userAadId].Teamwork.InstalledApps
+                    .GetAsync(config =>
+                    {
+                        config.QueryParameters.Filter = $"teamsApp/id eq '{teamsAppId}'";
+                        config.QueryParameters.Expand = new[] { "teamsApp($select=id)" };
+                    }, token)
+                    .ConfigureAwait(false), ct).ConfigureAwait(false);
+
+            var installation = installations?.Value?.FirstOrDefault();
+            if (installation?.Id is null)
+            {
+                _logger.LogDebug(
+                    "GetPersonalChatIdAsync: No installation found for user {UserAadId} with app {TeamsAppId}.",
+                    userAadId, teamsAppId);
+                return null;
+            }
+
+            // Step 2: Retrieve the personal chat for this installation.
+            // GET /users/{id}/teamwork/installedApps/{installId}/chat
+            var chat = await _resilience.ExecuteAsync(async token =>
+                await _graphClient.Users[userAadId].Teamwork.InstalledApps[installation.Id].Chat
+                    .GetAsync(cancellationToken: token)
+                    .ConfigureAwait(false), ct).ConfigureAwait(false);
+
+            _logger.LogDebug(
+                "GetPersonalChatIdAsync: Retrieved chat {ChatId} for user {UserAadId}.",
+                chat?.Id, userAadId);
+
+            return chat?.Id;
+        }
+        catch (ODataError odataError) when (odataError.ResponseStatusCode is 404 or 403)
+        {
+            _logger.LogDebug(
+                "GetPersonalChatIdAsync: Chat not available for user {UserAadId}. Status={Status}.",
+                userAadId, odataError.ResponseStatusCode);
+            return null;
+        }
+        catch (Polly.CircuitBreaker.BrokenCircuitException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex,
+                "GetPersonalChatIdAsync: Unexpected error getting chat for user {UserAadId}.",
+                userAadId);
+            return null;
+        }
+    }
+
+    /// <inheritdoc/>
     public async Task<bool> InstallAppInTeamAsync(string teamGroupId, string teamsAppId, CancellationToken ct)
     {
         if (!Guid.TryParse(teamGroupId, out _))

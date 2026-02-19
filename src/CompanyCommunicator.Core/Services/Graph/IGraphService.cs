@@ -68,8 +68,6 @@ public interface IGraphService
 
     /// <summary>
     /// Proactively installs the Teams app for a user via Graph API.
-    /// This triggers a conversationUpdate event back to the bot endpoint,
-    /// which populates the user's ConversationId.
     /// </summary>
     /// <param name="userAadId">The AAD Object ID of the target user.</param>
     /// <param name="teamsAppId">The Teams app external ID (from manifest).</param>
@@ -79,6 +77,20 @@ public interface IGraphService
     /// <c>false</c> if the user could not be reached (403/404).
     /// </returns>
     Task<bool> InstallAppForUserAsync(string userAadId, string teamsAppId, CancellationToken ct);
+
+    /// <summary>
+    /// Gets the Teams personal chat ID for a user after proactive app installation.
+    /// This provides the conversation ID needed for proactive bot messaging without
+    /// requiring the bot to receive an installationUpdate callback from Teams.
+    /// </summary>
+    /// <param name="userAadId">The AAD Object ID of the target user.</param>
+    /// <param name="teamsAppId">The Teams app catalog ID.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>
+    /// The Teams chat ID (conversation ID) for the personal bot chat, or
+    /// <c>null</c> if the installation is not found or the chat is not yet available.
+    /// </returns>
+    Task<string?> GetPersonalChatIdAsync(string userAadId, string teamsAppId, CancellationToken ct);
 
     /// <summary>
     /// Proactively installs the Teams app in a team via Graph API.
