@@ -7,8 +7,22 @@ using Microsoft.Extensions.Logging;
 
 namespace CompanyCommunicator.Functions.Prep.Orchestrators;
 
+/// <summary>
+/// Root orchestrator: coordinates the full prepare-to-send pipeline for a notification.
+/// Pipeline: StoreCard → SyncRecipients → UpdateCount → ReadConfig → InstallApp
+/// → SetSending → SendQueue → DataAggregation.
+/// </summary>
 public sealed class PrepareToSendOrchestrator
 {
+    private static readonly TaskOptions ActivityRetryOptions = new(
+        new TaskRetryOptions(
+            new RetryPolicy(
+                maxNumberOfAttempts: 3,
+                firstRetryInterval: TimeSpan.FromSeconds(5),
+                backoffCoefficient: 2.0,
+                maxRetryInterval: TimeSpan.FromSeconds(30),
+                retryTimeout: null)));
+
     [Function(nameof(PrepareToSendOrchestrator))]
     public async Task RunOrchestrator(
         [OrchestrationTrigger] TaskOrchestrationContext context)
@@ -62,10 +76,10 @@ public sealed class PrepareToSendOrchestrator
 
                 // v5-R5: Final refresh to catch any late-arriving callbacks before marking unreachable.
                 await context.CallActivityAsync(
-                    nameof(RefreshConversationIdsActivity), notificationId);
+                    nameof(RefreshConversationIdsActivity), notificationId, ActivityRetryOptions);
 
                 await context.CallActivityAsync(
-                    nameof(MarkUnreachableActivity), notificationId);
+                    nameof(MarkUnreachableActivity), notificationId, ActivityRetryOptions);
             }
         }
         else
@@ -74,7 +88,7 @@ public sealed class PrepareToSendOrchestrator
                 "PrepareToSendOrchestrator: Bot__TeamsAppId not configured. Skipping install.");
 
             // Install skipped — mark any null-ConversationId records unreachable.
-            await context.CallActivityAsync(nameof(MarkUnreachableActivity), notificationId);
+            await context.CallActivityAsync(nameof(MarkUnreachableActivity), notificationId, ActivityRetryOptions);
         }
 
         // Step 6: Transition to Sending.

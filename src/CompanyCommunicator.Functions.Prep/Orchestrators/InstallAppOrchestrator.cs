@@ -15,8 +15,8 @@ namespace CompanyCommunicator.Functions.Prep.Orchestrators;
 /// Design notes:
 /// - v5-R3: Uses ContinueAsNew keyset checkpointing every <see cref="CheckpointEvery"/>
 ///   waves so Durable history stays bounded at 50k-user scale.
-/// - v5-R11: Adaptive polling backoff doubles the wait interval after the first two
-///   attempts, then doubles again after attempt five.
+/// - v5-R11: Adaptive polling backoff increases the wait interval from 1x to 1.5x
+///   after the first two attempts, then to 2x after attempt five.
 /// - Team install is always performed in the final ContinueAsNew instance (after user
 ///   fan-out completes) because team scope is low volume and does not need pagination.
 /// </summary>
@@ -48,7 +48,7 @@ public sealed class InstallAppOrchestrator
         var input = context.GetInput<InstallAppInput>()
             ?? throw new InvalidOperationException("InstallAppOrchestrator requires InstallAppInput.");
 
-        var installDeadline = context.CurrentUtcDateTime.Add(InstallPhaseTimeout);
+        var installDeadline = input.Deadline ?? context.CurrentUtcDateTime.Add(InstallPhaseTimeout);
 
         logger.LogInformation(
             "InstallAppOrchestrator: Starting for notification {NotificationId}. " +
@@ -112,7 +112,8 @@ public sealed class InstallAppOrchestrator
                 context.ContinueAsNew(new InstallAppInput(
                     input.NotificationId, input.TeamsAppId,
                     input.InstallWaitSeconds, input.MaxRefreshAttempts,
-                    lastSeenId, totalUserInstalled, totalUserFailed));
+                    lastSeenId, totalUserInstalled, totalUserFailed,
+                    installDeadline));
                 return;
             }
         }

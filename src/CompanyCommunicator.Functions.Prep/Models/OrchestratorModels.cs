@@ -93,7 +93,8 @@ public sealed record InstallAppInput(
     int MaxRefreshAttempts,
     long LastSeenId = 0,
     int CarriedInstalled = 0,
-    int CarriedFailed = 0);
+    int CarriedFailed = 0,
+    DateTime? Deadline = null);
 
 /// <summary>
 /// Result from <c>RefreshConversationIdsActivity</c>.
