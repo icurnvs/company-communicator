@@ -296,23 +296,12 @@ internal sealed class GraphService : IGraphService
         {
             await _resilience.ExecuteAsync(async token =>
             {
-                // consentedPermissionSet grants admin consent on behalf of the user for
-                // any RSC permissions declared in the app manifest, removing the per-user
-                // consent gate that would otherwise cause a 403.
                 var requestBody = new Microsoft.Graph.Models.UserScopeTeamsAppInstallation
                 {
                     AdditionalData = new Dictionary<string, object>
                     {
                         ["teamsApp@odata.bind"] =
                             $"https://graph.microsoft.com/v1.0/appCatalogs/teamsApps/{teamsAppId}",
-                        ["consentedPermissionSet"] = new
-                        {
-                            resourceSpecificPermissions = new[]
-                            {
-                                new { permissionValue = "TeamsActivity.Send.User", permissionType = "Application" },
-                                new { permissionValue = "ChatMessage.Read.Chat",   permissionType = "Application" },
-                            },
-                        },
                     },
                 };
 
