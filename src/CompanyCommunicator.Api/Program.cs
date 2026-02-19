@@ -247,8 +247,12 @@ app.UseRateLimiter();
 app.MapControllers();
 
 // Bot endpoint: POST /api/messages
-// requireAuth=true validates the bearer token from Azure Bot Service.
-app.MapAgentEndpoints(requireAuth: true);
+// requireAuth=false: the M365 Agents SDK CloudAdapter validates the Bot Framework
+// bearer token internally via the Connections/TokenValidation config. Passing
+// requireAuth=true causes ASP.NET Core to run the Microsoft.Identity.Web "Bearer"
+// validator first, which fails with IDX40003 because Bot Framework tokens issued by
+// https://api.botframework.com do not carry a 'tid' claim.
+app.MapAgentEndpoints(requireAuth: false);
 
 // Health check endpoints
 app.MapHealthChecks("/health/ready");
