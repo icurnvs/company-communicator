@@ -229,18 +229,6 @@ const useStyles = makeStyles({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formHasContent(values: ComposeFormValues): boolean {
-  return (
-    Boolean(values.headline?.trim()) ||
-    Boolean(values.body?.trim()) ||
-    Boolean(values.imageLink?.trim()) ||
-    Boolean(values.buttonTitle?.trim()) ||
-    Boolean(values.buttonLink?.trim()) ||
-    Boolean(values.secondaryText?.trim()) ||
-    (values.keyDetails?.length ?? 0) > 0
-  );
-}
-
 /** Apply a legacy CardSchema to the RHF form (for custom API templates). */
 function applySchema(form: UseFormReturn<ComposeFormValues>, schema: CardSchema) {
   form.setValue('headline', schema.headline ?? '', { shouldDirty: true, shouldTouch: true });
@@ -397,18 +385,19 @@ export function TemplatePicker({
   // ---------------------------------------------------------------------------
 
   const handleSelectBuiltin = (template: TemplateDefinition) => {
-    const values = form.getValues();
-    const hasContent = formHasContent(values);
+    const isDirty = form.formState.isDirty;
     const isBlank = template.id === BLANK_TEMPLATE_ID;
 
     const doApply = () => {
       applyTemplateDefaults(form, template);
+      // Reset dirty state so future template clicks won't prompt
+      form.reset(form.getValues());
       onTemplateSelect?.(template);
     };
 
-    if (isBlank && !hasContent) return; // no-op
+    if (isBlank && !isDirty) return; // no-op
 
-    if (hasContent) {
+    if (isDirty) {
       setPendingAction({
         message: isBlank
           ? 'Clear current content and start with a blank card?'
@@ -426,12 +415,15 @@ export function TemplatePicker({
   // ---------------------------------------------------------------------------
 
   const handleSelectCustom = (schema: CardSchema) => {
-    const values = form.getValues();
-    const hasContent = formHasContent(values);
+    const isDirty = form.formState.isDirty;
 
-    const doApply = () => { applySchema(form, schema); };
+    const doApply = () => {
+      applySchema(form, schema);
+      // Reset dirty state so future template clicks won't prompt
+      form.reset(form.getValues());
+    };
 
-    if (hasContent) {
+    if (isDirty) {
       setPendingAction({
         message: 'Replace current content with this template?',
         onConfirm: doApply,

@@ -1,16 +1,9 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect } from 'react';
 import {
   makeStyles,
-  mergeClasses,
   tokens,
-  ToggleButton,
   Caption1,
 } from '@fluentui/react-components';
-import {
-  WeatherSunny20Regular,
-  WeatherMoon20Regular,
-  Accessibility20Regular,
-} from '@fluentui/react-icons';
 import * as AdaptiveCards from 'adaptivecards';
 import type { TeamsTheme, ThemeDefinition } from '@/types';
 import { buildThemedHostConfig } from '@/lib/themeEngine';
@@ -19,26 +12,29 @@ import { buildThemedHostConfig } from '@/lib/themeEngine';
 // Styles
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = 'cc-preview-theme';
-
 const useStyles = makeStyles({
   root: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalS,
+    gap: tokens.spacingVerticalM,
     height: '100%',
+    overflow: 'auto',
   },
 
-  toolbar: {
+  section: {
     display: 'flex',
-    gap: tokens.spacingHorizontalXS,
-    justifyContent: 'center',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalXXS,
+  },
+
+  label: {
+    color: tokens.colorNeutralForeground3,
+    paddingLeft: tokens.spacingHorizontalXS,
   },
 
   previewContainer: {
-    flex: 1,
     minHeight: 0,
-    overflow: 'auto',
+    overflow: 'hidden',
     borderRadius: tokens.borderRadiusMedium,
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     padding: tokens.spacingHorizontalM,
@@ -77,6 +73,33 @@ function clearChildren(el: HTMLElement) {
   }
 }
 
+/** Render an Adaptive Card into a container element with the given theme. */
+function renderCardInto(
+  container: HTMLElement,
+  cardPayload: object,
+  recipientTheme: TeamsTheme,
+  cardTheme: ThemeDefinition,
+) {
+  try {
+    clearChildren(container);
+    const hostConfig = buildThemedHostConfig(recipientTheme, cardTheme);
+    const card = new AdaptiveCards.AdaptiveCard();
+    card.hostConfig = new AdaptiveCards.HostConfig(hostConfig);
+    card.onExecuteAction = () => {};
+    card.parse(cardPayload);
+    const rendered = card.render();
+    if (rendered) {
+      container.appendChild(rendered);
+    }
+  } catch (err) {
+    clearChildren(container);
+    const errEl = document.createElement('div');
+    errEl.style.cssText = 'color: red; padding: 8px; font-size: 12px; font-family: monospace;';
+    errEl.textContent = `Card render error: ${String(err)}`;
+    container.appendChild(errEl);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -92,97 +115,55 @@ export interface CardPreviewPanelProps {
 // CardPreviewPanel
 // ---------------------------------------------------------------------------
 
-function getInitialTheme(): TeamsTheme {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'dark' || stored === 'contrast') return stored;
-  } catch { /* localStorage unavailable */ }
-  return 'default';
-}
-
 export function CardPreviewPanel({ cardPayload, cardTheme }: CardPreviewPanelProps) {
   const styles = useStyles();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [recipientTheme, setRecipientTheme] = useState<TeamsTheme>(getInitialTheme);
+  const lightRef = useRef<HTMLDivElement>(null);
+  const darkRef = useRef<HTMLDivElement>(null);
+  const contrastRef = useRef<HTMLDivElement>(null);
 
-  const handleThemeChange = useCallback((theme: TeamsTheme) => {
-    setRecipientTheme(theme);
-    try { localStorage.setItem(STORAGE_KEY, theme); } catch { /* ok */ }
-  }, []);
-
-  // Render the Adaptive Card whenever payload, card theme, or recipient theme changes
+  // Render the Adaptive Card into all 3 theme containers
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+    const refs: { el: HTMLDivElement | null; theme: TeamsTheme }[] = [
+      { el: lightRef.current, theme: 'default' },
+      { el: darkRef.current, theme: 'dark' },
+      { el: contrastRef.current, theme: 'contrast' },
+    ];
 
-    if (!cardPayload) {
-      clearChildren(el);
-      return;
-    }
-
-    try {
-      clearChildren(el);
-      const hostConfig = buildThemedHostConfig(recipientTheme, cardTheme);
-      const card = new AdaptiveCards.AdaptiveCard();
-      card.hostConfig = new AdaptiveCards.HostConfig(hostConfig);
-      card.onExecuteAction = () => {};
-      card.parse(cardPayload);
-      const rendered = card.render();
-      if (rendered) {
-        el.appendChild(rendered);
+    for (const { el, theme } of refs) {
+      if (!el) continue;
+      if (!cardPayload) {
+        clearChildren(el);
+      } else {
+        renderCardInto(el, cardPayload, theme, cardTheme);
       }
-    } catch (err) {
-      clearChildren(el);
-      const errEl = document.createElement('div');
-      errEl.style.cssText = 'color: red; padding: 8px; font-size: 12px; font-family: monospace;';
-      errEl.textContent = `Card render error: ${String(err)}`;
-      el.appendChild(errEl);
     }
-  }, [cardPayload, cardTheme, recipientTheme]);
+  }, [cardPayload, cardTheme]);
 
-  const bgClass =
-    recipientTheme === 'dark' ? styles.previewDark
-    : recipientTheme === 'contrast' ? styles.previewContrast
-    : styles.previewLight;
+  if (!cardPayload) {
+    return (
+      <div className={styles.root}>
+        <div className={styles.emptyState}>
+          <Caption1>Select a template to see a preview</Caption1>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.root}>
-      <div className={styles.toolbar} role="toolbar" aria-label="Preview theme">
-        <ToggleButton
-          size="small"
-          icon={<WeatherSunny20Regular />}
-          checked={recipientTheme === 'default'}
-          onClick={() => { handleThemeChange('default'); }}
-          aria-label="Light theme preview"
-        >
-          Light
-        </ToggleButton>
-        <ToggleButton
-          size="small"
-          icon={<WeatherMoon20Regular />}
-          checked={recipientTheme === 'dark'}
-          onClick={() => { handleThemeChange('dark'); }}
-          aria-label="Dark theme preview"
-        >
-          Dark
-        </ToggleButton>
-        <ToggleButton
-          size="small"
-          icon={<Accessibility20Regular />}
-          checked={recipientTheme === 'contrast'}
-          onClick={() => { handleThemeChange('contrast'); }}
-          aria-label="High contrast theme preview"
-        >
-          Contrast
-        </ToggleButton>
+      <div className={styles.section}>
+        <Caption1 className={styles.label}>Light</Caption1>
+        <div className={`${styles.previewContainer} ${styles.previewLight}`} ref={lightRef} />
       </div>
 
-      <div className={mergeClasses(styles.previewContainer, bgClass)} ref={containerRef}>
-        {!cardPayload && (
-          <div className={styles.emptyState}>
-            <Caption1>Select a template to see a preview</Caption1>
-          </div>
-        )}
+      <div className={styles.section}>
+        <Caption1 className={styles.label}>Dark</Caption1>
+        <div className={`${styles.previewContainer} ${styles.previewDark}`} ref={darkRef} />
+      </div>
+
+      <div className={styles.section}>
+        <Caption1 className={styles.label}>High Contrast</Caption1>
+        <div className={`${styles.previewContainer} ${styles.previewContrast}`} ref={contrastRef} />
       </div>
     </div>
   );
