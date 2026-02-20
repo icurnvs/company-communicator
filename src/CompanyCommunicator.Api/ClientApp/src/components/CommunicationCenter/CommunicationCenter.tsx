@@ -1,12 +1,17 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, lazy, Suspense } from 'react';
 import { makeStyles, tokens } from '@fluentui/react-components';
 import { ErrorBoundary } from '@/components/Layout/ErrorBoundary';
 import { Sidebar } from '@/components/Sidebar/Sidebar';
 import { MessageList } from '@/components/MessageList/MessageList';
 import { DetailPanel } from '@/components/DetailPanel/DetailPanel';
-import { ComposePanel } from '@/components/ComposePanel/ComposePanel';
 import type { ComposeFormValues } from '@/lib/validators';
 import type { NotificationTab, NotificationDto, KeyDetailPair, CustomVariable, AdvancedBlock, CardPreference } from '@/types';
+
+const ComposePanel = lazy(() =>
+  import('@/components/ComposePanel/ComposePanel').then((m) => ({
+    default: m.ComposePanel,
+  })),
+);
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -174,12 +179,14 @@ export function CommunicationCenter() {
 
       {/* Compose slide-over — covers the main area when open */}
       {composeOpen && (
-        <ComposePanel
-          editId={composeEditId}
-          initialValues={cloneValues}
-          onClose={handleCloseCompose}
-          onDeliveryDone={handleDeliveryDone}
-        />
+        <Suspense fallback={null}>
+          <ComposePanel
+            editId={composeEditId}
+            initialValues={cloneValues}
+            onClose={handleCloseCompose}
+            onDeliveryDone={handleDeliveryDone}
+          />
+        </Suspense>
       )}
     </div>
   );
