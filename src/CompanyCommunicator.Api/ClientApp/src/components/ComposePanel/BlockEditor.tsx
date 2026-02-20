@@ -12,6 +12,7 @@ import {
   MenuItem,
   Text,
   Caption1,
+  Caption1Strong,
 } from '@fluentui/react-components';
 import {
   Add16Regular,
@@ -20,9 +21,9 @@ import {
   TextT16Regular,
   Image16Regular,
   Table16Regular,
-  ColumnTriple16Regular,
+  ColumnTripleRegular,
   Subtract16Regular,
-  CursorClick16Regular,
+  CursorClickRegular,
 } from '@fluentui/react-icons';
 import type { ComposeFormValues } from '@/lib/validators';
 import type { AdvancedBlockType } from '@/types';
@@ -38,7 +39,7 @@ import {
 const BLOCK_TYPE_META: Record<AdvancedBlockType, { label: string; icon: React.ReactNode; defaultData: Record<string, unknown> }> = {
   ColumnLayout: {
     label: 'Column Layout',
-    icon: <ColumnTriple16Regular />,
+    icon: <ColumnTripleRegular />,
     defaultData: { columns: [{ text: '' }, { text: '' }] },
   },
   ImageSet: {
@@ -58,7 +59,7 @@ const BLOCK_TYPE_META: Record<AdvancedBlockType, { label: string; icon: React.Re
   },
   ActionButton: {
     label: 'Action Button',
-    icon: <CursorClick16Regular />,
+    icon: <CursorClickRegular />,
     defaultData: { title: '', url: '' },
   },
   Divider: {
@@ -90,8 +91,7 @@ const useStyles = makeStyles({
   },
 
   blockCardDragOver: {
-    borderColor: tokens.colorBrandStroke1,
-    borderStyle: 'dashed',
+    border: `1px dashed ${tokens.colorBrandStroke1}`,
   },
 
   dragHandle: {
@@ -301,9 +301,9 @@ export function BlockEditor({ form }: BlockEditorProps) {
                 <div className={styles.blockHeader}>
                   <div className={styles.blockLabel}>
                     {meta?.icon}
-                    <Caption1 weight="semibold">
+                    <Caption1Strong>
                       {meta?.label ?? block?.type}
-                    </Caption1>
+                    </Caption1Strong>
                   </div>
                   <Button
                     appearance="subtle"

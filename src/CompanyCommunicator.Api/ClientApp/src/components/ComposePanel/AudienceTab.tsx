@@ -17,7 +17,6 @@ import {
   Divider,
 } from '@fluentui/react-components';
 import {
-  Dismiss12Regular,
   People24Regular,
   ChatMultiple24Regular,
   PersonCall24Regular,
@@ -431,7 +430,6 @@ function ChannelChip({ audience, onRemove, onMoveToIndividual }: ChannelChipProp
         <InteractionTagSecondary
           aria-label={`Remove ${audience.name}`}
           onClick={() => { onRemove(audience.id); }}
-          icon={<Dismiss12Regular />}
         />
       </InteractionTag>
       <div className={styles.chipMeta}>
@@ -487,7 +485,6 @@ function IndividualChip({ audience, onRemove, onMoveToChannel }: IndividualChipP
         <InteractionTagSecondary
           aria-label={`Remove ${audience.name}`}
           onClick={() => { onRemove(audience.id); }}
-          icon={<Dismiss12Regular />}
         />
       </InteractionTag>
       {audience.type === 'team' && onMoveToChannel && (

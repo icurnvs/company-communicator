@@ -97,7 +97,7 @@ const useStyles = makeStyles({
     minHeight: '80px',
     transition: 'border-color 80ms, background-color 80ms',
     ':hover': {
-      borderColor: tokens.colorBrandStroke1,
+      border: `1px solid ${tokens.colorBrandStroke1}`,
       backgroundColor: tokens.colorNeutralBackground1Hover,
     },
     ':focus-visible': {

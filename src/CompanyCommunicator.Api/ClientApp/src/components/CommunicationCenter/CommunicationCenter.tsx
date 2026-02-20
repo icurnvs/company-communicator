@@ -5,7 +5,8 @@ import { Sidebar } from '@/components/Sidebar/Sidebar';
 import { MessageList } from '@/components/MessageList/MessageList';
 import { DetailPanel } from '@/components/DetailPanel/DetailPanel';
 import { ComposePanel } from '@/components/ComposePanel/ComposePanel';
-import type { NotificationTab, NotificationDto } from '@/types';
+import type { ComposeFormValues } from '@/lib/validators';
+import type { NotificationTab, NotificationDto, KeyDetailPair, CustomVariable, AdvancedBlock, CardPreference } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -69,6 +70,7 @@ export function CommunicationCenter() {
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeEditId, setComposeEditId] = useState<string | null>(null);
+  const [cloneValues, setCloneValues] = useState<Partial<ComposeFormValues> | null>(null);
 
   const hasDetail = selectedMessageId !== null;
 
@@ -84,19 +86,51 @@ export function CommunicationCenter() {
     },
     onOpenCompose: (editId = null) => {
       setComposeEditId(editId ?? null);
+      setCloneValues(null);
       setComposeOpen(true);
     },
     onCloseCompose: () => {
       setComposeOpen(false);
       setComposeEditId(null);
+      setCloneValues(null);
     },
   };
 
   // "Use as template" — opens compose pre-filled with an existing notification's
   // content as a new draft (no editId so it creates a new notification on save).
-  const handleCloneToCompose = useCallback((_notification: NotificationDto) => {
-    // For now, open a new compose. Task 18 will implement full content cloning.
-    actions.onOpenCompose(null);
+  const handleCloneToCompose = useCallback((notification: NotificationDto) => {
+    const parseJson = <T,>(raw: string | null, fallback: T): T => {
+      if (!raw) return fallback;
+      try { return JSON.parse(raw) as T; }
+      catch { return fallback; }
+    };
+
+    // Parse custom variables from Record<string,string> to name/value pairs
+    const parsedCustomVars = notification.customVariables
+      ? (() => {
+          try {
+            const obj = JSON.parse(notification.customVariables) as Record<string, string>;
+            return Object.entries(obj).map(([name, value]) => ({ name, value }));
+          } catch { return null; }
+        })()
+      : null;
+
+    const values: Partial<ComposeFormValues> = {
+      headline: notification.title,
+      body: notification.summary ?? '',
+      imageLink: notification.imageLink ?? '',
+      keyDetails: parseJson<KeyDetailPair[] | null>(notification.keyDetails, null),
+      buttonTitle: notification.buttonTitle ?? '',
+      buttonLink: notification.buttonLink ?? '',
+      secondaryText: notification.secondaryText ?? '',
+      customVariables: parsedCustomVars as CustomVariable[] | null,
+      cardPreference: (notification.cardPreference as CardPreference) ?? 'Standard',
+      advancedBlocks: parseJson<AdvancedBlock[] | null>(notification.advancedBlocks, null),
+    };
+
+    setCloneValues(values);
+    setComposeEditId(null); // New draft, not editing the original
+    setComposeOpen(true);
   }, []);
 
   return (
@@ -141,6 +175,7 @@ export function CommunicationCenter() {
       {composeOpen && (
         <ComposePanel
           editId={composeEditId}
+          initialValues={cloneValues}
           onClose={actions.onCloseCompose}
           onDeliveryDone={() => {
             actions.onCloseCompose();

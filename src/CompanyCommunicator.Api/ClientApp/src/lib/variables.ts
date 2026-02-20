@@ -1,5 +1,3 @@
-import type { CustomVariable } from '@/types';
-
 export interface RecipientVariable {
   name: string;
   label: string;
@@ -55,7 +53,7 @@ export function hasRecipientVariables(text: string): boolean {
   let match: RegExpExecArray | null;
   VARIABLE_PATTERN.lastIndex = 0;
   while ((match = VARIABLE_PATTERN.exec(text)) !== null) {
-    if (recipientNames.has(match[1])) return true;
+    if (match[1] && recipientNames.has(match[1])) return true;
   }
   return false;
 }
@@ -66,8 +64,9 @@ export function extractVariableNames(text: string): string[] {
   let match: RegExpExecArray | null;
   VARIABLE_PATTERN.lastIndex = 0;
   while ((match = VARIABLE_PATTERN.exec(text)) !== null) {
-    if (!names.includes(match[1])) {
-      names.push(match[1]);
+    const name = match[1];
+    if (name && !names.includes(name)) {
+      names.push(name);
     }
   }
   return names;
