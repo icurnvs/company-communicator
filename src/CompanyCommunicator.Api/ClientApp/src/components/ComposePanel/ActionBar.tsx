@@ -384,13 +384,15 @@ export function ActionBar({
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const previewMutation = usePreviewNotification();
 
-  // Watch form values locally so only ActionBar re-renders on field changes.
-  const formValues = form.watch();
+  // Watch only the fields ActionBar needs — avoids re-renders from every keystroke.
+  const allUsers = form.watch('allUsers');
+  const audiences = form.watch('audiences');
+  const headline = form.watch('headline');
 
   // Audience summary
-  const { chipTypes } = buildAudienceSummary(formValues.allUsers, formValues.audiences);
-  const reach = estimateReach(formValues.allUsers, formValues.audiences);
-  const hasAudience = formValues.allUsers || (formValues.audiences ?? []).length > 0;
+  const { chipTypes } = buildAudienceSummary(allUsers, audiences);
+  const reach = estimateReach(allUsers, audiences);
+  const hasAudience = allUsers || (audiences ?? []).length > 0;
 
   // Send Preview is only meaningful in edit mode with a saved draft
   const canPreview = isEdit && Boolean(notificationId);
@@ -411,7 +413,7 @@ export function ActionBar({
         {hasAudience ? (
           <>
             <div className={styles.audienceChips}>
-              {formValues.allUsers ? (
+              {allUsers ? (
                 <Badge appearance="tint" color="informative" size="small">
                   All Users
                 </Badge>
@@ -491,7 +493,7 @@ export function ActionBar({
           size="small"
           icon={<ChevronRightRegular />}
           iconPosition="after"
-          disabled={!hasAudience || !formValues.headline?.trim()}
+          disabled={!hasAudience || !headline?.trim()}
           onClick={onReview}
         >
           Review
@@ -502,7 +504,7 @@ export function ActionBar({
       <SaveTemplateDialog
         open={templateDialogOpen}
         onClose={() => { setTemplateDialogOpen(false); }}
-        formValues={formValues}
+        formValues={form.getValues()}
       />
     </div>
   );
