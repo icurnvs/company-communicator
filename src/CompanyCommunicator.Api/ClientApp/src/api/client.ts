@@ -62,6 +62,32 @@ interface RequestOptions {
   headers?: Record<string, string>;
 }
 
+async function handleErrorResponse<T>(response: Response): Promise<T> {
+  let message = `HTTP ${String(response.status)}: ${response.statusText}`;
+  let detail: string | undefined;
+
+  try {
+    const errorJson = (await response.json()) as {
+      message?: string;
+      title?: string;
+      detail?: string;
+      errors?: Record<string, string[]>;
+    };
+    message = errorJson.message ?? errorJson.title ?? message;
+    detail = errorJson.detail;
+    if (errorJson.errors) {
+      const fieldErrors = Object.entries(errorJson.errors)
+        .map(([field, msgs]) => `${field}: ${msgs.join(', ')}`)
+        .join('; ');
+      detail = fieldErrors;
+    }
+  } catch {
+    // ignore JSON parse error; use status text
+  }
+
+  throw new ApiResponseError({ status: response.status, message, detail });
+}
+
 async function request<T>(
   path: string,
   options: RequestOptions = {},
@@ -87,29 +113,31 @@ async function request<T>(
   });
 
   if (!response.ok) {
-    let message = `HTTP ${String(response.status)}: ${response.statusText}`;
-    let detail: string | undefined;
+    // On 401, clear the token cache and retry once with a fresh token
+    if (response.status === 401 && cachedToken !== null) {
+      clearTokenCache();
+      const freshToken = await getTeamsToken();
+      const retryHeaders = { ...headers, Authorization: `Bearer ${freshToken}` };
 
-    try {
-      const errorJson = (await response.json()) as {
-        message?: string;
-        title?: string;
-        detail?: string;
-        errors?: Record<string, string[]>;
-      };
-      message = errorJson.message ?? errorJson.title ?? message;
-      detail = errorJson.detail;
-      if (errorJson.errors) {
-        const fieldErrors = Object.entries(errorJson.errors)
-          .map(([field, msgs]) => `${field}: ${msgs.join(', ')}`)
-          .join('; ');
-        detail = fieldErrors;
+      const retryResponse = await fetch(path, {
+        method,
+        headers: retryHeaders,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal,
+      });
+
+      if (retryResponse.ok) {
+        if (retryResponse.status === 204 || retryResponse.headers.get('content-length') === '0') {
+          return undefined as unknown as T;
+        }
+        return retryResponse.json() as Promise<T>;
       }
-    } catch {
-      // ignore JSON parse error; use status text
+
+      // Retry also failed — fall through to error handling with retryResponse
+      return handleErrorResponse<T>(retryResponse);
     }
 
-    throw new ApiResponseError({ status: response.status, message, detail });
+    return handleErrorResponse<T>(response);
   }
 
   // 204 No Content or similar
@@ -146,22 +174,27 @@ async function requestWithHeaders<T>(
   });
 
   if (!response.ok) {
-    let message = `HTTP ${String(response.status)}: ${response.statusText}`;
-    let detail: string | undefined;
+    if (response.status === 401 && cachedToken !== null) {
+      clearTokenCache();
+      const freshToken = await getTeamsToken();
+      const retryHeaders = { ...headers, Authorization: `Bearer ${freshToken}` };
 
-    try {
-      const errorJson = (await response.json()) as {
-        message?: string;
-        title?: string;
-        detail?: string;
-      };
-      message = errorJson.message ?? errorJson.title ?? message;
-      detail = errorJson.detail;
-    } catch {
-      // ignore
+      const retryResponse = await fetch(path, {
+        method,
+        headers: retryHeaders,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal,
+      });
+
+      if (retryResponse.ok) {
+        const data = (await retryResponse.json()) as T;
+        return { data, headers: retryResponse.headers };
+      }
+
+      return handleErrorResponse(retryResponse) as never;
     }
 
-    throw new ApiResponseError({ status: response.status, message, detail });
+    return handleErrorResponse(response) as never;
   }
 
   const data = (await response.json()) as T;
