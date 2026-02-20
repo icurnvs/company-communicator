@@ -126,6 +126,11 @@ export function templateToFormDefaults(
     themeId: DEFAULT_THEME_ID,
     cardPreference: 'Template',
     slotVisibility: {},
+    // Phase C: clear advanced fields when selecting a new template
+    additionalSlots: null,
+    advancedOverrides: null,
+    cardSettings: null,
+    slotOrder: null,
   };
 
   // Build initial slot visibility based on template slot definitions
