@@ -282,10 +282,10 @@ function SchedulePopover({ notificationId, isSaving, onSaveDraft }: SchedulePopo
 interface SaveTemplateDialogProps {
   open: boolean;
   onClose: () => void;
-  formValues: ComposeFormValues;
+  form: UseFormReturn<ComposeFormValues>;
 }
 
-function SaveTemplateDialog({ open, onClose, formValues }: SaveTemplateDialogProps) {
+function SaveTemplateDialog({ open, onClose, form }: SaveTemplateDialogProps) {
   const styles = useStyles();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -293,6 +293,9 @@ function SaveTemplateDialog({ open, onClose, formValues }: SaveTemplateDialogPro
 
   const handleSave = useCallback(async () => {
     if (!name.trim()) return;
+
+    // Snapshot at save time (not render time) to avoid stale values
+    const formValues = form.getValues();
 
     const cardSchema: CardSchema = {
       headline: formValues.headline,
@@ -306,16 +309,28 @@ function SaveTemplateDialog({ open, onClose, formValues }: SaveTemplateDialogPro
       cardPreference: formValues.cardPreference ?? undefined,
     };
 
+    // Include Phase C structural data in the schema
+    const extendedSchema = {
+      ...cardSchema,
+      additionalSlots: formValues.additionalSlots ?? undefined,
+      advancedOverrides: formValues.advancedOverrides ?? undefined,
+      cardSettings: formValues.cardSettings ?? undefined,
+      slotOrder: formValues.slotOrder ?? undefined,
+      slotVisibility: formValues.slotVisibility ?? undefined,
+      templateId: formValues.templateId ?? undefined,
+      themeId: formValues.themeId ?? undefined,
+    };
+
     await createTemplate.mutateAsync({
       name: name.trim(),
       description: description.trim() || null,
-      cardSchema: JSON.stringify(cardSchema),
+      cardSchema: JSON.stringify(extendedSchema),
     });
 
     setName('');
     setDescription('');
     onClose();
-  }, [name, description, formValues, createTemplate, onClose]);
+  }, [name, description, form, createTemplate, onClose]);
 
   const handleClose = useCallback(() => {
     setName('');
@@ -481,12 +496,14 @@ export function ActionBar({
           </MenuTrigger>
           <MenuPopover>
             <MenuList>
-              <MenuItem
-                icon={<DocumentCopyRegular />}
-                onClick={() => { setTemplateDialogOpen(true); }}
-              >
-                Save as Template
-              </MenuItem>
+              {advancedMode && (
+                <MenuItem
+                  icon={<DocumentCopyRegular />}
+                  onClick={() => { setTemplateDialogOpen(true); }}
+                >
+                  Save as Template
+                </MenuItem>
+              )}
             </MenuList>
           </MenuPopover>
         </Menu>
@@ -539,7 +556,7 @@ export function ActionBar({
       <SaveTemplateDialog
         open={templateDialogOpen}
         onClose={() => { setTemplateDialogOpen(false); }}
-        formValues={form.getValues()}
+        form={form}
       />
     </div>
   );
