@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Company Communicator — Compose Flow Explorer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-app: #1a1a2e;
+    --bg-surface: #16213e;
+    --bg-card: #1e2a4a;
+    --bg-card-hover: #243356;
+    --bg-input: #0f1629;
+    --accent: #7b6cf6;
+    --accent-light: #9d92f8;
+    --accent-dim: rgba(123, 108, 246, 0.15);
+    --accent-glow: rgba(123, 108, 246, 0.3);
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0a8;
+    --text-muted: #6b7280;
+    --border: rgba(255,255,255,0.08);
+    --border-focus: rgba(123, 108, 246, 0.5);
+    --success: #34d399;
+    --success-bg: rgba(52, 211, 153, 0.12);
+    --warning: #fbbf24;
+    --warning-bg: rgba(251, 191, 36, 0.12);
+    --danger: #f87171;
+    --danger-bg: rgba(248, 113, 113, 0.12);
+    --info: #60a5fa;
+    --info-bg: rgba(96, 165, 250, 0.12);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --shadow-card: 0 2px 8px rgba(0,0,0,0.3);
+    --shadow-elevated: 0 8px 32px rgba(0,0,0,0.4), 0 0 1px rgba(255,255,255,0.08);
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg-app);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #0f0c29, #1a1a3e, #24243e);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar h1 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .topbar h1 .icon { font-size: 20px; }
+
+  .layout-switcher { display: flex; gap: 4px; background: var(--bg-input); border-radius: var(--radius-md); padding: 3px; }
+  .layout-tab {
+    padding: 8px 18px; border-radius: 8px; border: none; background: transparent;
+    color: var(--text-secondary); font-family: var(--font); font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .layout-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+  .layout-tab.active { color: #fff; background: var(--accent); box-shadow: 0 2px 8px rgba(123, 108, 246, 0.3); }
+
+  .desc-bar {
+    padding: 14px 24px; background: var(--accent-dim); border-bottom: 1px solid var(--border);
+    font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .desc-bar .tag {
+    background: var(--accent); color: #fff; padding: 2px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;
+  }
+
+  /* ── State toggle (list vs compose) ── */
+  .state-toggle {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    padding: 14px 24px; background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border);
+  }
+  .state-label { font-size: 13px; color: var(--text-secondary); }
+  .state-label.active-label { color: var(--accent-light); font-weight: 600; }
+  .toggle-switch {
+    width: 48px; height: 26px; background: var(--bg-input); border-radius: 13px;
+    border: 1px solid var(--border); cursor: pointer; position: relative; transition: all 0.3s;
+  }
+  .toggle-switch.on { background: var(--accent); border-color: var(--accent); }
+  .toggle-knob {
+    width: 20px; height: 20px; background: #fff; border-radius: 50%;
+    position: absolute; top: 2px; left: 2px; transition: transform 0.3s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+  .toggle-switch.on .toggle-knob { transform: translateX(22px); }
+
+  /* ── Preview frame ── */
+  .preview-frame {
+    margin: 24px; border-radius: var(--radius-xl); border: 1px solid var(--border);
+    background: var(--bg-surface); overflow: hidden; box-shadow: var(--shadow-elevated);
+    height: 560px; position: relative;
+  }
+
+  /* ── Shared sidebar ── */
+  .sidebar {
+    width: 200px; background: var(--bg-input); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0; height: 100%;
+  }
+  .sidebar-compose-btn {
+    margin: 14px 12px 8px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px; background: linear-gradient(135deg, var(--accent), #6366f1); color: #fff;
+    border: none; border-radius: var(--radius-sm); font-family: var(--font); font-size: 13px;
+    font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .sidebar-compose-btn:hover { box-shadow: 0 4px 16px rgba(123, 108, 246, 0.35); }
+  .sidebar-compose-btn.composing { background: var(--bg-card); border: 1px solid var(--accent); color: var(--accent-light); }
+
+  .nav-items { flex: 1; padding: 4px 8px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+    border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s;
+    font-size: 13px; color: var(--text-secondary); margin-bottom: 1px;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+  .nav-item.active { background: var(--accent-dim); color: var(--accent-light); font-weight: 600; }
+  .nav-item .ni { font-size: 15px; width: 20px; text-align: center; }
+  .nav-item .cnt { margin-left: auto; font-size: 11px; background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 10px; }
+  .nav-item.active .cnt { background: var(--accent-glow); }
+
+  /* ── Message list ── */
+  .msg-list { flex: 1; overflow-y: auto; border-right: 1px solid var(--border); min-width: 280px; }
+  .msg-list-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid var(--border); position: sticky; top: 0;
+    background: var(--bg-surface); z-index: 2;
+  }
+  .msg-list-header h3 { font-size: 14px; font-weight: 600; }
+  .search-box {
+    display: flex; align-items: center; gap: 6px; background: var(--bg-input);
+    border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 5px 10px;
+    font-size: 11px; color: var(--text-muted); width: 160px;
+  }
+  .msg-row {
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+    border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s;
+  }
+  .msg-row:hover { background: var(--bg-card-hover); }
+  .msg-row.selected { background: var(--accent-dim); border-left: 3px solid var(--accent); }
+  .msg-av {
+    width: 36px; height: 36px; border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .msg-body { flex: 1; min-width: 0; }
+  .msg-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+  .msg-sub { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .msg-right { text-align: right; flex-shrink: 0; }
+  .msg-date { font-size: 10px; color: var(--text-muted); margin-bottom: 4px; }
+  .badge {
+    font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 10px;
+    text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .badge-sent { background: var(--success-bg); color: var(--success); }
+  .badge-sending { background: var(--info-bg); color: var(--info); }
+  .badge-draft { background: rgba(255,255,255,0.08); color: var(--text-secondary); }
+  .badge-scheduled { background: var(--warning-bg); color: var(--warning); }
+
+  /* ── Detail panel ── */
+  .detail-panel {
+    width: 320px; background: var(--bg-card); display: flex; flex-direction: column;
+    flex-shrink: 0; overflow-y: auto;
+  }
+  .detail-head { padding: 18px 18px 14px; border-bottom: 1px solid var(--border); }
+  .detail-head h3 { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+  .detail-head p { font-size: 11px; color: var(--text-muted); }
+  .detail-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 14px 18px; }
+  .ds { text-align: center; padding: 10px; border-radius: var(--radius-sm); background: var(--bg-surface); }
+  .ds .v { font-size: 20px; font-weight: 700; }
+  .ds .l { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+  .detail-progress { padding: 0 18px 14px; }
+  .pbar { height: 5px; background: var(--bg-input); border-radius: 3px; overflow: hidden; }
+  .pfill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--success), #2dd4bf); }
+  .plabel { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+  .detail-section { padding: 14px 18px; border-top: 1px solid var(--border); }
+  .detail-section h4 { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .chip { padding: 3px 10px; border-radius: 12px; background: var(--accent-dim); color: var(--accent-light); font-size: 11px; font-weight: 500; display: inline-block; margin: 0 4px 4px 0; }
+
+  /* ── Compose panel (shared styles) ── */
+  .compose-area { display: flex; flex: 1; overflow: hidden; }
+
+  .editor-col { flex: 1; padding: 20px 24px; overflow-y: auto; }
+  .editor-section-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .editor-section-label .pulse { width: 7px; height: 7px; background: var(--success); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .templates-row { display: flex; gap: 8px; margin-bottom: 20px; }
+  .tpl-card {
+    flex: 1; padding: 12px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--bg-card); cursor: pointer; text-align: center; transition: all 0.2s;
+  }
+  .tpl-card:hover { border-color: var(--border-focus); background: var(--bg-card-hover); }
+  .tpl-card.sel { border-color: var(--accent); background: var(--accent-dim); }
+  .tpl-card .ti { font-size: 22px; margin-bottom: 4px; display: block; }
+  .tpl-card .tn { font-size: 11px; font-weight: 600; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px; }
+  .field .opt { font-weight: 400; color: var(--text-muted); }
+  .field input, .field textarea {
+    width: 100%; padding: 9px 12px; background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--font); font-size: 13px;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+  .field textarea { resize: vertical; min-height: 70px; }
+  .field .hint { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+  .img-drop {
+    border: 1px dashed var(--border); border-radius: var(--radius-sm); padding: 16px;
+    text-align: center; color: var(--text-muted); font-size: 11px; cursor: pointer;
+  }
+  .cta-row { display: flex; gap: 8px; }
+  .cta-row input { flex: 1; }
+
+  .preview-col {
+    width: 280px; background: var(--bg-card); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .preview-head {
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .preview-body { flex: 1; padding: 16px; overflow-y: auto; display: flex; align-items: flex-start; justify-content: center; }
+  .card-mock {
+    width: 100%; background: var(--bg-surface); border-radius: var(--radius-md);
+    border: 1px solid var(--border); overflow: hidden;
+  }
+  .card-img {
+    width: 100%; height: 100px; background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex; align-items: center; justify-content: center; font-size: 32px;
+  }
+  .card-content { padding: 14px; }
+  .card-content h4 { font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+  .card-content p { font-size: 11px; color: var(--text-secondary); line-height: 1.5; }
+  .card-btn-mock {
+    display: block; margin: 10px 14px 14px; padding: 7px; background: var(--accent); color: #fff;
+    border: none; border-radius: var(--radius-sm); font-family: var(--font); font-size: 11px;
+    font-weight: 600; text-align: center;
+  }
+
+  .bottom-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px; border-top: 1px solid var(--border); background: var(--bg-card);
+    flex-shrink: 0;
+  }
+  .aud-summary { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
+  .aud-chips { display: flex; gap: 4px; }
+  .edit-link { background: none; border: none; color: var(--accent-light); font-family: var(--font); font-size: 11px; cursor: pointer; text-decoration: underline; }
+  .actions { display: flex; gap: 6px; }
+  .btn {
+    padding: 7px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: transparent; color: var(--text-secondary); font-family: var(--font);
+    font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+  }
+  .btn:hover { background: rgba(255,255,255,0.05); }
+  .btn.primary { background: linear-gradient(135deg, var(--accent), #6366f1); color: #fff; border: none; font-weight: 600; }
+  .btn.primary:hover { box-shadow: 0 4px 12px rgba(123, 108, 246, 0.3); }
+
+  /* ── Slide-over overlay (layout 2) ── */
+  .slide-overlay {
+    position: absolute; top: 0; right: 0; bottom: 0; width: calc(100% - 200px);
+    background: var(--bg-surface); z-index: 10; display: flex; flex-direction: column;
+    border-left: 1px solid var(--border);
+    box-shadow: -4px 0 24px rgba(0,0,0,0.4);
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  .slide-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--bg-card);
+  }
+  .slide-header h3 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .close-x {
+    width: 30px; height: 30px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: transparent; color: var(--text-secondary); font-size: 16px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .close-x:hover { background: var(--danger-bg); color: var(--danger); border-color: transparent; }
+
+  /* ── Full page compose (layout 3) ── */
+  .fullpage-compose {
+    position: absolute; inset: 0; background: var(--bg-surface); z-index: 10;
+    display: flex; flex-direction: column; animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .fullpage-header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 24px; border-bottom: 1px solid var(--border); background: var(--bg-card);
+  }
+  .back-btn {
+    display: flex; align-items: center; gap: 6px; padding: 6px 14px;
+    border-radius: var(--radius-sm); border: 1px solid var(--border); background: transparent;
+    color: var(--text-secondary); font-family: var(--font); font-size: 12px; cursor: pointer; transition: all 0.15s;
+  }
+  .back-btn:hover { background: rgba(255,255,255,0.05); }
+  .fullpage-header h3 { font-size: 15px; font-weight: 600; }
+  .fullpage-header .step-dots { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .step-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.15);
+  }
+  .step-dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+  .step-label { font-size: 11px; color: var(--text-muted); margin-left: 4px; }
+
+  /* ── Prompt output ── */
+  .prompt-section {
+    margin: 0 24px 24px; background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+  }
+  .prompt-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02);
+  }
+  .prompt-header span { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+  .copy-btn {
+    padding: 5px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: transparent; color: var(--accent-light); font-family: var(--font); font-size: 12px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .copy-btn:hover { background: var(--accent-dim); }
+  .copy-btn.copied { background: var(--success-bg); color: var(--success); border-color: transparent; }
+  .prompt-body {
+    padding: 16px 18px; font-size: 13px; line-height: 1.7; color: var(--text-secondary);
+    max-height: 150px; overflow-y: auto; white-space: pre-wrap;
+  }
+
+  /* ── Layout containers ── */
+  .layout-wrap { display: none; height: 100%; position: relative; }
+  .layout-wrap.active { display: flex; }
+  .layout-inner { display: flex; flex: 1; height: 100%; overflow: hidden; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1><span class="icon">📢</span> Compose Flow Explorer</h1>
+  <div class="layout-switcher">
+    <button class="layout-tab active" onclick="switchLayout('inline')">Inline Replace</button>
+    <button class="layout-tab" onclick="switchLayout('slide')">Slide-Over Panel</button>
+    <button class="layout-tab" onclick="switchLayout('fullpage')">Dedicated Route</button>
+  </div>
+</div>
+
+<div class="desc-bar">
+  <span class="tag" id="descTag">Seamless</span>
+  <span id="descText">Clicking Compose swaps the list + detail area with a full-width card builder. The sidebar nav stays visible so you always know where you are.</span>
+</div>
+
+<div class="state-toggle">
+  <span class="state-label active-label" id="stateListLabel">Message List</span>
+  <div class="toggle-switch" id="stateToggle" onclick="toggleState()">
+    <div class="toggle-knob"></div>
+  </div>
+  <span class="state-label" id="stateComposeLabel">Compose View</span>
+  <span style="font-size: 11px; color: var(--text-muted); margin-left: 8px;">← Toggle to see the transition</span>
+</div>
+
+<div class="preview-frame" id="previewFrame">
+
+  <!-- ═══ LAYOUT 1: Inline Replace ═══ -->
+  <div class="layout-wrap active" id="layout-inline">
+    <!-- List state -->
+    <div class="layout-inner" id="inline-list">
+      <div class="sidebar">
+        <button class="sidebar-compose-btn" onclick="toggleState()">✏️ Compose</button>
+        <div class="nav-items">
+          <div class="nav-item active"><span class="ni">📤</span> Sent <span class="cnt">38</span></div>
+          <div class="nav-item"><span class="ni">📝</span> Drafts <span class="cnt">2</span></div>
+          <div class="nav-item"><span class="ni">📅</span> Scheduled <span class="cnt">3</span></div>
+        </div>
+      </div>
+      <div class="msg-list">
+        <div class="msg-list-header"><h3>Sent Messages</h3><div class="search-box">🔍 Search...</div></div>
+        <div class="msg-row selected">
+          <div class="msg-av" style="background: linear-gradient(135deg, #667eea, #764ba2);">Q1</div>
+          <div class="msg-body"><div class="msg-title">Q1 All-Hands Summary</div><div class="msg-sub">Key highlights from quarterly meeting</div></div>
+          <div class="msg-right"><div class="msg-date">2h ago</div><span class="badge badge-sent">Sent</span></div>
+        </div>
+        <div class="msg-row">
+          <div class="msg-av" style="background: linear-gradient(135deg, #f093fb, #f5576c);">BE</div>
+          <div class="msg-body"><div class="msg-title">Benefits Enrollment Open</div><div class="msg-sub">Open enrollment for 2026 benefits</div></div>
+          <div class="msg-right"><div class="msg-date">Now</div><span class="badge badge-sending">Sending</span></div>
+        </div>
+        <div class="msg-row">
+          <div class="msg-av" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">IT</div>
+          <div class="msg-body"><div class="msg-title">IT Maintenance Window</div><div class="msg-sub">Planned maintenance Feb 22</div></div>
+          <div class="msg-right"><div class="msg-date">Feb 22</div><span class="badge badge-scheduled">Sched.</span></div>
+        </div>
+        <div class="msg-row">
+          <div class="msg-av" style="background: linear-gradient(135deg, #fa709a, #fee140);">WB</div>
+          <div class="msg-body"><div class="msg-title">Welcome Back, Team!</div><div class="msg-sub">Great break recap and what's next</div></div>
+          <div class="msg-right"><div class="msg-date">Feb 10</div><span class="badge badge-sent">Sent</span></div>
+        </div>
+        <div class="msg-row">
+          <div class="msg-av" style="background: linear-gradient(135deg, #a18cd1, #fbc2eb);">PS</div>
+          <div class="msg-body"><div class="msg-title">Password Security Reminder</div><div class="msg-sub">Update passwords before March</div></div>
+          <div class="msg-right"><div class="msg-date">Feb 8</div><span class="badge badge-sent">Sent</span></div>
+        </div>
+      </div>
+      <div class="detail-panel">
+        <div class="detail-head"><h3>Q1 All-Hands Summary</h3><p>Sent by Admin · 2 hours ago</p></div>
+        <div class="detail-stats-grid">
+          <div class="ds"><div class="v" style="color:var(--success)">412</div><div class="l">Delivered</div></div>
+          <div class="ds"><div class="v" style="color:var(--danger)">8</div><div class="l">Failed</div></div>
+          <div class="ds"><div class="v" style="color:var(--warning)">3</div><div class="l">Pending</div></div>
+          <div class="ds"><div class="v">423</div><div class="l">Total</div></div>
+        </div>
+        <div class="detail-progress">
+          <div class="pbar"><div class="pfill" style="width:97.4%"></div></div>
+          <div class="plabel"><span>97.4% delivered</span><span>412/423</span></div>
+        </div>
+        <div class="detail-section">
+          <h4>Audience</h4>
+          <span class="chip">Engineering</span><span class="chip">Product</span><span class="chip">Design</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compose state (inline replace) -->
+    <div class="layout-inner" id="inline-compose" style="display:none;">
+      <div class="sidebar">
+        <button class="sidebar-compose-btn composing" onclick="toggleState()">← Back to Messages</button>
+        <div class="nav-items">
+          <div class="nav-item"><span class="ni">📤</span> Sent <span class="cnt">38</span></div>
+          <div class="nav-item"><span class="ni">📝</span> Drafts <span class="cnt">2</span></div>
+          <div class="nav-item"><span class="ni">📅</span> Scheduled <span class="cnt">3</span></div>
+        </div>
+      </div>
+      <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+        <div class="compose-area" style="flex:1; overflow:hidden;">
+          <div class="editor-col">
+            <div class="editor-section-label"><span class="pulse"></span> New Message</div>
+            <div class="templates-row">
+              <div class="tpl-card sel"><span class="ti">📢</span><span class="tn">Announce</span></div>
+              <div class="tpl-card"><span class="ti">📅</span><span class="tn">Event</span></div>
+              <div class="tpl-card"><span class="ti">⚠️</span><span class="tn">Urgent</span></div>
+              <div class="tpl-card"><span class="ti">🔗</span><span class="tn">Link</span></div>
+            </div>
+            <div class="field"><label>Headline</label><input value="Q2 Planning Kickoff" /></div>
+            <div class="field"><label>Body</label><textarea>We're kicking off Q2 planning next week. Please review the goals document.</textarea></div>
+            <div class="field"><label>Hero Image <span class="opt">(optional)</span></label><div class="img-drop">Drop an image or paste a URL</div></div>
+            <div class="field"><label>Call to Action <span class="opt">(optional)</span></label><div class="cta-row"><input placeholder="Button label" value="View Goals" /><input placeholder="https://..." value="https://contoso.sharepoint.com/goals" /></div><div class="hint">Add a button that links to more info</div></div>
+          </div>
+          <div class="preview-col">
+            <div class="preview-head"><span>Live Preview</span><span style="font-size:10px;color:var(--text-muted)">Teams Card</span></div>
+            <div class="preview-body">
+              <div class="card-mock">
+                <div class="card-img">🎯</div>
+                <div class="card-content"><h4>Q2 Planning Kickoff</h4><p>We're kicking off Q2 planning next week. Please review the goals document.</p></div>
+                <button class="card-btn-mock">View Goals</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-bar">
+          <div class="aud-summary">
+            <span>Sending to:</span>
+            <div class="aud-chips"><span class="chip">Engineering</span><span class="chip">Product</span><span class="chip">+1</span></div>
+            <button class="edit-link">Edit audience</button>
+          </div>
+          <div class="actions">
+            <button class="btn">Save Draft</button>
+            <button class="btn">Preview</button>
+            <button class="btn">Schedule</button>
+            <button class="btn primary">Send Now →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ LAYOUT 2: Slide-Over ═══ -->
+  <div class="layout-wrap" id="layout-slide">
+    <div class="layout-inner">
+      <div class="sidebar">
+        <button class="sidebar-compose-btn" onclick="toggleState()">✏️ Compose</button>
+        <div class="nav-items">
+          <div class="nav-item active"><span class="ni">📤</span> Sent <span class="cnt">38</span></div>
+          <div class="nav-item"><span class="ni">📝</span> Drafts <span class="cnt">2</span></div>
+          <div class="nav-item"><span class="ni">📅</span> Scheduled <span class="cnt">3</span></div>
+        </div>
+      </div>
+      <div class="msg-list" id="slide-list">
+        <div class="msg-list-header"><h3>Sent Messages</h3><div class="search-box">🔍 Search...</div></div>
+        <div class="msg-row selected">
+          <div class="msg-av" style="background: linear-gradient(135deg, #667eea, #764ba2);">Q1</div>
+          <div class="msg-body"><div class="msg-title">Q1 All-Hands Summary</div><div class="msg-sub">Key highlights from quarterly meeting</div></div>
+          <div class="msg-right"><div class="msg-date">2h ago</div><span class="badge badge-sent">Sent</span></div>
+        </div>
+        <div class="msg-row">
+          <div class="msg-av" style="background: linear-gradient(135deg, #f093fb, #f5576c);">BE</div>
+          <div class="msg-body"><div class="msg-title">Benefits Enrollment Open</div><div class="msg-sub">Open enrollment for 2026 benefits</div></div>
+          <div class="msg-right"><div class="msg-date">Now</div><span class="badge badge-sending">Sending</span></div>
+        </div>
+        <div class="msg-row">
+          <div class="msg-av" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">IT</div>
+          <div class="msg-body"><div class="msg-title">IT Maintenance Window</div><div class="msg-sub">Planned maintenance Feb 22</div></div>
+          <div class="msg-right"><div class="msg-date">Feb 22</div><span class="badge badge-scheduled">Sched.</span></div>
+        </div>
+        <div class="msg-row">
+          <div class="msg-av" style="background: linear-gradient(135deg, #fa709a, #fee140);">WB</div>
+          <div class="msg-body"><div class="msg-title">Welcome Back, Team!</div><div class="msg-sub">Great break recap</div></div>
+          <div class="msg-right"><div class="msg-date">Feb 10</div><span class="badge badge-sent">Sent</span></div>
+        </div>
+        <div class="msg-row">
+          <div class="msg-av" style="background: linear-gradient(135deg, #a18cd1, #fbc2eb);">PS</div>
+          <div class="msg-body"><div class="msg-title">Password Security Reminder</div><div class="msg-sub">Update before March</div></div>
+          <div class="msg-right"><div class="msg-date">Feb 8</div><span class="badge badge-sent">Sent</span></div>
+        </div>
+      </div>
+      <div class="detail-panel" id="slide-detail">
+        <div class="detail-head"><h3>Q1 All-Hands Summary</h3><p>Sent by Admin · 2 hours ago</p></div>
+        <div class="detail-stats-grid">
+          <div class="ds"><div class="v" style="color:var(--success)">412</div><div class="l">Delivered</div></div>
+          <div class="ds"><div class="v" style="color:var(--danger)">8</div><div class="l">Failed</div></div>
+          <div class="ds"><div class="v" style="color:var(--warning)">3</div><div class="l">Pending</div></div>
+          <div class="ds"><div class="v">423</div><div class="l">Total</div></div>
+        </div>
+        <div class="detail-progress">
+          <div class="pbar"><div class="pfill" style="width:97.4%"></div></div>
+          <div class="plabel"><span>97.4% delivered</span><span>412/423</span></div>
+        </div>
+        <div class="detail-section">
+          <h4>Audience</h4>
+          <span class="chip">Engineering</span><span class="chip">Product</span><span class="chip">Design</span>
+        </div>
+      </div>
+    </div>
+    <!-- Slide-over compose panel -->
+    <div class="slide-overlay" id="slide-compose" style="display:none;">
+      <div class="slide-header">
+        <h3><span style="font-size:18px;">✏️</span> New Message</h3>
+        <button class="close-x" onclick="toggleState()">✕</button>
+      </div>
+      <div class="compose-area" style="flex:1; overflow:hidden;">
+        <div class="editor-col">
+          <div class="templates-row">
+            <div class="tpl-card sel"><span class="ti">📢</span><span class="tn">Announce</span></div>
+            <div class="tpl-card"><span class="ti">📅</span><span class="tn">Event</span></div>
+            <div class="tpl-card"><span class="ti">⚠️</span><span class="tn">Urgent</span></div>
+            <div class="tpl-card"><span class="ti">🔗</span><span class="tn">Link</span></div>
+          </div>
+          <div class="field"><label>Headline</label><input value="Q2 Planning Kickoff" /></div>
+          <div class="field"><label>Body</label><textarea>We're kicking off Q2 planning next week. Please review the goals document.</textarea></div>
+          <div class="field"><label>Hero Image <span class="opt">(optional)</span></label><div class="img-drop">Drop an image or paste a URL</div></div>
+          <div class="field"><label>Call to Action <span class="opt">(optional)</span></label><div class="cta-row"><input placeholder="Button label" value="View Goals" /><input placeholder="https://..." value="https://contoso.sharepoint.com/goals" /></div><div class="hint">Add a button that links to more info</div></div>
+        </div>
+        <div class="preview-col">
+          <div class="preview-head"><span>Live Preview</span><span style="font-size:10px;color:var(--text-muted)">Teams Card</span></div>
+          <div class="preview-body">
+            <div class="card-mock">
+              <div class="card-img">🎯</div>
+              <div class="card-content"><h4>Q2 Planning Kickoff</h4><p>We're kicking off Q2 planning next week. Please review the goals document.</p></div>
+              <button class="card-btn-mock">View Goals</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-bar">
+        <div class="aud-summary">
+          <span>Sending to:</span>
+          <div class="aud-chips"><span class="chip">Engineering</span><span class="chip">Product</span><span class="chip">+1</span></div>
+          <button class="edit-link">Edit audience</button>
+        </div>
+        <div class="actions">
+          <button class="btn">Save Draft</button>
+          <button class="btn">Preview</button>
+          <button class="btn">Schedule</button>
+          <button class="btn primary">Send Now →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ LAYOUT 3: Dedicated Route (Full Page) ═══ -->
+  <div class="layout-wrap" id="layout-fullpage">
+    <!-- List state -->
+    <div class="layout-inner" id="fullpage-list">
+      <div class="sidebar">
+        <button class="sidebar-compose-btn" onclick="toggleState()">✏️ Compose</button>
+        <div class="nav-items">
+          <div class="nav-item active"><span class="ni">📤</span> Sent <span class="cnt">38</span></div>
+          <div class="nav-item"><span class="ni">📝</span> Drafts <span class="cnt">2</span></div>
+          <div class="nav-item"><span class="ni">📅</span> Scheduled <span class="cnt">3</span></div>
+        </div>
+      </div>
+      <div class="msg-list">
+        <div class="msg-list-header"><h3>Sent Messages</h3><div class="search-box">🔍 Search...</div></div>
+        <div class="msg-row selected">
+          <div class="msg-av" style="background: linear-gradient(135deg, #667eea, #764ba2);">Q1</div>
+          <div class="msg-body"><div class="msg-title">Q1 All-Hands Summary</div><div class="msg-sub">Key highlights from quarterly meeting</div></div>
+          <div class="msg-right"><div class="msg-date">2h ago</div><span class="badge badge-sent">Sent</span></div>
+        </div>
+        <div class="msg-row">
+          <div class="msg-av" style="background: linear-gradient(135deg, #f093fb, #f5576c);">BE</div>
+          <div class="msg-body"><div class="msg-title">Benefits Enrollment Open</div><div class="msg-sub">Open enrollment for 2026</div></div>
+          <div class="msg-right"><div class="msg-date">Now</div><span class="badge badge-sending">Sending</span></div>
+        </div>
+        <div class="msg-row">
+          <div class="msg-av" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">IT</div>
+          <div class="msg-body"><div class="msg-title">IT Maintenance Window</div><div class="msg-sub">Planned maintenance Feb 22</div></div>
+          <div class="msg-right"><div class="msg-date">Feb 22</div><span class="badge badge-scheduled">Sched.</span></div>
+        </div>
+        <div class="msg-row">
+          <div class="msg-av" style="background: linear-gradient(135deg, #fa709a, #fee140);">WB</div>
+          <div class="msg-body"><div class="msg-title">Welcome Back, Team!</div><div class="msg-sub">Great break recap</div></div>
+          <div class="msg-right"><div class="msg-date">Feb 10</div><span class="badge badge-sent">Sent</span></div>
+        </div>
+        <div class="msg-row">
+          <div class="msg-av" style="background: linear-gradient(135deg, #a18cd1, #fbc2eb);">PS</div>
+          <div class="msg-body"><div class="msg-title">Password Security Reminder</div><div class="msg-sub">Update before March</div></div>
+          <div class="msg-right"><div class="msg-date">Feb 8</div><span class="badge badge-sent">Sent</span></div>
+        </div>
+      </div>
+      <div class="detail-panel">
+        <div class="detail-head"><h3>Q1 All-Hands Summary</h3><p>Sent by Admin · 2 hours ago</p></div>
+        <div class="detail-stats-grid">
+          <div class="ds"><div class="v" style="color:var(--success)">412</div><div class="l">Delivered</div></div>
+          <div class="ds"><div class="v" style="color:var(--danger)">8</div><div class="l">Failed</div></div>
+          <div class="ds"><div class="v" style="color:var(--warning)">3</div><div class="l">Pending</div></div>
+          <div class="ds"><div class="v">423</div><div class="l">Total</div></div>
+        </div>
+        <div class="detail-progress">
+          <div class="pbar"><div class="pfill" style="width:97.4%"></div></div>
+          <div class="plabel"><span>97.4% delivered</span><span>412/423</span></div>
+        </div>
+        <div class="detail-section">
+          <h4>Audience</h4>
+          <span class="chip">Engineering</span><span class="chip">Product</span><span class="chip">Design</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compose state (full page) -->
+    <div class="fullpage-compose" id="fullpage-compose" style="display:none;">
+      <div class="fullpage-header">
+        <button class="back-btn" onclick="toggleState()">← Back</button>
+        <h3>New Message</h3>
+        <div class="step-dots">
+          <div class="step-dot active"></div>
+          <div class="step-dot"></div>
+          <span class="step-label">Content → Audience</span>
+        </div>
+      </div>
+      <div class="compose-area" style="flex:1; overflow:hidden;">
+        <div class="editor-col">
+          <div class="templates-row">
+            <div class="tpl-card sel"><span class="ti">📢</span><span class="tn">Announce</span></div>
+            <div class="tpl-card"><span class="ti">📅</span><span class="tn">Event</span></div>
+            <div class="tpl-card"><span class="ti">⚠️</span><span class="tn">Urgent</span></div>
+            <div class="tpl-card"><span class="ti">🔗</span><span class="tn">Link</span></div>
+          </div>
+          <div class="field"><label>Headline</label><input value="Q2 Planning Kickoff" /></div>
+          <div class="field"><label>Body</label><textarea>We're kicking off Q2 planning next week. Please review the goals document.</textarea></div>
+          <div class="field"><label>Hero Image <span class="opt">(optional)</span></label><div class="img-drop">Drop an image or paste a URL</div></div>
+          <div class="field"><label>Call to Action <span class="opt">(optional)</span></label><div class="cta-row"><input placeholder="Button label" value="View Goals" /><input placeholder="https://..." value="https://contoso.sharepoint.com/goals" /></div><div class="hint">Add a button that links to more info</div></div>
+        </div>
+        <div class="preview-col">
+          <div class="preview-head"><span>Live Preview</span><span style="font-size:10px;color:var(--text-muted)">Teams Card</span></div>
+          <div class="preview-body">
+            <div class="card-mock">
+              <div class="card-img">🎯</div>
+              <div class="card-content"><h4>Q2 Planning Kickoff</h4><p>We're kicking off Q2 planning next week. Please review the goals document.</p></div>
+              <button class="card-btn-mock">View Goals</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-bar">
+        <div class="aud-summary">
+          <span>Sending to:</span>
+          <div class="aud-chips"><span class="chip">Engineering</span><span class="chip">Product</span><span class="chip">+1</span></div>
+          <button class="edit-link">Edit audience</button>
+        </div>
+        <div class="actions">
+          <button class="btn">Save Draft</button>
+          <button class="btn">Preview</button>
+          <button class="btn">Schedule</button>
+          <button class="btn primary">Send Now →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Prompt output -->
+<div class="prompt-section">
+  <div class="prompt-header">
+    <span>Design Decision</span>
+    <button class="copy-btn" id="copyBtn" onclick="copyPrompt()">Copy</button>
+  </div>
+  <div class="prompt-body" id="promptOutput"></div>
+</div>
+
+<script>
+  const descriptions = {
+    inline: {
+      tag: 'Seamless',
+      desc: 'Clicking Compose swaps the list + detail area with a full-width card builder. The sidebar nav stays visible so you always know where you are.',
+      pros: 'Maximum compose space. Sidebar stays for orientation. Feels like one cohesive app — no popups, no overlays. Simple mental model.',
+      cons: 'You lose sight of the message list while composing. If you want to reference a past message while writing, you have to navigate back.'
+    },
+    slide: {
+      tag: 'Contextual',
+      desc: 'A wide panel slides over the detail pane (and list). The sidebar stays visible. The list is dimmed underneath — you can dismiss to go back instantly.',
+      pros: 'Feels focused but not disconnected. Quick dismiss gets you right back. Animated transition gives a sense of place. List is "still there" underneath.',
+      cons: 'Slightly less compose space than inline. The overlay pattern can feel heavy on smaller Teams windows. More complex to implement.'
+    },
+    fullpage: {
+      tag: 'Clean',
+      desc: 'Compose navigates to its own full page with a back button and step indicator. Complete separation between browsing messages and creating them.',
+      pros: 'Maximum clarity — one task at a time. Step dots show progress (Content → Audience). Back button is explicit. Clean URL-based routing.',
+      cons: 'Full context switch — you lose the sidebar nav while composing. Feels more like a separate app than part of the same workspace. Extra navigation clicks.'
+    }
+  };
+
+  let currentLayout = 'inline';
+  let isComposing = false;
+
+  function switchLayout(id) {
+    currentLayout = id;
+    isComposing = false;
+
+    document.querySelectorAll('.layout-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+
+    document.querySelectorAll('.layout-wrap').forEach(el => el.classList.remove('active'));
+    document.getElementById('layout-' + id).classList.add('active');
+
+    updateToggleUI();
+    updateDesc();
+    updatePrompt();
+    applyState();
+  }
+
+  function toggleState() {
+    isComposing = !isComposing;
+    updateToggleUI();
+    applyState();
+    updatePrompt();
+  }
+
+  function updateToggleUI() {
+    const toggle = document.getElementById('stateToggle');
+    const listLabel = document.getElementById('stateListLabel');
+    const composeLabel = document.getElementById('stateComposeLabel');
+
+    if (isComposing) {
+      toggle.classList.add('on');
+      listLabel.classList.remove('active-label');
+      composeLabel.classList.add('active-label');
+    } else {
+      toggle.classList.remove('on');
+      listLabel.classList.add('active-label');
+      composeLabel.classList.remove('active-label');
+    }
+  }
+
+  function applyState() {
+    // Inline
+    document.getElementById('inline-list').style.display = (currentLayout === 'inline' && !isComposing) ? 'flex' : 'none';
+    document.getElementById('inline-compose').style.display = (currentLayout === 'inline' && isComposing) ? 'flex' : 'none';
+
+    // Slide
+    document.getElementById('slide-compose').style.display = (currentLayout === 'slide' && isComposing) ? 'flex' : 'none';
+    if (currentLayout === 'slide') {
+      document.getElementById('slide-list').style.opacity = isComposing ? '0.3' : '1';
+      document.getElementById('slide-detail').style.opacity = isComposing ? '0.15' : '1';
+    }
+
+    // Fullpage
+    document.getElementById('fullpage-list').style.display = (currentLayout === 'fullpage' && !isComposing) ? 'flex' : 'none';
+    document.getElementById('fullpage-compose').style.display = (currentLayout === 'fullpage' && isComposing) ? 'flex' : 'none';
+  }
+
+  function updateDesc() {
+    const info = descriptions[currentLayout];
+    document.getElementById('descTag').textContent = info.tag;
+    document.getElementById('descText').textContent = info.desc;
+  }
+
+  function updatePrompt() {
+    const info = descriptions[currentLayout];
+    const names = { inline: 'Inline Replace', slide: 'Slide-Over Panel', fullpage: 'Dedicated Route' };
+    document.getElementById('promptOutput').textContent =
+      `I want the "${names[currentLayout]}" compose flow within the Communication Center layout.\n\n` +
+      `What I like: ${info.pros}\n\n` +
+      `Concerns: ${info.cons}\n\n` +
+      `The compose view should include: template picker (Announcement, Event, Urgent, Link), improved field labels ` +
+      `(Headline instead of Title, Body instead of Summary, Call to Action instead of Button Title/URL), ` +
+      `live Adaptive Card preview, inline audience picker with search feedback, and a bottom action bar ` +
+      `with Save Draft / Preview / Schedule / Send Now.`;
+  }
+
+  function copyPrompt() {
+    const text = document.getElementById('promptOutput').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  updateDesc();
+  updatePrompt();
+</script>
+
+</body>
+</html>

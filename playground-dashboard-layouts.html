@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Company Communicator — Dashboard Layout Explorer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-app: #1a1a2e;
+    --bg-surface: #16213e;
+    --bg-card: #1e2a4a;
+    --bg-card-hover: #243356;
+    --bg-input: #0f1629;
+    --accent: #7b6cf6;
+    --accent-light: #9d92f8;
+    --accent-dim: rgba(123, 108, 246, 0.15);
+    --accent-glow: rgba(123, 108, 246, 0.3);
+    --text-primary: #e8eaed;
+    --text-secondary: #9aa0a8;
+    --text-muted: #6b7280;
+    --border: rgba(255,255,255,0.08);
+    --border-focus: rgba(123, 108, 246, 0.5);
+    --success: #34d399;
+    --success-bg: rgba(52, 211, 153, 0.12);
+    --warning: #fbbf24;
+    --warning-bg: rgba(251, 191, 36, 0.12);
+    --danger: #f87171;
+    --danger-bg: rgba(248, 113, 113, 0.12);
+    --info: #60a5fa;
+    --info-bg: rgba(96, 165, 250, 0.12);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --shadow-card: 0 2px 8px rgba(0,0,0,0.3), 0 0 1px rgba(255,255,255,0.05);
+    --shadow-elevated: 0 8px 32px rgba(0,0,0,0.4), 0 0 1px rgba(255,255,255,0.08);
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-mono: 'Cascadia Code', 'Fira Code', monospace;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg-app);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #0f0c29, #1a1a3e, #24243e);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar h1 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .topbar h1 .icon { font-size: 20px; }
+
+  /* ── Layout switcher tabs ── */
+  .layout-switcher {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-input);
+    border-radius: var(--radius-md);
+    padding: 3px;
+  }
+  .layout-tab {
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .layout-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+  .layout-tab.active {
+    color: #fff;
+    background: var(--accent);
+    box-shadow: 0 2px 8px rgba(123, 108, 246, 0.3);
+  }
+
+  /* ── Description bar ── */
+  .desc-bar {
+    padding: 14px 24px;
+    background: var(--accent-dim);
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .desc-bar .tag {
+    background: var(--accent);
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+
+  /* ── Main preview area ── */
+  .preview-frame {
+    margin: 24px;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    overflow: hidden;
+    box-shadow: var(--shadow-elevated);
+    min-height: 580px;
+    position: relative;
+  }
+
+  /* ── LAYOUT 1: Hub & Spoke ── */
+  .hub { display: none; flex-direction: column; height: 580px; }
+  .hub.active { display: flex; }
+
+  .hub-header {
+    padding: 28px 32px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .hub-greeting h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--text-primary), var(--accent-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hub-greeting p { font-size: 13px; color: var(--text-secondary); }
+
+  .hub-create-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 28px;
+    background: linear-gradient(135deg, var(--accent), #6366f1);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(123, 108, 246, 0.35);
+    transition: all 0.2s;
+  }
+  .hub-create-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(123, 108, 246, 0.5);
+  }
+  .hub-create-btn .plus {
+    width: 24px; height: 24px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700;
+  }
+
+  .hub-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    padding: 24px 32px;
+  }
+  .stat-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+  .stat-card:hover { border-color: var(--border-focus); transform: translateY(-1px); }
+  .stat-card .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .stat-card .stat-value { font-size: 28px; font-weight: 700; }
+  .stat-card .stat-sub { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+  .stat-card.accent .stat-value { color: var(--accent-light); }
+  .stat-card.success .stat-value { color: var(--success); }
+  .stat-card.warning .stat-value { color: var(--warning); }
+  .stat-card.info .stat-value { color: var(--info); }
+
+  .hub-content {
+    flex: 1;
+    padding: 0 32px 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    overflow: hidden;
+  }
+
+  .hub-section {
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .hub-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hub-section-header h3 { font-size: 13px; font-weight: 600; }
+  .hub-section-header .see-all {
+    font-size: 12px;
+    color: var(--accent-light);
+    cursor: pointer;
+    text-decoration: none;
+    border: none; background: none; font-family: var(--font);
+  }
+
+  .hub-list { flex: 1; overflow-y: auto; }
+  .hub-list-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .hub-list-item:hover { background: var(--bg-card-hover); }
+  .hub-list-item:last-child { border-bottom: none; }
+  .hub-list-item .item-icon {
+    width: 36px; height: 36px;
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .hub-list-item .item-text { flex: 1; min-width: 0; }
+  .hub-list-item .item-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hub-list-item .item-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+  }
+  .badge-sent { background: var(--success-bg); color: var(--success); }
+  .badge-sending { background: var(--info-bg); color: var(--info); }
+  .badge-draft { background: rgba(255,255,255,0.08); color: var(--text-secondary); }
+  .badge-scheduled { background: var(--warning-bg); color: var(--warning); }
+  .badge-failed { background: var(--danger-bg); color: var(--danger); }
+
+  /* Quick actions grid in hub */
+  .quick-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 14px;
+  }
+  .quick-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .quick-action:hover { background: var(--accent-dim); color: var(--accent-light); border-color: var(--border-focus); }
+  .quick-action .qa-icon { font-size: 22px; }
+
+  /* ── LAYOUT 2: Communication Center ── */
+  .comms { display: none; height: 580px; }
+  .comms.active { display: flex; }
+
+  .comms-sidebar {
+    width: 220px;
+    background: var(--bg-input);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .comms-sidebar-header {
+    padding: 18px 16px 12px;
+  }
+  .comms-compose-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px;
+    background: linear-gradient(135deg, var(--accent), #6366f1);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .comms-compose-btn:hover { box-shadow: 0 4px 16px rgba(123, 108, 246, 0.35); }
+
+  .comms-nav { flex: 1; padding: 8px 8px; }
+  .comms-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+  }
+  .comms-nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+  .comms-nav-item.active { background: var(--accent-dim); color: var(--accent-light); font-weight: 600; }
+  .comms-nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+  .comms-nav-item .nav-count {
+    margin-left: auto;
+    background: rgba(255,255,255,0.08);
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .comms-nav-item.active .nav-count { background: var(--accent-glow); }
+
+  .comms-sidebar-footer {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  .comms-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .comms-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .comms-toolbar h2 { font-size: 16px; font-weight: 600; flex: 1; }
+  .comms-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    width: 200px;
+  }
+
+  .comms-list { flex: 1; overflow-y: auto; }
+  .comms-list-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .comms-list-item:hover { background: var(--bg-card-hover); }
+  .comms-list-item.selected { background: var(--accent-dim); border-left: 3px solid var(--accent); }
+  .comms-list-item .msg-avatar {
+    width: 40px; height: 40px;
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .comms-list-item .msg-content { flex: 1; min-width: 0; }
+  .comms-list-item .msg-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .comms-list-item .msg-preview { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .comms-list-item .msg-meta { text-align: right; flex-shrink: 0; }
+  .comms-list-item .msg-date { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+
+  /* Detail pane */
+  .comms-detail {
+    width: 340px;
+    border-left: 1px solid var(--border);
+    background: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .comms-detail-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .comms-detail-header h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .comms-detail-header p { font-size: 12px; color: var(--text-muted); }
+  .detail-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 16px 20px;
+  }
+  .detail-stat {
+    text-align: center;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+  }
+  .detail-stat .ds-val { font-size: 22px; font-weight: 700; }
+  .detail-stat .ds-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; letter-spacing: 0.5px; }
+  .detail-progress {
+    padding: 0 20px 16px;
+  }
+  .progress-bar {
+    height: 6px;
+    background: var(--bg-input);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* ── LAYOUT 3: Compose-Forward ── */
+  .compose-fwd { display: none; height: 580px; }
+  .compose-fwd.active { display: flex; }
+
+  .cf-sidebar {
+    width: 260px;
+    background: var(--bg-input);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .cf-sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .cf-sidebar-header h3 { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+  .cf-filter-tabs {
+    display: flex;
+    gap: 2px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 6px;
+    padding: 2px;
+  }
+  .cf-filter-tab {
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .cf-filter-tab.active { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+
+  .cf-history { flex: 1; overflow-y: auto; padding: 8px; }
+  .cf-history-item {
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 4px;
+  }
+  .cf-history-item:hover { background: rgba(255,255,255,0.05); }
+  .cf-history-item .cf-title { font-size: 13px; font-weight: 500; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cf-history-item .cf-meta { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+  .cf-history-item .cf-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+  .cf-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .cf-compose-area {
+    flex: 1;
+    display: flex;
+    gap: 0;
+    overflow: hidden;
+  }
+  .cf-editor {
+    flex: 1;
+    padding: 28px 32px;
+    overflow-y: auto;
+  }
+  .cf-editor-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cf-editor-title .dot {
+    width: 8px; height: 8px;
+    background: var(--success);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .cf-template-picker {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .cf-template {
+    padding: 16px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .cf-template:hover { border-color: var(--border-focus); background: var(--bg-card-hover); }
+  .cf-template.selected { border-color: var(--accent); background: var(--accent-dim); }
+  .cf-template .tpl-icon { font-size: 26px; margin-bottom: 8px; display: block; }
+  .cf-template .tpl-name { font-size: 12px; font-weight: 600; }
+  .cf-template .tpl-desc { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+  .cf-fields { display: flex; flex-direction: column; gap: 16px; }
+  .cf-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+  }
+  .cf-field input, .cf-field textarea {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 13px;
+    transition: border-color 0.15s;
+  }
+  .cf-field input:focus, .cf-field textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-dim);
+  }
+  .cf-field textarea { resize: vertical; min-height: 80px; }
+  .cf-field .hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  .cf-preview-pane {
+    width: 320px;
+    background: var(--bg-card);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .cf-preview-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .cf-preview-body {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .card-preview {
+    width: 100%;
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .card-preview-img {
+    width: 100%;
+    height: 120px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+  }
+  .card-preview-content { padding: 16px; }
+  .card-preview-content h4 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .card-preview-content p { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+  .card-preview-btn {
+    display: block;
+    margin: 12px 16px 16px;
+    padding: 8px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    cursor: default;
+  }
+
+  .cf-bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-card);
+  }
+  .cf-audience-summary {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cf-audience-chips {
+    display: flex;
+    gap: 4px;
+  }
+  .cf-chip {
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: var(--accent-dim);
+    color: var(--accent-light);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .cf-actions { display: flex; gap: 8px; }
+  .cf-btn {
+    padding: 8px 18px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .cf-btn:hover { background: rgba(255,255,255,0.05); }
+  .cf-btn.primary {
+    background: linear-gradient(135deg, var(--accent), #6366f1);
+    color: #fff;
+    border: none;
+    font-weight: 600;
+  }
+  .cf-btn.primary:hover { box-shadow: 0 4px 12px rgba(123, 108, 246, 0.3); }
+
+  /* ── Prompt output ── */
+  .prompt-section {
+    margin: 0 24px 24px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .prompt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+  .prompt-header span { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+  .copy-btn {
+    padding: 5px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--accent-light);
+    font-family: var(--font);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { background: var(--accent-dim); }
+  .copy-btn.copied { background: var(--success-bg); color: var(--success); border-color: transparent; }
+  .prompt-body {
+    padding: 16px 18px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    max-height: 150px;
+    overflow-y: auto;
+  }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <h1><span class="icon">📢</span> Company Communicator — Layout Explorer</h1>
+  <div class="layout-switcher">
+    <button class="layout-tab active" onclick="switchLayout('hub')">Hub & Spoke</button>
+    <button class="layout-tab" onclick="switchLayout('comms')">Communication Center</button>
+    <button class="layout-tab" onclick="switchLayout('compose')">Compose-Forward</button>
+  </div>
+</div>
+
+<!-- Description -->
+<div class="desc-bar" id="descBar">
+  <span class="tag" id="descTag">Recommended</span>
+  <span id="descText">Clean dashboard with stats and recent activity. A big "Create Message" button is always front and center. Compose opens as a full panel.</span>
+</div>
+
+<!-- Preview frame -->
+<div class="preview-frame">
+
+  <!-- ═══ LAYOUT 1: Hub & Spoke ═══ -->
+  <div class="hub active" id="layout-hub">
+    <div class="hub-header">
+      <div class="hub-greeting">
+        <h2>Good morning, Admin</h2>
+        <p>You have 2 drafts and 1 message delivering right now</p>
+      </div>
+      <button class="hub-create-btn">
+        <span class="plus">+</span>
+        Create Message
+      </button>
+    </div>
+
+    <div class="hub-stats">
+      <div class="stat-card accent">
+        <div class="stat-label">This Week</div>
+        <div class="stat-value">12</div>
+        <div class="stat-sub">messages sent</div>
+      </div>
+      <div class="stat-card success">
+        <div class="stat-label">Delivery Rate</div>
+        <div class="stat-value">97.2%</div>
+        <div class="stat-sub">across all messages</div>
+      </div>
+      <div class="stat-card warning">
+        <div class="stat-label">Scheduled</div>
+        <div class="stat-value">3</div>
+        <div class="stat-sub">upcoming messages</div>
+      </div>
+      <div class="stat-card info">
+        <div class="stat-label">Reach</div>
+        <div class="stat-value">1,847</div>
+        <div class="stat-sub">people this month</div>
+      </div>
+    </div>
+
+    <div class="hub-content">
+      <div class="hub-section">
+        <div class="hub-section-header">
+          <h3>Recent Activity</h3>
+          <button class="see-all">View All →</button>
+        </div>
+        <div class="hub-list">
+          <div class="hub-list-item">
+            <div class="item-icon" style="background: var(--success-bg)">✅</div>
+            <div class="item-text">
+              <div class="item-title">Q1 All-Hands Summary</div>
+              <div class="item-meta">Sent 2 hours ago · 423 delivered</div>
+            </div>
+            <span class="badge badge-sent">Sent</span>
+          </div>
+          <div class="hub-list-item">
+            <div class="item-icon" style="background: var(--info-bg)">📤</div>
+            <div class="item-text">
+              <div class="item-title">New Benefits Enrollment Open</div>
+              <div class="item-meta">Sending now · 156 of 892</div>
+            </div>
+            <span class="badge badge-sending">Sending</span>
+          </div>
+          <div class="hub-list-item">
+            <div class="item-icon" style="background: var(--warning-bg)">📅</div>
+            <div class="item-text">
+              <div class="item-title">IT Maintenance Window Notice</div>
+              <div class="item-meta">Scheduled for Feb 22 at 9:00 AM</div>
+            </div>
+            <span class="badge badge-scheduled">Scheduled</span>
+          </div>
+          <div class="hub-list-item">
+            <div class="item-icon" style="background: rgba(255,255,255,0.06)">📝</div>
+            <div class="item-text">
+              <div class="item-title">March Town Hall Invite</div>
+              <div class="item-meta">Draft · last edited 1 day ago</div>
+            </div>
+            <span class="badge badge-draft">Draft</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hub-section">
+        <div class="hub-section-header">
+          <h3>Quick Actions</h3>
+        </div>
+        <div class="quick-actions">
+          <button class="quick-action">
+            <span class="qa-icon">📢</span>
+            Announcement
+          </button>
+          <button class="quick-action">
+            <span class="qa-icon">📅</span>
+            Event Invite
+          </button>
+          <button class="quick-action">
+            <span class="qa-icon">🔗</span>
+            Share a Link
+          </button>
+          <button class="quick-action">
+            <span class="qa-icon">⚠️</span>
+            Urgent Alert
+          </button>
+        </div>
+        <div style="padding: 0 14px 14px;">
+          <div style="background: var(--bg-surface); border-radius: var(--radius-sm); padding: 14px; border: 1px dashed var(--border);">
+            <div style="font-size: 11px; color: var(--text-muted); text-align: center;">
+              Quick actions launch compose with a pre-filled template
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ LAYOUT 2: Communication Center ═══ -->
+  <div class="comms" id="layout-comms">
+    <div class="comms-sidebar">
+      <div class="comms-sidebar-header">
+        <button class="comms-compose-btn">✏️ Compose</button>
+      </div>
+      <div class="comms-nav">
+        <div class="comms-nav-item active">
+          <span class="nav-icon">📥</span>
+          All Messages
+          <span class="nav-count">47</span>
+        </div>
+        <div class="comms-nav-item">
+          <span class="nav-icon">📝</span>
+          Drafts
+          <span class="nav-count">2</span>
+        </div>
+        <div class="comms-nav-item">
+          <span class="nav-icon">📤</span>
+          Sent
+          <span class="nav-count">38</span>
+        </div>
+        <div class="comms-nav-item">
+          <span class="nav-icon">📅</span>
+          Scheduled
+          <span class="nav-count">3</span>
+        </div>
+        <div class="comms-nav-item">
+          <span class="nav-icon">⚠️</span>
+          Failed
+          <span class="nav-count" style="background: var(--danger-bg); color: var(--danger);">4</span>
+        </div>
+      </div>
+      <div class="comms-sidebar-footer">
+        47 messages · 1,847 recipients reached
+      </div>
+    </div>
+
+    <div class="comms-main">
+      <div class="comms-toolbar">
+        <h2>All Messages</h2>
+        <div class="comms-search">🔍 Search messages...</div>
+      </div>
+      <div style="display: flex; flex: 1; overflow: hidden;">
+        <div class="comms-list" style="flex: 1;">
+          <div class="comms-list-item selected">
+            <div class="msg-avatar" style="background: linear-gradient(135deg, #667eea, #764ba2); color: #fff;">Q1</div>
+            <div class="msg-content">
+              <div class="msg-title">Q1 All-Hands Summary</div>
+              <div class="msg-preview">Key highlights from our quarterly all-hands meeting...</div>
+            </div>
+            <div class="msg-meta">
+              <div class="msg-date">2h ago</div>
+              <span class="badge badge-sent">Sent</span>
+            </div>
+          </div>
+          <div class="comms-list-item">
+            <div class="msg-avatar" style="background: linear-gradient(135deg, #f093fb, #f5576c); color: #fff;">BE</div>
+            <div class="msg-content">
+              <div class="msg-title">New Benefits Enrollment Open</div>
+              <div class="msg-preview">Open enrollment for 2026 benefits is now available...</div>
+            </div>
+            <div class="msg-meta">
+              <div class="msg-date">Now</div>
+              <span class="badge badge-sending">Sending</span>
+            </div>
+          </div>
+          <div class="comms-list-item">
+            <div class="msg-avatar" style="background: linear-gradient(135deg, #4facfe, #00f2fe); color: #fff;">IT</div>
+            <div class="msg-content">
+              <div class="msg-title">IT Maintenance Window Notice</div>
+              <div class="msg-preview">Planned maintenance for core services on Feb 22...</div>
+            </div>
+            <div class="msg-meta">
+              <div class="msg-date">Feb 22</div>
+              <span class="badge badge-scheduled">Sched.</span>
+            </div>
+          </div>
+          <div class="comms-list-item">
+            <div class="msg-avatar" style="background: linear-gradient(135deg, #fa709a, #fee140); color: #fff;">WB</div>
+            <div class="msg-content">
+              <div class="msg-title">Welcome Back, Team!</div>
+              <div class="msg-preview">Hope everyone had a great break! Here's what's coming...</div>
+            </div>
+            <div class="msg-meta">
+              <div class="msg-date">Feb 10</div>
+              <span class="badge badge-sent">Sent</span>
+            </div>
+          </div>
+          <div class="comms-list-item">
+            <div class="msg-avatar" style="background: linear-gradient(135deg, #a18cd1, #fbc2eb); color: #fff;">PS</div>
+            <div class="msg-content">
+              <div class="msg-title">Password Security Reminder</div>
+              <div class="msg-preview">Please update your passwords before the March deadline...</div>
+            </div>
+            <div class="msg-meta">
+              <div class="msg-date">Feb 8</div>
+              <span class="badge badge-failed">Failed</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="comms-detail">
+          <div class="comms-detail-header">
+            <h3>Q1 All-Hands Summary</h3>
+            <p>Sent by Admin · 2 hours ago</p>
+          </div>
+          <div class="detail-stats">
+            <div class="detail-stat">
+              <div class="ds-val" style="color: var(--success);">412</div>
+              <div class="ds-label">Delivered</div>
+            </div>
+            <div class="detail-stat">
+              <div class="ds-val" style="color: var(--danger);">8</div>
+              <div class="ds-label">Failed</div>
+            </div>
+            <div class="detail-stat">
+              <div class="ds-val" style="color: var(--warning);">3</div>
+              <div class="ds-label">Pending</div>
+            </div>
+            <div class="detail-stat">
+              <div class="ds-val" style="color: var(--text-primary);">423</div>
+              <div class="ds-label">Total</div>
+            </div>
+          </div>
+          <div class="detail-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 97.4%; background: linear-gradient(90deg, var(--success), #2dd4bf);"></div>
+            </div>
+            <div class="progress-label">
+              <span>97.4% delivered</span>
+              <span>412 / 423</span>
+            </div>
+          </div>
+          <div style="padding: 0 20px;">
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Audience</div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <span class="cf-chip">Engineering</span>
+              <span class="cf-chip">Product</span>
+              <span class="cf-chip">Design</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ LAYOUT 3: Compose-Forward ═══ -->
+  <div class="compose-fwd" id="layout-compose">
+    <div class="cf-sidebar">
+      <div class="cf-sidebar-header">
+        <h3>Messages</h3>
+        <div class="cf-filter-tabs">
+          <button class="cf-filter-tab active">All</button>
+          <button class="cf-filter-tab">Sent</button>
+          <button class="cf-filter-tab">Drafts</button>
+        </div>
+      </div>
+      <div class="cf-history">
+        <div class="cf-history-item" style="background: var(--accent-dim); border: 1px solid var(--border-focus); border-radius: var(--radius-sm);">
+          <div class="cf-title" style="color: var(--accent-light);">✨ New Message</div>
+          <div class="cf-meta">Unsaved draft</div>
+        </div>
+        <div class="cf-history-item">
+          <div class="cf-title">Q1 All-Hands Summary</div>
+          <div class="cf-meta"><span class="cf-dot" style="background: var(--success);"></span> Sent · 2h ago · 423 people</div>
+        </div>
+        <div class="cf-history-item">
+          <div class="cf-title">New Benefits Enrollment Open</div>
+          <div class="cf-meta"><span class="cf-dot" style="background: var(--info);"></span> Sending · 156 of 892</div>
+        </div>
+        <div class="cf-history-item">
+          <div class="cf-title">IT Maintenance Window Notice</div>
+          <div class="cf-meta"><span class="cf-dot" style="background: var(--warning);"></span> Scheduled · Feb 22</div>
+        </div>
+        <div class="cf-history-item">
+          <div class="cf-title">March Town Hall Invite</div>
+          <div class="cf-meta"><span class="cf-dot" style="background: var(--text-muted);"></span> Draft · 1 day ago</div>
+        </div>
+        <div class="cf-history-item">
+          <div class="cf-title">Welcome Back, Team!</div>
+          <div class="cf-meta"><span class="cf-dot" style="background: var(--success);"></span> Sent · Feb 10 · 1,204 people</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cf-main">
+      <div class="cf-compose-area">
+        <div class="cf-editor">
+          <div class="cf-editor-title">
+            <span class="dot"></span>
+            Start with a template or build from scratch
+          </div>
+          <div class="cf-template-picker">
+            <div class="cf-template selected">
+              <span class="tpl-icon">📢</span>
+              <div class="tpl-name">Announcement</div>
+              <div class="tpl-desc">General update</div>
+            </div>
+            <div class="cf-template">
+              <span class="tpl-icon">📅</span>
+              <div class="tpl-name">Event</div>
+              <div class="tpl-desc">Invite with date</div>
+            </div>
+            <div class="cf-template">
+              <span class="tpl-icon">⚠️</span>
+              <div class="tpl-name">Urgent</div>
+              <div class="tpl-desc">High-priority alert</div>
+            </div>
+          </div>
+          <div class="cf-fields">
+            <div class="cf-field">
+              <label>Headline</label>
+              <input type="text" placeholder="What's the main message?" value="Q2 Planning Kickoff" />
+            </div>
+            <div class="cf-field">
+              <label>Body</label>
+              <textarea placeholder="Add the details people need to know...">We're kicking off Q2 planning next week. Please review the goals document and come prepared with your team's priorities.</textarea>
+            </div>
+            <div class="cf-field">
+              <label>Hero Image <span style="color: var(--text-muted); font-weight: 400;">(optional)</span></label>
+              <div style="border: 1px dashed var(--border); border-radius: var(--radius-sm); padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px; cursor: pointer;">
+                Drop an image or paste a URL
+              </div>
+            </div>
+            <div class="cf-field">
+              <label>Call to Action <span style="color: var(--text-muted); font-weight: 400;">(optional)</span></label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" placeholder="Button label" value="View Goals Doc" style="flex: 1;" />
+                <input type="text" placeholder="https://..." value="https://contoso.sharepoint.com/goals" style="flex: 1.5;" />
+              </div>
+              <div class="hint">Add a button that links to more information</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cf-preview-pane">
+          <div class="cf-preview-header">
+            <span>Live Preview</span>
+            <span style="font-size: 11px; color: var(--text-muted);">Teams Card</span>
+          </div>
+          <div class="cf-preview-body">
+            <div class="card-preview">
+              <div class="card-preview-img">🎯</div>
+              <div class="card-preview-content">
+                <h4>Q2 Planning Kickoff</h4>
+                <p>We're kicking off Q2 planning next week. Please review the goals document and come prepared with your team's priorities.</p>
+              </div>
+              <button class="card-preview-btn">View Goals Doc</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cf-bottom-bar">
+        <div class="cf-audience-summary">
+          <span>Sending to:</span>
+          <div class="cf-audience-chips">
+            <span class="cf-chip">Engineering</span>
+            <span class="cf-chip">Product</span>
+            <span class="cf-chip">+1 more</span>
+          </div>
+          <button style="background: none; border: none; color: var(--accent-light); font-family: var(--font); font-size: 12px; cursor: pointer; text-decoration: underline;">Edit</button>
+        </div>
+        <div class="cf-actions">
+          <button class="cf-btn">Save Draft</button>
+          <button class="cf-btn">Preview</button>
+          <button class="cf-btn">Schedule</button>
+          <button class="cf-btn primary">Send Now →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Prompt output -->
+<div class="prompt-section">
+  <div class="prompt-header">
+    <span>Design Decision</span>
+    <button class="copy-btn" id="copyBtn" onclick="copyPrompt()">Copy</button>
+  </div>
+  <div class="prompt-body" id="promptOutput"></div>
+</div>
+
+<script>
+  const layouts = {
+    hub: {
+      tag: 'Recommended',
+      desc: 'Clean dashboard with stats and recent activity. A prominent "Create Message" button is always front and center. Compose opens as a full panel.',
+      pros: 'Great landing page that feels alive. Quick access to stats and templates. Compose is a focused experience separate from the list.',
+      cons: 'Requires navigation to see full message lists. Two "places" to mentally map (hub vs. compose).'
+    },
+    comms: {
+      tag: 'Familiar',
+      desc: 'Email client layout with sidebar navigation, message list, and detail panel. Everything visible at once in a three-column layout.',
+      pros: 'Familiar mental model (like Outlook/Slack). All states visible in sidebar. Detail panel gives quick status without full navigation.',
+      cons: 'Can feel dense in a narrow Teams tab. Less visual warmth — more utilitarian. Compose competes with the list view for space.'
+    },
+    compose: {
+      tag: 'Bold',
+      desc: 'The compose builder IS the landing page. Your next message is always one keystroke away. History lives in a compact sidebar.',
+      pros: 'Fastest path to creation. Templates + live preview always visible. History sidebar gives context without leaving compose.',
+      cons: 'Status tracking is secondary — may frustrate admins who check delivery often. Unusual pattern for a "management" tool.'
+    }
+  };
+
+  let currentLayout = 'hub';
+
+  function switchLayout(id) {
+    currentLayout = id;
+    document.querySelectorAll('.layout-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+
+    document.querySelectorAll('.hub, .comms, .compose-fwd').forEach(el => el.classList.remove('active'));
+    document.getElementById('layout-' + id).classList.add('active');
+
+    const info = layouts[id];
+    document.getElementById('descTag').textContent = info.tag;
+    document.getElementById('descText').textContent = info.desc;
+
+    updatePrompt();
+  }
+
+  function updatePrompt() {
+    const info = layouts[currentLayout];
+    const names = { hub: 'Hub & Spoke', comms: 'Communication Center', compose: 'Compose-Forward' };
+
+    document.getElementById('promptOutput').textContent =
+      `I'd like to use the "${names[currentLayout]}" layout for the Company Communicator Author Dashboard.\n\n` +
+      `What I like about it: ${info.pros}\n\n` +
+      `Concerns to address: ${info.cons}\n\n` +
+      `Please design the full Author UI using this layout approach, incorporating: a rich block-based card builder with templates (Announcement, Event, Urgent Alert, Share Link), ` +
+      `improved field labels and inline guidance, a live Adaptive Card preview, a polished audience picker with clear search feedback, ` +
+      `and proper navigation flow (back buttons return to correct context, send confirmation feedback, reliable status refresh).`;
+  }
+
+  function copyPrompt() {
+    const text = document.getElementById('promptOutput').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  // Init
+  updatePrompt();
+</script>
+
+</body>
+</html>

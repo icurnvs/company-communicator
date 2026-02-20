@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Company Communicator — Design Reference</title>
+<style>
+:root {
+  --bg-app: #1a1a2e;
+  --bg-surface: #16213e;
+  --bg-card: #1e2a4a;
+  --bg-card-hover: #243356;
+  --bg-input: #0f1629;
+  --accent: #7b6cf6;
+  --accent-light: #9d92f8;
+  --accent-dim: rgba(123,108,246,0.15);
+  --accent-glow: rgba(123,108,246,0.3);
+  --text-primary: #e8eaed;
+  --text-secondary: #9aa0a8;
+  --text-muted: #6b7280;
+  --border: rgba(255,255,255,0.08);
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #60a5fa;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI Variable Display','Segoe UI',system-ui,sans-serif; background: #0d0d1a; color: var(--text-primary); min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+
+/* ── Top Bar ── */
+.top-bar { width: 100%; background: #0d0d1a; border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.top-bar-label { font-size: 11px; color: var(--text-muted); margin-right: 6px; white-space: nowrap; }
+.view-btn { padding: 5px 13px; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); border-radius: 6px; font-size: 12px; cursor: pointer; transition: all .18s; white-space: nowrap; }
+.view-btn:hover { background: var(--bg-card); color: var(--text-primary); }
+.view-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent-light); }
+
+/* ── App Wrapper ── */
+.app-wrap { width: 100%; max-width: 1100px; height: 700px; margin: 20px auto; border-radius: 14px; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,.6), 0 0 0 1px var(--border); display: flex; position: relative; background: var(--bg-app); }
+
+/* ── Sidebar ── */
+.sidebar { width: 220px; min-width: 220px; background: var(--bg-surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 16px 0; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 0 16px 16px; border-bottom: 1px solid var(--border); }
+.brand-icon { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), #6366f1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.brand-icon svg { width: 18px; height: 18px; }
+.brand-name { font-size: 12px; font-weight: 600; line-height: 1.3; }
+
+.compose-btn { margin: 14px 12px 8px; padding: 10px; background: linear-gradient(135deg, var(--accent), #6366f1); border: none; border-radius: 8px; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; box-shadow: 0 4px 16px var(--accent-glow); transition: transform .15s, box-shadow .15s; }
+.compose-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 22px var(--accent-glow); }
+
+.nav-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); padding: 14px 16px 6px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 14px; margin: 1px 8px; border-radius: 7px; cursor: pointer; transition: background .15s; position: relative; color: var(--text-secondary); font-size: 13px; }
+.nav-item:hover { background: var(--bg-card); color: var(--text-primary); }
+.nav-item.active { background: var(--accent-dim); color: var(--accent-light); }
+.nav-item.active::before { content: ''; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+.nav-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: .8; }
+.nav-count { margin-left: auto; font-size: 11px; font-weight: 600; background: var(--bg-card); padding: 2px 7px; border-radius: 10px; }
+.nav-item.active .nav-count { background: var(--accent-dim); color: var(--accent); }
+
+.sidebar-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+.sidebar-footer { padding: 8px 16px; margin-top: auto; }
+.sidebar-stat { font-size: 11px; color: var(--text-muted); line-height: 1.8; }
+
+/* ── Message Pane ── */
+.msg-pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.pane-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: var(--bg-surface); }
+.pane-title { font-size: 16px; font-weight: 600; }
+.pane-count { font-size: 13px; color: var(--text-muted); padding: 2px 8px; background: var(--bg-card); border-radius: 10px; }
+.search-wrap { margin-left: auto; position: relative; }
+.search-input { background: var(--bg-input); border: 1px solid var(--border); border-radius: 7px; padding: 7px 12px 7px 32px; color: var(--text-primary); font-size: 13px; width: 200px; transition: border-color .15s; }
+.search-input:focus { outline: none; border-color: var(--accent); }
+.search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+
+.msg-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+.msg-list::-webkit-scrollbar { width: 5px; }
+.msg-list::-webkit-scrollbar-track { background: transparent; }
+.msg-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.msg-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 20px; cursor: pointer; transition: background .15s; position: relative; }
+.msg-row:hover { background: var(--bg-card); }
+.avatar { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.avatar-g1 { background: linear-gradient(135deg,#667eea,#764ba2); }
+.avatar-g2 { background: linear-gradient(135deg,#f093fb,#f5576c); }
+.avatar-g3 { background: linear-gradient(135deg,#4facfe,#00f2fe); }
+.avatar-g4 { background: linear-gradient(135deg,#43e97b,#38f9d7); }
+.avatar-g5 { background: linear-gradient(135deg,#fa709a,#fee140); }
+.avatar-g6 { background: linear-gradient(135deg,#a18cd1,#fbc2eb); }
+.avatar-g7 { background: linear-gradient(135deg,#fd7043,#ff8f00); }
+.avatar-g8 { background: linear-gradient(135deg,#30cfd0,#667eea); }
+
+.msg-body { flex: 1; min-width: 0; }
+.msg-top { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.msg-title { font-size: 13px; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msg-time { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+.msg-bottom { display: flex; align-items: center; gap: 8px; }
+.msg-preview { font-size: 12px; color: var(--text-secondary); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+.badge-sent { background: rgba(52,211,153,.15); color: var(--success); }
+.badge-sending { background: rgba(96,165,250,.15); color: var(--info); display: flex; align-items: center; gap: 5px; }
+.badge-scheduled { background: rgba(251,191,36,.15); color: var(--warning); }
+.badge-draft { background: rgba(107,114,128,.15); color: var(--text-muted); }
+.badge-failed { background: rgba(248,113,113,.15); color: var(--danger); }
+.pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--info); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+.send-progress-bar { position: absolute; bottom: 0; left: 20px; right: 20px; height: 2px; background: var(--border); border-radius: 1px; overflow: hidden; }
+.send-progress-fill { height: 100%; background: linear-gradient(90deg, var(--info), var(--accent)); border-radius: 1px; transition: width .3s; }
+
+/* ── Detail Popover ── */
+.backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(3px); display: none; align-items: center; justify-content: center; z-index: 50; }
+.backdrop.open { display: flex; }
+.detail-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; width: 500px; max-height: 560px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.detail-header { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.detail-title { font-size: 15px; font-weight: 700; flex: 1; }
+.icon-btn { width: 28px; height: 28px; border: none; background: transparent; color: var(--text-secondary); cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: background .15s; font-size: 16px; }
+.icon-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.detail-body { padding: 20px; overflow-y: auto; flex: 1; }
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.stat-card { background: var(--bg-surface); border-radius: 10px; padding: 14px; text-align: center; }
+.stat-val { font-size: 24px; font-weight: 700; margin-bottom: 2px; }
+.stat-val.success { color: var(--success); }
+.stat-val.danger { color: var(--danger); }
+.stat-val.warning { color: var(--warning); }
+.stat-lbl { font-size: 11px; color: var(--text-secondary); }
+.delivery-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; display: flex; justify-content: space-between; }
+.progress-bar { height: 6px; background: var(--bg-input); border-radius: 3px; overflow: hidden; margin-bottom: 16px; }
+.progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--success), #10b981); }
+.detail-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); margin-bottom: 8px; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.chip { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; background: var(--accent-dim); color: var(--accent-light); border: 1px solid rgba(123,108,246,.25); }
+.chip.purple { background: rgba(139,92,246,.15); color: #c4b5fd; border-color: rgba(139,92,246,.25); }
+.timestamps { display: flex; gap: 20px; }
+.ts-item { font-size: 12px; color: var(--text-secondary); }
+.ts-item strong { display: block; font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+.detail-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+.btn { padding: 8px 16px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); }
+.btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.btn-accent { background: linear-gradient(135deg, var(--accent), #6366f1); border-color: transparent; color: #fff; font-weight: 600; box-shadow: 0 2px 12px var(--accent-glow); }
+.btn-accent:hover { box-shadow: 0 4px 18px var(--accent-glow); transform: translateY(-1px); }
+
+/* ── Compose Slide-Over ── */
+.compose-overlay { position: absolute; inset: 0; z-index: 40; display: none; }
+.compose-overlay.open { display: block; }
+.compose-panel { position: absolute; top: 0; right: 0; bottom: 0; width: calc(100% - 220px); background: var(--bg-app); border-left: 1px solid var(--border); display: flex; flex-direction: column; box-shadow: -8px 0 32px rgba(0,0,0,.4); }
+.compose-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: var(--bg-surface); }
+.compose-title { font-size: 16px; font-weight: 700; flex: 1; }
+.seg-btn-group { display: flex; background: var(--bg-input); border-radius: 7px; padding: 2px; border: 1px solid var(--border); }
+.seg-btn { padding: 5px 14px; border: none; background: transparent; color: var(--text-secondary); border-radius: 5px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s; }
+.seg-btn.active { background: var(--accent); color: #fff; box-shadow: 0 2px 8px var(--accent-glow); }
+.compose-tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--bg-surface); }
+.compose-tab { padding: 11px 20px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-secondary); position: relative; transition: color .15s; border: none; background: transparent; }
+.compose-tab.active { color: var(--accent-light); }
+.compose-tab.active::after { content: ''; position: absolute; bottom: 0; left: 16px; right: 16px; height: 2px; background: var(--accent); border-radius: 2px 2px 0 0; }
+.compose-body { flex: 1; overflow: hidden; display: flex; }
+.compose-scroll { flex: 1; overflow-y: auto; padding: 20px; display: flex; gap: 20px; }
+.compose-scroll::-webkit-scrollbar { width: 5px; }
+.compose-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.compose-fields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+
+/* Form elements in compose */
+.section-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.section-head { padding: 12px 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.section-head-label { font-size: 13px; font-weight: 600; flex: 1; }
+.section-content { padding: 12px 16px 16px; border-top: 1px solid var(--border); }
+.collapse-icon { width: 16px; height: 16px; color: var(--text-muted); transition: transform .2s; }
+.collapsed .collapse-icon { transform: rotate(-90deg); }
+.collapsed .section-content { display: none; }
+
+.form-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+.form-input, .form-textarea { width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: 7px; padding: 9px 12px; color: var(--text-primary); font-size: 13px; font-family: inherit; resize: vertical; transition: border-color .15s; }
+.form-input:focus, .form-textarea:focus { outline: none; border-color: var(--accent); }
+.form-textarea { min-height: 80px; }
+.char-count { font-size: 11px; color: var(--text-muted); }
+
+/* Template grid */
+.tpl-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.tpl-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 10px; cursor: pointer; text-align: center; transition: all .15s; font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+.tpl-card:hover { border-color: var(--accent); color: var(--text-primary); }
+.tpl-card.selected { border-color: var(--accent); background: var(--accent-dim); color: var(--accent-light); }
+.tpl-card.blank { border-style: dashed; }
+.tpl-card.urgent { border-color: rgba(248,113,113,.4); color: var(--danger); }
+.tpl-card.urgent.selected { background: rgba(248,113,113,.1); }
+.tpl-icon { font-size: 20px; margin-bottom: 5px; }
+.tpl-divider { display: flex; align-items: center; gap: 8px; margin: 12px 0 8px; font-size: 11px; color: var(--text-muted); }
+.tpl-divider::before, .tpl-divider::after { content:''; flex:1; height:1px; background: var(--border); }
+.my-tpl-row { display: flex; align-items: center; padding: 7px 10px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 7px; font-size: 12px; cursor: pointer; transition: background .15s; margin-bottom: 5px; }
+.my-tpl-row:hover { background: var(--bg-card-hover); }
+.my-tpl-name { flex: 1; font-weight: 500; }
+.my-tpl-date { color: var(--text-muted); font-size: 11px; margin-right: 8px; }
+
+/* Markdown toolbar */
+.md-toolbar { display: flex; align-items: center; gap: 2px; padding: 6px 8px; background: var(--bg-surface); border: 1px solid var(--border); border-bottom: none; border-radius: 7px 7px 0 0; }
+.md-btn { width: 28px; height: 26px; border: none; background: transparent; color: var(--text-secondary); border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: background .12s; }
+.md-btn:hover { background: var(--bg-card); color: var(--text-primary); }
+.md-sep { width: 1px; height: 16px; background: var(--border); margin: 0 4px; }
+.md-var-btn { padding: 3px 9px; font-size: 11px; font-weight: 600; background: var(--accent-dim); border: 1px solid rgba(123,108,246,.3); color: var(--accent-light); border-radius: 4px; cursor: pointer; white-space: nowrap; }
+.md-var-btn:hover { background: rgba(123,108,246,.25); }
+.md-textarea { border-radius: 0 0 7px 7px !important; }
+
+/* Hero image dropzone */
+.dropzone { border: 1.5px dashed var(--border); border-radius: 8px; padding: 24px; text-align: center; color: var(--text-muted); font-size: 12px; cursor: pointer; transition: border-color .15s; }
+.dropzone:hover { border-color: var(--accent); color: var(--text-secondary); }
+.dropzone-icon { font-size: 22px; margin-bottom: 6px; }
+.dropzone-url { display: flex; gap: 6px; margin-top: 10px; }
+.hero-thumb { width: 100%; height: 60px; background: linear-gradient(135deg, var(--bg-card), var(--bg-surface)); border-radius: 6px; margin-top: 10px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text-muted); border: 1px solid var(--border); }
+
+/* Key details table */
+.kd-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px; }
+.add-link { font-size: 12px; color: var(--accent); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
+.add-link:hover { color: var(--accent-light); }
+
+/* CTA */
+.cta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.hint-text { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* Live preview */
+.preview-col { width: 240px; min-width: 240px; }
+.preview-sticky { position: sticky; top: 0; }
+.preview-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); margin-bottom: 10px; }
+.adaptive-card { background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.3); }
+.ac-hero { height: 80px; background: linear-gradient(135deg,#667eea,#764ba2); }
+.ac-body { padding: 14px; }
+.ac-title { font-size: 15px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
+.ac-text { font-size: 12px; color: #444; line-height: 1.5; margin-bottom: 10px; }
+.ac-var { display: inline; background: rgba(123,108,246,.15); color: var(--accent); border-radius: 4px; padding: 1px 5px; font-weight: 600; font-size: 12px; }
+.ac-meta { font-size: 11px; color: #888; margin-bottom: 10px; }
+.ac-btn { display: block; width: 100%; padding: 9px; background: linear-gradient(135deg,var(--accent),#6366f1); color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; text-align: center; cursor: pointer; }
+
+/* Advanced mode blocks */
+.blocks-header { display: flex; align-items: center; margin-bottom: 10px; }
+.blocks-title { font-size: 13px; font-weight: 600; flex: 1; }
+.add-block-btn { padding: 5px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); font-size: 12px; cursor: pointer; }
+.add-block-btn:hover { border-color: var(--accent); color: var(--accent); }
+.block-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
+.grip { color: var(--text-muted); font-size: 14px; cursor: grab; }
+.block-info { flex: 1; }
+.block-type { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 2px; }
+.block-preview { font-size: 12px; color: var(--text-secondary); }
+.remove-btn { width: 22px; height: 22px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; border-radius: 4px; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+.remove-btn:hover { background: rgba(248,113,113,.15); color: var(--danger); }
+
+/* Audience tab */
+.audience-split { display: flex; gap: 0; flex: 1; height: 100%; }
+.aud-left { width: 260px; min-width: 260px; border-right: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.aud-right { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.send-all-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all .15s; }
+.send-all-row.on { background: var(--accent-dim); border-color: var(--accent); }
+.toggle { width: 34px; height: 18px; border-radius: 9px; background: var(--bg-input); border: 1px solid var(--border); position: relative; cursor: pointer; transition: background .2s; }
+.toggle.on { background: var(--accent); border-color: var(--accent); }
+.toggle::after { content:''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: transform .2s; }
+.toggle.on::after { transform: translateX(16px); }
+.send-all-label { font-size: 13px; font-weight: 500; flex: 1; }
+.aud-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.aud-search { background: var(--bg-input); border: 1px solid var(--border); border-radius: 7px; padding: 7px 10px; color: var(--text-primary); font-size: 12px; width: 100%; margin-bottom: 6px; }
+.aud-search:focus { outline: none; border-color: var(--accent); }
+.aud-result { padding: 7px 10px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; cursor: pointer; transition: border-color .15s; }
+.aud-result:hover { border-color: var(--accent); }
+.aud-result-name { font-size: 12px; font-weight: 500; flex: 1; }
+.aud-result-meta { font-size: 11px; color: var(--text-muted); }
+.aud-add-btn { font-size: 11px; color: var(--accent); font-weight: 600; opacity: 0; transition: opacity .15s; }
+.aud-result:hover .aud-add-btn { opacity: 1; }
+
+.aud-section { margin-bottom: 14px; }
+.sel-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; margin: 3px 3px 3px 0; background: var(--accent-dim); color: var(--accent-light); border: 1px solid rgba(123,108,246,.25); }
+.sel-chip.purple { background: rgba(139,92,246,.15); color: #c4b5fd; border-color: rgba(139,92,246,.25); }
+.sel-chip .chip-x { cursor: pointer; opacity: .7; font-size: 13px; }
+.sel-chip .chip-x:hover { opacity: 1; }
+.chip-link { font-size: 11px; color: var(--text-muted); cursor: pointer; margin-left: 4px; }
+.chip-link:hover { color: var(--accent); }
+.ghost-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 11px; color: var(--text-muted); border: 1px dashed var(--border); cursor: pointer; margin: 3px; transition: all .15s; }
+.ghost-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+.summary-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-top: auto; }
+.summary-reach { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+.summary-sub { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
+.summary-detail { font-size: 12px; color: var(--text-secondary); line-height: 1.8; }
+.summary-detail span { color: var(--accent-light); font-weight: 500; }
+
+/* Compose footer */
+.compose-footer { padding: 12px 20px; border-top: 1px solid var(--border); background: var(--bg-surface); display: flex; align-items: center; gap: 10px; }
+.footer-audience { display: flex; align-items: center; gap: 7px; flex: 1; font-size: 12px; color: var(--text-secondary); overflow: hidden; }
+.footer-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+.footer-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.footer-actions { display: flex; gap: 6px; align-items: center; }
+
+/* Confirmation dialog */
+.confirm-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 60; }
+.confirm-overlay.open { display: flex; }
+.confirm-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; width: 540px; max-height: 620px; display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,.5); }
+.confirm-header { padding: 18px 20px; border-bottom: 1px solid var(--border); }
+.confirm-title { font-size: 16px; font-weight: 700; }
+.reach-banner { margin: 16px; padding: 12px 16px; background: var(--accent-dim); border: 1px solid rgba(123,108,246,.25); border-radius: 8px; text-align: center; font-size: 14px; font-weight: 600; color: var(--accent-light); }
+.confirm-body { flex: 1; overflow-y: auto; padding: 0 20px 16px; }
+.card-preview-wrap { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 16px; max-height: 200px; overflow-y: auto; background: #fff; }
+.confirm-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+/* Delivery tracker */
+.tracker-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 60; }
+.tracker-overlay.open { display: flex; }
+.tracker-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; width: 400px; padding: 32px; text-align: center; box-shadow: 0 24px 64px rgba(0,0,0,.5); }
+.tracker-title { font-size: 16px; font-weight: 700; margin-bottom: 24px; }
+.ring-wrap { width: 120px; height: 120px; margin: 0 auto 24px; position: relative; }
+.ring-wrap svg { transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: var(--bg-input); stroke-width: 10; }
+.ring-fill { fill: none; stroke: url(#ring-grad); stroke-width: 10; stroke-linecap: round; stroke-dasharray: 339.3; transition: stroke-dashoffset .5s; }
+.ring-pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; }
+.tracker-counters { display: flex; justify-content: center; gap: 24px; margin-bottom: 20px; }
+.tc-item { text-align: center; }
+.tc-val { font-size: 22px; font-weight: 700; }
+.tc-lbl { font-size: 11px; color: var(--text-muted); }
+.tracker-status { font-size: 14px; color: var(--text-secondary); margin-bottom: 6px; }
+.sending-dots::after { content: '...'; animation: dots 1.2s steps(4,end) infinite; }
+@keyframes dots { 0%,20%{content:'.'} 40%{content:'..'} 60%,100%{content:'...'} }
+.tracker-divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+.tracker-complete { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--success); margin-bottom: 20px; }
+.check-icon { width: 24px; height: 24px; border-radius: 50%; background: rgba(52,211,153,.2); display: flex; align-items: center; justify-content: center; font-size: 13px; }
+
+/* View management */
+.view { display: none; }
+.view.active { display: flex; }
+.view-dashboard { flex: 1; position: relative; }
+.view-compose { flex: 1; position: relative; }
+.view-confirm { flex: 1; position: relative; }
+.view-tracker { flex: 1; position: relative; }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <span class="top-bar-label">Design View:</span>
+  <button class="view-btn active" onclick="switchView('dashboard')">Dashboard</button>
+  <button class="view-btn" onclick="switchView('compose-standard')">Compose: Content (Standard)</button>
+  <button class="view-btn" onclick="switchView('compose-advanced')">Compose: Content (Advanced)</button>
+  <button class="view-btn" onclick="switchView('compose-audience')">Compose: Audience</button>
+  <button class="view-btn" onclick="switchView('confirm')">Confirmation</button>
+  <button class="view-btn" onclick="switchView('tracker')">Delivery Tracker</button>
+</div>
+
+<div class="app-wrap" id="appWrap">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 18 18" fill="none">
+          <rect x="1" y="1" width="7" height="7" rx="1.5" fill="rgba(255,255,255,.9)"/>
+          <rect x="10" y="1" width="7" height="7" rx="1.5" fill="rgba(255,255,255,.6)"/>
+          <rect x="1" y="10" width="7" height="7" rx="1.5" fill="rgba(255,255,255,.6)"/>
+          <rect x="10" y="10" width="7" height="7" rx="1.5" fill="rgba(255,255,255,.3)"/>
+        </svg>
+      </div>
+      <div class="brand-name">Company<br>Communicator</div>
+    </div>
+
+    <button class="compose-btn" onclick="openCompose()">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      New Message
+    </button>
+
+    <div class="nav-label">Messages</div>
+    <div class="nav-item active" id="nav-sent" onclick="switchTab('sent')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2l12 6-12 6V9.5l8-1.5-8-1.5V2z"/></svg>
+      Sent
+      <span class="nav-count">24</span>
+    </div>
+    <div class="nav-item" id="nav-drafts" onclick="switchTab('drafts')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3a1 1 0 011-1h7l4 4v7a1 1 0 01-1 1H3a1 1 0 01-1-1V3zm8 0v3h3M5 9h6M5 11h4" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
+      Drafts
+      <span class="nav-count">3</span>
+    </div>
+    <div class="nav-item" id="nav-scheduled" onclick="switchTab('scheduled')">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M5 1v4M11 1v4M2 7h12"/><circle cx="11" cy="11" r="2.5"/><path d="M11 10v1.5l1 .5"/></svg>
+      Scheduled
+      <span class="nav-count">1</span>
+    </div>
+
+    <hr class="sidebar-divider">
+    <div class="sidebar-footer">
+      <div class="sidebar-stat">47 total messages</div>
+      <div class="sidebar-stat">1,847 people reached</div>
+    </div>
+  </aside>
+
+  <!-- ══ VIEW: DASHBOARD ══ -->
+  <div class="view view-dashboard active" id="view-dashboard">
+    <div class="msg-pane">
+      <div class="pane-header">
+        <div class="pane-title" id="pane-title">Sent</div>
+        <div class="pane-count" id="pane-count">24</div>
+        <div class="search-wrap">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4"/><path d="M9.5 9.5l3 3"/></svg>
+          <input class="search-input" type="text" placeholder="Search messages…" id="searchInput" oninput="filterMessages(this.value)">
+        </div>
+      </div>
+      <div class="msg-list" id="msgList"></div>
+    </div>
+
+    <!-- Detail Popover backdrop -->
+    <div class="backdrop" id="detailBackdrop" onclick="closeDetail(event)">
+      <div class="detail-card" id="detailCard">
+        <div class="detail-header">
+          <div class="detail-title" id="detailTitle"></div>
+          <span id="detailBadge"></span>
+          <button class="icon-btn" onclick="closeDetailDirect()">&times;</button>
+        </div>
+        <div class="detail-body">
+          <div class="stats-grid" id="detailStats"></div>
+          <div id="detailProgressWrap"></div>
+          <div class="detail-section-label">Audience</div>
+          <div class="chip-row">
+            <span class="chip">Engineering &middot; General</span>
+            <span class="chip">Marketing &middot; General</span>
+            <span class="chip purple">All Managers &middot; 52</span>
+          </div>
+          <div class="detail-section-label">Timestamps</div>
+          <div class="timestamps">
+            <div class="ts-item"><strong>Created</strong><span id="detailCreated"></span></div>
+            <div class="ts-item"><strong>Sent</strong><span id="detailSent"></span></div>
+          </div>
+        </div>
+        <div class="detail-footer">
+          <button class="btn">Use as Template</button>
+          <button class="btn">Export</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ VIEW: COMPOSE (shared panel) ══ -->
+  <div class="view view-compose" id="view-compose" style="display:none; flex:1; position:relative;">
+    <!-- bg message pane (static, non-interactive in compose view) -->
+    <div class="msg-pane" style="opacity:.3; pointer-events:none;">
+      <div class="pane-header">
+        <div class="pane-title">Sent</div>
+        <div class="pane-count">24</div>
+      </div>
+      <div class="msg-list" id="msgListBg"></div>
+    </div>
+    <!-- Compose panel slides over -->
+    <div class="compose-panel" id="composePanel">
+      <div class="compose-header">
+        <div class="compose-title">New Message</div>
+        <div class="seg-btn-group">
+          <button class="seg-btn active" id="modeStd" onclick="setMode('standard')">Standard</button>
+          <button class="seg-btn" id="modeAdv" onclick="setMode('advanced')">Advanced</button>
+        </div>
+        <button class="icon-btn" onclick="closeCompose()" style="margin-left:8px;">&times;</button>
+      </div>
+      <div class="compose-tabs">
+        <button class="compose-tab active" id="ctab-content" onclick="setComposeTab('content')">Content</button>
+        <button class="compose-tab" id="ctab-audience" onclick="setComposeTab('audience')">Audience</button>
+      </div>
+
+      <!-- Content Tab -->
+      <div class="compose-body" id="tab-content">
+        <div class="compose-scroll">
+          <!-- Fields column -->
+          <div class="compose-fields">
+
+            <!-- Template Picker -->
+            <div class="section-card" id="tplSection">
+              <div class="section-head" onclick="toggleSection('tplSection')">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="8" y="1" width="5" height="5" rx="1"/><rect x="1" y="8" width="5" height="5" rx="1"/><rect x="8" y="8" width="5" height="5" rx="1"/></svg>
+                <span class="section-head-label">Template</span>
+                <svg class="collapse-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M4 6l4 4 4-4"/></svg>
+              </div>
+              <div class="section-content">
+                <div class="tpl-grid">
+                  <div class="tpl-card blank"><div class="tpl-icon">&#9633;</div>Blank</div>
+                  <div class="tpl-card selected"><div class="tpl-icon">&#128226;</div>Announcement</div>
+                  <div class="tpl-card"><div class="tpl-icon">&#128197;</div>Event Invite</div>
+                  <div class="tpl-card urgent"><div class="tpl-icon">&#9888;</div>Urgent Alert</div>
+                  <div class="tpl-card"><div class="tpl-icon">&#128279;</div>Link Share</div>
+                  <div class="tpl-card"><div class="tpl-icon">&#128202;</div>Survey</div>
+                </div>
+                <div class="tpl-divider">My Templates</div>
+                <div class="my-tpl-row">
+                  <span class="my-tpl-name">HR Update Template</span>
+                  <span class="my-tpl-date">Jan 12</span>
+                  <span class="icon-btn" style="font-size:13px; color:var(--text-muted);">&times;</span>
+                </div>
+                <div class="my-tpl-row">
+                  <span class="my-tpl-name">Monthly Newsletter</span>
+                  <span class="my-tpl-date">Dec 8</span>
+                  <span class="icon-btn" style="font-size:13px; color:var(--text-muted);">&times;</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Headline -->
+            <div>
+              <div class="form-label">
+                Headline <span class="char-count">38 / 200</span>
+              </div>
+              <input class="form-input" type="text" value="Q2 All-Hands Meeting — Save the Date">
+            </div>
+
+            <!-- Body -->
+            <div>
+              <div class="form-label">Body</div>
+              <div class="md-toolbar">
+                <button class="md-btn" title="Bold"><b>B</b></button>
+                <button class="md-btn" title="Italic"><i>I</i></button>
+                <div class="md-sep"></div>
+                <button class="md-btn" title="Bullets">&#8226;&#8212;</button>
+                <button class="md-btn" title="Numbered">1&#8212;</button>
+                <div class="md-sep"></div>
+                <button class="md-btn" title="Link">&#128279;</button>
+                <div class="md-sep"></div>
+                <button class="md-var-btn">&#123;&#123; &#125;&#125; Insert Variable</button>
+              </div>
+              <textarea class="form-input form-textarea md-textarea" rows="4">Hi {{firstName}}, please save March 12th for our Q2 All-Hands. Agenda and dial-in details to follow.</textarea>
+            </div>
+
+            <!-- Hero Image -->
+            <div>
+              <div class="form-label">Hero Image</div>
+              <div class="dropzone">
+                <div class="dropzone-icon">&#128247;</div>
+                <div>Drop an image or paste a URL</div>
+                <div class="dropzone-url">
+                  <input class="form-input" type="text" placeholder="https://…" style="flex:1; margin:0;">
+                </div>
+              </div>
+              <div class="hero-thumb">Preview will appear here</div>
+            </div>
+
+            <!-- Add details (collapsible) -->
+            <div id="detailsExpand">
+              <div class="add-link" onclick="toggleExpand('detailsExpand', 'detailsContent')">
+                <span>&#43;</span> Add key details
+              </div>
+              <div id="detailsContent" style="display:none; margin-top:10px;">
+                <div class="kd-row">
+                  <input class="form-input" type="text" placeholder="Label (e.g. Date)">
+                  <input class="form-input" type="text" placeholder="Value (e.g. March 12)">
+                </div>
+                <div class="kd-row">
+                  <input class="form-input" type="text" placeholder="Label (e.g. Location)" value="Location">
+                  <input class="form-input" type="text" placeholder="Value" value="Teams + Building A, Room 101">
+                </div>
+                <div class="add-link" style="margin-top:4px;"><span>&#43;</span> Add row</div>
+              </div>
+            </div>
+
+            <!-- CTA -->
+            <div>
+              <div class="form-label">Call to Action</div>
+              <div class="cta-row">
+                <input class="form-input" type="text" placeholder="Button label" value="View Agenda">
+                <input class="form-input" type="text" placeholder="https://…" value="https://example.com/q2-agenda">
+              </div>
+              <div class="hint-text">Appears as a button at the bottom of the card</div>
+            </div>
+
+            <!-- Advanced blocks -->
+            <div id="advancedBlocks" style="display:none;">
+              <div class="blocks-header">
+                <span class="blocks-title">Content Blocks</span>
+                <button class="add-block-btn">&#43; Add Block &#9660;</button>
+              </div>
+              <div class="block-item">
+                <span class="grip">&#8942;&#8942;</span>
+                <div class="block-info">
+                  <div class="block-type">Column Layout</div>
+                  <div class="block-preview">2-column · Text + Image</div>
+                </div>
+                <button class="remove-btn">&times;</button>
+              </div>
+              <div class="block-item">
+                <span class="grip">&#8942;&#8942;</span>
+                <div class="block-info">
+                  <div class="block-type">Image Set</div>
+                  <div class="block-preview">3 images · medium size</div>
+                </div>
+                <button class="remove-btn">&times;</button>
+              </div>
+              <div class="block-item">
+                <span class="grip">&#8942;&#8942;</span>
+                <div class="block-info">
+                  <div class="block-type">Divider</div>
+                  <div class="block-preview">Horizontal rule</div>
+                </div>
+                <button class="remove-btn">&times;</button>
+              </div>
+            </div>
+
+            <!-- Add footnote (collapsible) -->
+            <div id="footnoteExpand">
+              <div class="add-link" onclick="toggleExpand('footnoteExpand', 'footnoteContent')">
+                <span>&#43;</span> Add footnote
+              </div>
+              <div id="footnoteContent" style="display:none; margin-top:10px;">
+                <textarea class="form-input form-textarea" rows="2" placeholder="Secondary information, disclaimers, etc."></textarea>
+              </div>
+            </div>
+
+          </div>
+          <!-- Live Preview column -->
+          <div class="preview-col">
+            <div class="preview-sticky">
+              <div class="preview-label">Live Preview</div>
+              <div class="adaptive-card">
+                <div class="ac-hero"></div>
+                <div class="ac-body">
+                  <div class="ac-title">Q2 All-Hands Meeting — Save the Date</div>
+                  <div class="ac-text">Hi <span class="ac-var">{{firstName}}</span>, please save March 12th for our Q2 All-Hands. Agenda and dial-in details to follow.</div>
+                  <div class="ac-meta">&#128197; March 12 &nbsp;&#183;&nbsp; &#128205; Teams + Building A</div>
+                  <button class="ac-btn">View Agenda</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audience Tab -->
+      <div class="compose-body" id="tab-audience" style="display:none;">
+        <div class="audience-split">
+          <!-- Left: search -->
+          <div class="aud-left">
+            <div class="send-all-row" onclick="this.classList.toggle('on'); this.querySelector('.toggle').classList.toggle('on')">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M5 8h6M8 5v6"/></svg>
+              <span class="send-all-label">Send to everyone</span>
+              <div class="toggle"></div>
+            </div>
+
+            <div>
+              <div class="aud-section-label">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14s0-4 6-4 6 4 6 4"/><circle cx="8" cy="6" r="3"/></svg>
+                Teams
+              </div>
+              <input class="aud-search" type="text" placeholder="Search teams…">
+              <div class="aud-result">
+                <span class="aud-result-name">Engineering</span>
+                <span class="aud-result-meta">143 members</span>
+                <span class="aud-add-btn">Add &#43;</span>
+              </div>
+              <div class="aud-result">
+                <span class="aud-result-name">Marketing</span>
+                <span class="aud-result-meta">38 members</span>
+                <span class="aud-add-btn">Add &#43;</span>
+              </div>
+              <div class="aud-result">
+                <span class="aud-result-name">Product</span>
+                <span class="aud-result-meta">62 members</span>
+                <span class="aud-add-btn">Add &#43;</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="aud-section-label">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 13s0-3 4.5-3 4.5 3 4.5 3"/><circle cx="5.5" cy="6" r="2.5"/><path d="M11 10c2 0 4 1 4 3"/><circle cx="11.5" cy="4" r="2"/></svg>
+                Groups
+              </div>
+              <input class="aud-search" type="text" placeholder="Search groups…">
+              <div class="aud-result">
+                <span class="aud-result-name">All Managers</span>
+                <span class="aud-result-meta">52 members</span>
+                <span class="aud-add-btn">Add &#43;</span>
+              </div>
+              <div class="aud-result">
+                <span class="aud-result-name">HR Business Partners</span>
+                <span class="aud-result-meta">8 members</span>
+                <span class="aud-add-btn">Add &#43;</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: selection -->
+          <div class="aud-right">
+            <div class="aud-section">
+              <div class="aud-section-label">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="14" height="10" rx="1.5"/><path d="M5 14h6M8 11v3"/></svg>
+                Channel Posts
+              </div>
+              <div>
+                <span class="sel-chip">Engineering &middot; General <span class="chip-x">&times;</span></span>
+                <span class="chip-link">Send to members instead</span>
+              </div>
+              <div style="margin-top:4px;">
+                <span class="sel-chip">Marketing &middot; General <span class="chip-x">&times;</span></span>
+                <span class="chip-link">Send to members instead</span>
+              </div>
+            </div>
+
+            <div class="aud-section">
+              <div class="aud-section-label">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14s0-4 6-4 6 4 6 4"/><circle cx="8" cy="6" r="3"/></svg>
+                Individual Messages
+              </div>
+              <div>
+                <span class="sel-chip">Design &middot; 28 members <span class="chip-x">&times;</span></span>
+                <span class="chip-link">Send to channel instead</span>
+              </div>
+              <div style="margin-top:4px;">
+                <span class="sel-chip purple">All Managers &middot; 52 members <span class="chip-x">&times;</span></span>
+              </div>
+            </div>
+
+            <div class="aud-section">
+              <div class="aud-section-label">Recently Used</div>
+              <div>
+                <span class="ghost-chip">&#43; All Staff</span>
+                <span class="ghost-chip">&#43; Leadership</span>
+                <span class="ghost-chip">&#43; Sales &middot; EMEA</span>
+                <span class="ghost-chip">&#43; IT Department</span>
+              </div>
+            </div>
+
+            <div class="summary-card">
+              <div class="summary-reach">~487 estimated reach</div>
+              <div class="summary-sub">4 audiences selected</div>
+              <div class="summary-detail">
+                <span>Engineering &middot; General</span> &mdash; 143 channel members<br>
+                <span>Marketing &middot; General</span> &mdash; 38 channel members<br>
+                <span>Design</span> &mdash; 28 individual DMs<br>
+                <span>All Managers</span> &mdash; 52 individual DMs
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compose Footer -->
+      <div class="compose-footer">
+        <div class="footer-audience">
+          <div class="footer-dot"></div>
+          <div class="footer-text">Engineering, Marketing, Design, All Managers &middot; ~487 people</div>
+        </div>
+        <div class="footer-actions">
+          <button class="btn">Save Draft</button>
+          <button class="btn">Send Preview</button>
+          <button class="btn">Schedule</button>
+          <button class="btn btn-accent" onclick="openConfirm()">Review &#8250;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ VIEW: CONFIRMATION ══ -->
+  <div class="view view-confirm" id="view-confirm" style="display:none; flex:1; position:relative; align-items:center; justify-content:center;">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;">
+      <div class="confirm-card">
+        <div class="confirm-header">
+          <div class="confirm-title">Review Message</div>
+        </div>
+        <div class="reach-banner">This message will reach ~487 people</div>
+        <div class="confirm-body">
+          <div class="confirm-section-label detail-section-label" style="margin-bottom:8px;">Message Preview</div>
+          <div class="card-preview-wrap">
+            <div class="adaptive-card" style="border-radius:0;">
+              <div class="ac-hero"></div>
+              <div class="ac-body">
+                <div class="ac-title">Q2 All-Hands Meeting — Save the Date</div>
+                <div class="ac-text">Hi <span class="ac-var">{{firstName}}</span>, please save March 12th for our Q2 All-Hands. Agenda and dial-in details to follow.</div>
+                <div class="ac-meta">&#128197; March 12 &nbsp;&#183;&nbsp; &#128205; Teams + Building A</div>
+                <button class="ac-btn">View Agenda</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section-label" style="margin-bottom:8px;">Channel Posts</div>
+          <div class="chip-row" style="margin-bottom:14px;">
+            <span class="chip">Engineering &middot; General</span>
+            <span class="chip">Marketing &middot; General</span>
+          </div>
+
+          <div class="detail-section-label" style="margin-bottom:8px;">Individual Messages</div>
+          <div class="chip-row">
+            <span class="chip">Design &middot; 28 members</span>
+            <span class="chip purple">All Managers &middot; 52 members</span>
+          </div>
+        </div>
+        <div class="confirm-footer">
+          <button class="btn" onclick="switchView('compose-standard')">Cancel</button>
+          <button class="btn btn-accent" onclick="switchView('tracker')">Confirm &amp; Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ VIEW: DELIVERY TRACKER ══ -->
+  <div class="view view-tracker" id="view-tracker" style="display:none; flex:1; align-items:center; justify-content:center;">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;">
+      <div class="tracker-card">
+        <div class="tracker-title">Delivery Progress</div>
+
+        <!-- In progress ring -->
+        <div class="ring-wrap">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <defs>
+              <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#60a5fa"/>
+                <stop offset="100%" style="stop-color:#7b6cf6"/>
+              </linearGradient>
+            </defs>
+            <circle class="ring-bg" cx="60" cy="60" r="54"/>
+            <circle class="ring-fill" cx="60" cy="60" r="54" stroke-dashoffset="176.4" id="ringFill"/>
+          </svg>
+          <div class="ring-pct">48%</div>
+        </div>
+
+        <div class="tracker-counters">
+          <div class="tc-item">
+            <div class="tc-val" style="color:var(--success)">234</div>
+            <div class="tc-lbl">Delivered</div>
+          </div>
+          <div class="tc-item">
+            <div class="tc-val" style="color:var(--danger)">0</div>
+            <div class="tc-lbl">Failed</div>
+          </div>
+          <div class="tc-item">
+            <div class="tc-val" style="color:var(--text-muted)">253</div>
+            <div class="tc-lbl">Remaining</div>
+          </div>
+        </div>
+
+        <div class="tracker-status">
+          Sending<span class="sending-dots"></span>
+        </div>
+
+        <hr class="tracker-divider">
+
+        <!-- Complete state -->
+        <div class="tracker-complete">
+          <div class="check-icon">&#10003;</div>
+          Delivered to 487 people
+        </div>
+        <div class="tracker-counters" style="margin-bottom:20px;">
+          <div class="tc-item">
+            <div class="tc-val" style="color:var(--success)">487</div>
+            <div class="tc-lbl">Delivered</div>
+          </div>
+          <div class="tc-item">
+            <div class="tc-val" style="color:var(--danger)">0</div>
+            <div class="tc-lbl">Failed</div>
+          </div>
+          <div class="tc-item">
+            <div class="tc-val" style="color:var(--text-muted)">0</div>
+            <div class="tc-lbl">Remaining</div>
+          </div>
+        </div>
+
+        <button class="btn btn-accent" style="width:100%;" onclick="switchView('dashboard')">Done</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app-wrap -->
+
+<script>
+const DATA = {
+  sent: [
+    { id:1, title:'Q1 All-Hands Recap', preview:'Thanks to everyone who joined our quarterly...', time:'2h ago', status:'sent', initials:'Q1', avatarGrad:'avatar-g1', delivered:487, failed:2, pending:0, total:489 },
+    { id:2, title:'Office Relocation Update', preview:'The move to the new building on 5th Ave...', time:'Just now', status:'sending', initials:'OR', avatarGrad:'avatar-g2', delivered:234, failed:0, pending:253, total:487, sendingProgress:48 },
+    { id:3, title:'Security Training Required', preview:'All employees must complete the mandatory...', time:'Yesterday', status:'sent', initials:'ST', avatarGrad:'avatar-g3', delivered:485, failed:12, pending:0, total:497 },
+    { id:4, title:'Welcome New Hires — March', preview:'Please join us in welcoming 14 new team...', time:'Feb 14', status:'sent', initials:'WN', avatarGrad:'avatar-g4', delivered:52, failed:0, pending:0, total:52 },
+    { id:5, title:'New Parking Policy', preview:'Effective March 1st, parking at HQ will...', time:'Feb 10', status:'sent', initials:'NP', avatarGrad:'avatar-g5', delivered:1204, failed:0, pending:0, total:1204 },
+  ],
+  drafts: [
+    { id:6, title:'Holiday Schedule 2026', preview:'Approved holiday calendar...', time:'3h ago', status:'draft', initials:'HS', avatarGrad:'avatar-g6' },
+    { id:7, title:'March Town Hall Invite', preview:'Monthly town hall on March 12th...', time:'1d ago', status:'draft', initials:'MT', avatarGrad:'avatar-g7' },
+    { id:8, title:'Q2 OKR Review Process', preview:'Q2 OKR submissions due Feb 28th...', time:'2d ago', status:'draft', initials:'Q2', avatarGrad:'avatar-g8' },
+  ],
+  scheduled: [
+    { id:9, title:'Benefits Enrollment Deadline', preview:'Open enrollment closes March 1st...', time:'Mar 1', status:'scheduled', initials:'BE', avatarGrad:'avatar-g1', pending:1847, total:1847 },
+  ],
+};
+
+const COUNTS = { sent: 24, drafts: 3, scheduled: 1 };
+
+let currentTab = 'sent';
+let currentMode = 'standard';
+let currentComposeTab = 'content';
+let currentView = 'dashboard';
+
+/* ── Render message list ── */
+function renderList(tab, filter = '') {
+  const items = DATA[tab] || [];
+  const filtered = filter ? items.filter(m => m.title.toLowerCase().includes(filter.toLowerCase())) : items;
+  return filtered.map(m => buildRow(m)).join('');
+}
+
+function badgeHTML(m) {
+  switch (m.status) {
+    case 'sent': return '<span class="badge badge-sent">Sent</span>';
+    case 'sending': return '<span class="badge badge-sending"><span class="pulse-dot"></span>Sending</span>';
+    case 'scheduled': return '<span class="badge badge-scheduled">Scheduled</span>';
+    case 'draft': return '<span class="badge badge-draft">Draft</span>';
+    case 'failed': return '<span class="badge badge-failed">Failed</span>';
+    default: return '';
+  }
+}
+
+function buildRow(m) {
+  const prog = m.status === 'sending'
+    ? `<div class="send-progress-bar"><div class="send-progress-fill" style="width:${m.sendingProgress}%"></div></div>` : '';
+  return `<div class="msg-row" onclick="openDetail(${m.id})" data-id="${m.id}">
+    <div class="avatar ${m.avatarGrad}">${m.initials}</div>
+    <div class="msg-body">
+      <div class="msg-top">
+        <div class="msg-title">${m.title}</div>
+        <div class="msg-time">${m.time}</div>
+      </div>
+      <div class="msg-bottom">
+        <div class="msg-preview">${m.preview}</div>
+        ${badgeHTML(m)}
+      </div>
+    </div>
+    ${prog}
+  </div>`;
+}
+
+function initList(id, tab) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = renderList(tab);
+}
+
+/* ── Tab switching ── */
+function switchTab(tab) {
+  currentTab = tab;
+  ['sent','drafts','scheduled'].forEach(t => {
+    document.getElementById('nav-'+t).classList.toggle('active', t === tab);
+  });
+  const titles = { sent:'Sent', drafts:'Drafts', scheduled:'Scheduled' };
+  document.getElementById('pane-title').textContent = titles[tab];
+  document.getElementById('pane-count').textContent = COUNTS[tab];
+  document.getElementById('searchInput').value = '';
+  document.getElementById('msgList').innerHTML = renderList(tab);
+}
+
+function filterMessages(val) {
+  document.getElementById('msgList').innerHTML = renderList(currentTab, val);
+}
+
+/* ── Detail popover ── */
+function findMsg(id) {
+  return [...DATA.sent, ...DATA.drafts, ...DATA.scheduled].find(m => m.id === id);
+}
+
+function openDetail(id) {
+  const m = findMsg(id);
+  if (!m) return;
+  document.getElementById('detailTitle').textContent = m.title;
+  document.getElementById('detailBadge').outerHTML = `<span id="detailBadge">${badgeHTML(m)}</span>`;
+
+  const del = m.delivered || 0, fail = m.failed || 0, pend = m.pending || 0, tot = m.total || 0;
+  document.getElementById('detailStats').innerHTML = `
+    <div class="stat-card"><div class="stat-val success">${del.toLocaleString()}</div><div class="stat-lbl">Delivered</div></div>
+    <div class="stat-card"><div class="stat-val danger">${fail.toLocaleString()}</div><div class="stat-lbl">Failed</div></div>
+    <div class="stat-card"><div class="stat-val warning">${pend.toLocaleString()}</div><div class="stat-lbl">Pending</div></div>
+    <div class="stat-card"><div class="stat-val">${(tot).toLocaleString()}</div><div class="stat-lbl">Total</div></div>`;
+
+  const pct = tot > 0 ? Math.round(del / tot * 100) : 0;
+  document.getElementById('detailProgressWrap').innerHTML = tot > 0 ? `
+    <div class="delivery-label"><span>Delivery Progress</span><span>${pct}%</span></div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>` : '';
+
+  const now = new Date();
+  document.getElementById('detailCreated').textContent = 'Feb 17, 2026 9:41 AM';
+  document.getElementById('detailSent').textContent = m.status === 'draft' ? '—' : 'Feb 17, 2026 9:42 AM';
+
+  document.getElementById('detailBackdrop').classList.add('open');
+}
+
+function closeDetail(e) {
+  if (e.target === document.getElementById('detailBackdrop')) closeDetailDirect();
+}
+function closeDetailDirect() {
+  document.getElementById('detailBackdrop').classList.remove('open');
+}
+
+/* ── ESC key ── */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeDetailDirect();
+  }
+});
+
+/* ── Compose ── */
+function openCompose() {
+  switchView('compose-standard');
+}
+
+function closeCompose() {
+  switchView('dashboard');
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('modeStd').classList.toggle('active', mode === 'standard');
+  document.getElementById('modeAdv').classList.toggle('active', mode === 'advanced');
+  document.getElementById('advancedBlocks').style.display = mode === 'advanced' ? 'block' : 'none';
+}
+
+function setComposeTab(tab) {
+  currentComposeTab = tab;
+  document.getElementById('ctab-content').classList.toggle('active', tab === 'content');
+  document.getElementById('ctab-audience').classList.toggle('active', tab === 'audience');
+  document.getElementById('tab-content').style.display = tab === 'content' ? 'flex' : 'none';
+  document.getElementById('tab-audience').style.display = tab === 'audience' ? 'flex' : 'none';
+}
+
+/* ── Section collapse ── */
+function toggleSection(id) {
+  document.getElementById(id).classList.toggle('collapsed');
+}
+
+/* ── Expand links ── */
+function toggleExpand(wrapperId, contentId) {
+  const content = document.getElementById(contentId);
+  const wrapper = document.getElementById(wrapperId);
+  const link = wrapper.querySelector('.add-link');
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    link.innerHTML = '<span>&#8722;</span> ' + (contentId === 'detailsContent' ? 'Hide key details' : 'Hide footnote');
+  } else {
+    content.style.display = 'none';
+    link.innerHTML = '<span>&#43;</span> ' + (contentId === 'detailsContent' ? 'Add key details' : 'Add footnote');
+  }
+}
+
+/* ── View switcher ── */
+function openConfirm() { switchView('confirm'); }
+
+function switchView(view) {
+  currentView = view;
+  // Update top bar buttons
+  document.querySelectorAll('.view-btn').forEach((btn, i) => {
+    const map = ['dashboard','compose-standard','compose-advanced','compose-audience','confirm','tracker'];
+    btn.classList.toggle('active', map[i] === view);
+  });
+
+  // Hide all major views
+  document.getElementById('view-dashboard').style.display = 'none';
+  document.getElementById('view-dashboard').classList.remove('active');
+  document.getElementById('view-compose').style.display = 'none';
+  document.getElementById('view-confirm').style.display = 'none';
+  document.getElementById('view-tracker').style.display = 'none';
+
+  if (view === 'dashboard') {
+    document.getElementById('view-dashboard').style.display = 'flex';
+    document.getElementById('view-dashboard').classList.add('active');
+  } else if (view === 'compose-standard') {
+    document.getElementById('view-compose').style.display = 'flex';
+    setMode('standard');
+    setComposeTab('content');
+  } else if (view === 'compose-advanced') {
+    document.getElementById('view-compose').style.display = 'flex';
+    setMode('advanced');
+    setComposeTab('content');
+  } else if (view === 'compose-audience') {
+    document.getElementById('view-compose').style.display = 'flex';
+    setMode('standard');
+    setComposeTab('audience');
+  } else if (view === 'confirm') {
+    document.getElementById('view-confirm').style.display = 'flex';
+  } else if (view === 'tracker') {
+    document.getElementById('view-tracker').style.display = 'flex';
+  }
+}
+
+/* ── Init ── */
+initList('msgList', 'sent');
+initList('msgListBg', 'sent');
+</script>
+</body>
+</html>

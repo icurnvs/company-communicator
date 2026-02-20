@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Company Communicator — Compose Flow (Design Reference)</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Fluent UI v9 Teams Light Theme */
+  --bg-app:       #fafafa;
+  --bg-surface:   #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary:  #ebebeb;
+  --bg-selected:  #EBF3FC;
+  --bg-hover:     #f0f0f0;
+
+  --text-primary:   #242424;
+  --text-secondary: #616161;
+  --text-muted:     #707070;
+  --text-disabled:  #bdbdbd;
+
+  --brand:        #5B5FC7;
+  --brand-hover:  #4F52B2;
+  --brand-dim:    rgba(91,95,199,0.08);
+  --brand-dim2:   rgba(91,95,199,0.14);
+
+  --success:      #107C10;
+  --success-bg:   #DFF6DD;
+  --danger:       #D13438;
+  --danger-bg:    #FDE7E9;
+  --warning:      #CA5010;
+  --warning-bg:   #FFF4CE;
+  --info:         #0078D4;
+  --info-bg:      #EFF6FC;
+
+  --chip-team-bg:   #EFF6FC;
+  --chip-team-text: #0078D4;
+  --chip-team-border: rgba(0,120,212,0.25);
+  --chip-group-bg:  #F3EFF9;
+  --chip-group-text:#8764B8;
+  --chip-group-border: rgba(135,100,184,0.25);
+
+  --border:       #E0E0E0;
+  --border-strong:#C7C7C7;
+  --border-focus: #5B5FC7;
+
+  --shadow-panel: -4px 0 24px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.08);
+  --shadow-card:  0 2px 8px rgba(0,0,0,0.08);
+  --shadow-dropdown: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --font: 'Segoe UI Variable Display', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  font-family: var(--font);
+  background: #e8e8e8;
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Playground chrome ── */
+.pg-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px;
+  background: #1f1f2e;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  position: sticky; top: 0; z-index: 200;
+}
+.pg-title {
+  font-size: 13px; font-weight: 600; color: #e0e0e0;
+  display: flex; align-items: center; gap: 10px;
+}
+.pg-badge {
+  font-size: 10px; font-weight: 600; color: #5B5FC7;
+  background: rgba(91,95,199,0.18); padding: 2px 8px;
+  border-radius: 10px; letter-spacing: 0.3px; text-transform: uppercase;
+}
+.pg-switcher {
+  display: flex; gap: 3px; background: rgba(255,255,255,0.06);
+  border-radius: 8px; padding: 3px;
+}
+.pg-tab {
+  padding: 6px 14px; border-radius: 6px; border: none;
+  background: transparent; color: #9aa0a8;
+  font-family: var(--font); font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all 0.18s; white-space: nowrap;
+}
+.pg-tab:hover { color: #e0e0e0; background: rgba(255,255,255,0.06); }
+.pg-tab.active { color: #fff; background: #5B5FC7; }
+
+/* ── Frame wrapper ── */
+.pg-frame-wrap {
+  padding: 20px 24px 24px;
+  display: flex; flex-direction: column; gap: 0;
+}
+.pg-frame-label {
+  font-size: 11px; font-weight: 600; color: #9aa0a8;
+  text-transform: uppercase; letter-spacing: 0.7px;
+  margin-bottom: 8px;
+}
+
+/* The simulated Teams tab shell */
+.teams-shell {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10);
+  height: 720px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app);
+  position: relative;
+}
+
+/* ── View containers ── */
+.view { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+.view.active { display: flex; }
+
+/* ── Compose panel shell ── */
+.compose-panel {
+  display: flex; flex-direction: column; flex: 1; overflow: hidden;
+  background: var(--bg-surface);
+}
+
+/* Header bar */
+.cp-header {
+  display: flex; align-items: center; height: 56px; padding: 0 20px;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+  background: var(--bg-surface);
+}
+.cp-title {
+  font-size: 16px; font-weight: 600; color: var(--text-primary);
+  flex-shrink: 0;
+}
+.cp-spacer { flex: 1; }
+.cp-mode-toggle {
+  display: flex; align-items: center; gap: 8px; margin-right: 12px;
+}
+.cp-mode-label {
+  font-size: 12px; color: var(--text-secondary); font-weight: 500;
+}
+.mini-toggle-wrap {
+  display: flex; align-items: center; gap: 6px;
+}
+.mini-toggle {
+  width: 32px; height: 18px; border-radius: 9px; cursor: pointer;
+  background: var(--bg-tertiary); border: 1px solid var(--border-strong);
+  position: relative; transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+.mini-toggle.on { background: var(--brand); border-color: var(--brand); }
+.mini-knob {
+  width: 12px; height: 12px; border-radius: 50%; background: #fff;
+  position: absolute; top: 2px; left: 2px;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.mini-toggle.on .mini-knob { transform: translateX(14px); }
+.mini-toggle-label { font-size: 12px; color: var(--text-secondary); }
+
+.cp-close {
+  width: 32px; height: 32px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  border: none; background: transparent; color: var(--text-secondary);
+  font-size: 16px; cursor: pointer; transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.cp-close:hover { background: var(--danger-bg); color: var(--danger); }
+
+/* Tab bar */
+.cp-tabs {
+  display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  padding: 0 20px; gap: 0;
+}
+.cp-tab {
+  padding: 12px 16px; font-size: 14px; font-weight: 500;
+  color: var(--text-secondary); border: none; background: transparent;
+  cursor: pointer; border-bottom: 2px solid transparent;
+  margin-bottom: -1px; transition: color 0.15s, border-color 0.15s;
+  font-family: var(--font);
+}
+.cp-tab:hover { color: var(--text-primary); }
+.cp-tab.active { color: var(--brand); font-weight: 600; border-bottom-color: var(--brand); }
+
+/* Body area */
+.cp-body {
+  display: flex; flex: 1; overflow: hidden;
+}
+
+/* Form column */
+.cp-form {
+  flex: 6; overflow-y: auto; padding: 20px 24px;
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 0;
+}
+.cp-form::-webkit-scrollbar { width: 6px; }
+.cp-form::-webkit-scrollbar-track { background: transparent; }
+.cp-form::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+/* Preview column */
+.cp-preview {
+  flex: 4; display: flex; flex-direction: column;
+  background: var(--bg-secondary); overflow: hidden;
+}
+.cp-preview-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  background: var(--bg-surface); flex-shrink: 0;
+}
+.cp-preview-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.cp-preview-hint { font-size: 11px; color: var(--text-muted); font-style: italic; }
+.cp-preview-body {
+  flex: 1; padding: 20px 16px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+/* Bottom action bar */
+.cp-footer {
+  display: flex; align-items: center; height: 56px; padding: 0 20px;
+  border-top: 1px solid var(--border); flex-shrink: 0;
+  background: var(--bg-surface); gap: 8px;
+}
+.cp-aud-summary {
+  display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;
+  font-size: 12px; color: var(--text-muted);
+}
+.aud-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.cp-aud-chips { display: flex; gap: 4px; align-items: center; flex-wrap: nowrap; overflow: hidden; }
+.cp-aud-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.cp-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+
+/* Buttons */
+.btn {
+  padding: 6px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong);
+  background: var(--bg-surface); color: var(--text-primary);
+  font-family: var(--font); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  white-space: nowrap; line-height: 1.4;
+}
+.btn:hover { background: var(--bg-secondary); }
+.btn:active { background: var(--bg-tertiary); }
+
+.btn-ghost {
+  padding: 6px 14px; border-radius: var(--radius-sm); border: none;
+  background: transparent; color: var(--text-secondary);
+  font-family: var(--font); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.btn-ghost:hover { background: var(--bg-secondary); color: var(--text-primary); }
+
+.btn-primary {
+  padding: 6px 16px; border-radius: var(--radius-sm); border: none;
+  background: var(--brand); color: #fff;
+  font-family: var(--font); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+.btn-primary:hover { background: var(--brand-hover); box-shadow: 0 2px 8px rgba(91,95,199,0.3); }
+.btn-primary:active { background: #3D4098; }
+
+/* ── Form fields ── */
+.field { margin-bottom: 16px; }
+.field-label {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 13px; font-weight: 600; color: var(--text-primary);
+  margin-bottom: 5px;
+}
+.field-label .req { color: var(--danger); font-size: 12px; }
+.field-label .opt { font-weight: 400; color: var(--text-muted); font-size: 12px; }
+.field-input {
+  width: 100%; padding: 7px 10px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--bg-surface); color: var(--text-primary);
+  font-family: var(--font); font-size: 13px; line-height: 1.4;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+.field-input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 1px var(--border-focus);
+}
+.field-input::placeholder { color: var(--text-muted); }
+.field-input-row {
+  display: flex; align-items: center; gap: 0;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--bg-surface); overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.field-input-row:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 1px var(--border-focus);
+}
+.field-input-bare {
+  flex: 1; padding: 7px 10px; border: none; background: transparent;
+  color: var(--text-primary); font-family: var(--font); font-size: 13px;
+  outline: none;
+}
+.field-input-bare::placeholder { color: var(--text-muted); }
+.field-counter {
+  padding: 0 10px; font-size: 11px; color: var(--text-muted);
+  white-space: nowrap; flex-shrink: 0;
+}
+.field-textarea {
+  width: 100%; padding: 7px 10px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--bg-surface); color: var(--text-primary);
+  font-family: var(--font); font-size: 13px; line-height: 1.5;
+  resize: vertical; min-height: 100px;
+  transition: border-color 0.15s, box-shadow 0.15s; outline: none;
+}
+.field-textarea:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 1px var(--border-focus);
+}
+.field-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* ── Markdown toolbar ── */
+.md-toolbar {
+  display: flex; align-items: center; gap: 1px;
+  padding: 3px 4px; border: 1px solid var(--border-strong);
+  border-bottom: none; border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--bg-secondary);
+}
+.md-toolbar + .field-textarea { border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+.md-btn {
+  width: 28px; height: 26px; border-radius: 3px; border: none;
+  background: transparent; color: var(--text-secondary);
+  font-size: 12px; font-weight: 700; cursor: pointer; font-family: var(--font);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+.md-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.md-sep { width: 1px; height: 16px; background: var(--border); margin: 0 3px; }
+.md-var-btn {
+  display: flex; align-items: center; gap: 4px; padding: 3px 8px;
+  border-radius: 3px; border: 1px solid var(--border);
+  background: var(--bg-surface); color: var(--brand);
+  font-size: 11px; font-weight: 600; cursor: pointer; font-family: var(--font);
+  transition: background 0.12s;
+}
+.md-var-btn:hover { background: var(--brand-dim); }
+
+/* Variable token chip */
+.var-token {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 1px 7px; border-radius: 10px;
+  background: var(--brand-dim2); color: var(--brand);
+  font-size: 12px; font-weight: 600; border: 1px solid rgba(91,95,199,0.2);
+}
+
+/* ── Template picker ── */
+.tpl-section {
+  margin-bottom: 18px; border: 1px solid var(--border);
+  border-radius: var(--radius-md); overflow: hidden;
+}
+.tpl-section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: var(--bg-secondary); cursor: pointer;
+  transition: background 0.12s;
+  border-bottom: 1px solid var(--border);
+}
+.tpl-section-header:hover { background: var(--bg-tertiary); }
+.tpl-section-title { font-size: 13px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 7px; }
+.tpl-chevron { font-size: 11px; color: var(--text-muted); transition: transform 0.2s; }
+.tpl-chevron.open { transform: rotate(180deg); }
+.tpl-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  padding: 12px;
+}
+.tpl-card {
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: 10px 10px 8px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border); background: var(--bg-surface);
+  cursor: pointer; transition: all 0.15s; min-height: 80px;
+}
+.tpl-card:hover {
+  border-color: var(--brand); background: var(--brand-dim);
+  box-shadow: 0 2px 8px rgba(91,95,199,0.12);
+  transform: translateY(-1px);
+}
+.tpl-card.sel {
+  border-color: var(--brand); background: var(--brand-dim2);
+}
+.tpl-card.blank { border-style: dashed; }
+.tpl-card.urgent { border-color: rgba(209,52,56,0.3); }
+.tpl-card.urgent:hover { border-color: var(--danger); background: var(--danger-bg); }
+.tpl-icon { font-size: 20px; margin-bottom: 5px; }
+.tpl-name { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+.tpl-desc { font-size: 11px; color: var(--text-muted); line-height: 1.3; }
+
+.tpl-divider { margin: 0 12px; border: none; border-top: 1px solid var(--border); }
+.tpl-my-section { padding: 10px 12px 12px; }
+.tpl-my-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.tpl-my-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.tpl-my-card {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+  border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--bg-surface); cursor: pointer;
+  transition: all 0.15s; font-size: 12px; color: var(--text-primary);
+}
+.tpl-my-card:hover { border-color: var(--brand); background: var(--brand-dim); }
+.tpl-my-x {
+  width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: var(--text-muted); background: var(--bg-tertiary);
+  cursor: pointer; transition: all 0.12s; margin-left: 4px;
+}
+.tpl-my-x:hover { background: var(--danger-bg); color: var(--danger); }
+
+/* ── Hero image field ── */
+.hero-dropzone {
+  border: 1.5px dashed var(--border-strong); border-radius: var(--radius-sm);
+  padding: 12px; display: flex; align-items: center; gap: 10px;
+  background: var(--bg-secondary); cursor: pointer; transition: border-color 0.15s;
+}
+.hero-dropzone:hover { border-color: var(--brand); background: var(--brand-dim); }
+.hero-thumb {
+  width: 100%; height: 80px; border-radius: var(--radius-sm); overflow: hidden;
+  margin-top: 8px; position: relative;
+}
+.hero-thumb img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.hero-thumb-placeholder {
+  width: 100%; height: 80px; border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, #EBF3FC 0%, #D9E9F5 50%, #C5D9F1 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: var(--text-muted); margin-top: 8px;
+}
+
+/* ── Expandable sections ── */
+.expand-link {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 13px; color: var(--brand); cursor: pointer;
+  margin-bottom: 12px; background: none; border: none;
+  font-family: var(--font); font-weight: 500;
+  padding: 0; transition: color 0.12s;
+}
+.expand-link:hover { color: var(--brand-hover); }
+.expand-section { margin-bottom: 16px; }
+
+/* ── Key details pairs ── */
+.kd-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
+.kd-label { flex: 4; }
+.kd-value { flex: 6; }
+.kd-x {
+  width: 24px; height: 24px; border-radius: var(--radius-sm); border: none;
+  background: transparent; color: var(--text-muted); font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: background 0.12s, color 0.12s;
+}
+.kd-x:hover { background: var(--danger-bg); color: var(--danger); }
+.add-row-link {
+  font-size: 12px; color: var(--brand); cursor: pointer; background: none; border: none;
+  font-family: var(--font); padding: 4px 0; display: flex; align-items: center; gap: 4px;
+}
+
+/* ── CTA field ── */
+.cta-row { display: flex; gap: 8px; }
+.cta-row .field-input { flex: 1; }
+.cta-row .field-input:last-child { flex: 1.5; }
+
+/* ── Block editor ── */
+.block-editor-section { margin-top: 4px; }
+.block-editor-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.block-editor-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.add-block-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong); background: var(--bg-surface);
+  font-family: var(--font); font-size: 12px; font-weight: 500;
+  color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
+  position: relative;
+}
+.add-block-btn:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-dim); }
+.block-picker {
+  position: absolute; top: 100%; right: 0; margin-top: 4px;
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-dropdown);
+  padding: 4px; z-index: 50; width: 180px; display: none;
+}
+.block-picker.open { display: block; }
+.block-pick-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: var(--radius-sm);
+  font-size: 12px; color: var(--text-primary); cursor: pointer;
+  transition: background 0.12s;
+}
+.block-pick-item:hover { background: var(--bg-secondary); }
+.block-pick-icon { font-size: 15px; width: 20px; text-align: center; }
+
+.block-item {
+  display: flex; align-items: stretch; gap: 0;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-surface); margin-bottom: 8px; overflow: hidden;
+  transition: border-color 0.15s;
+}
+.block-item:hover { border-color: var(--border-strong); }
+.block-drag {
+  width: 28px; background: var(--bg-secondary); display: flex; align-items: center;
+  justify-content: center; color: var(--text-muted); font-size: 14px;
+  cursor: grab; border-right: 1px solid var(--border); flex-shrink: 0;
+}
+.block-drag:active { cursor: grabbing; }
+.block-inner { flex: 1; padding: 10px 12px; min-width: 0; }
+.block-type-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.block-content { font-size: 13px; color: var(--text-primary); line-height: 1.4; }
+.block-divider-line { height: 1px; background: var(--border); margin: 8px 0; }
+.block-x {
+  width: 36px; background: transparent; border: none; border-left: 1px solid var(--border);
+  color: var(--text-muted); font-size: 13px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+.block-x:hover { background: var(--danger-bg); color: var(--danger); }
+
+/* ── Adaptive Card preview ── */
+.ac-card {
+  background: #fff; border-radius: var(--radius-md);
+  border: 1px solid var(--border); overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.ac-hero {
+  width: 100%; height: 120px; object-fit: cover; display: block;
+  background: linear-gradient(135deg, #4A7FBD 0%, #5B5FC7 50%, #8764B8 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: rgba(255,255,255,0.7); letter-spacing: 0.2px;
+}
+.ac-body { padding: 14px; }
+.ac-headline { font-size: 16px; font-weight: 700; color: #242424; margin-bottom: 6px; line-height: 1.3; }
+.ac-body-text { font-size: 13px; color: #424242; line-height: 1.5; margin-bottom: 10px; }
+.ac-factset { margin-bottom: 10px; }
+.ac-fact { display: flex; gap: 8px; margin-bottom: 4px; }
+.ac-fact-label { font-size: 12px; font-weight: 600; color: #616161; min-width: 60px; flex-shrink: 0; }
+.ac-fact-value { font-size: 12px; color: #242424; }
+.ac-meta { font-size: 11px; color: #929292; margin-top: 6px; }
+.ac-footer { padding: 0 14px 14px; }
+.ac-btn {
+  display: block; width: 100%; padding: 8px; background: #0078D4; color: #fff;
+  border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+  text-align: center; cursor: pointer; font-family: var(--font);
+}
+.ac-footnote { font-size: 11px; color: #929292; margin-top: 8px; padding: 8px 14px 12px; border-top: 1px solid #f0f0f0; }
+
+/* ── Audience tab ── */
+.aud-body {
+  flex: 1; display: flex; overflow: hidden; padding: 0;
+}
+.aud-left {
+  flex: 1; padding: 20px; overflow-y: auto; border-right: 1px solid var(--border);
+}
+.aud-right {
+  flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;
+}
+
+.aud-everyone-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--bg-secondary);
+  margin-bottom: 16px; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.aud-everyone-row.on { background: var(--brand-dim); border-color: var(--brand); }
+.aud-everyone-text { flex: 1; }
+.aud-everyone-label { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+.aud-everyone-sub { font-size: 12px; color: var(--text-muted); }
+
+.aud-section-header {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 600; color: var(--text-primary);
+  margin-bottom: 8px;
+}
+.aud-section-icon { font-size: 14px; }
+
+.aud-search-wrap { position: relative; margin-bottom: 6px; }
+.aud-search {
+  width: 100%; padding: 7px 10px 7px 32px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--bg-surface); color: var(--text-primary);
+  font-family: var(--font); font-size: 13px; outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.aud-search:focus { border-color: var(--border-focus); box-shadow: 0 0 0 1px var(--border-focus); }
+.aud-search::placeholder { color: var(--text-muted); }
+.aud-search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--text-muted); pointer-events: none; }
+
+.aud-dropdown {
+  background: var(--bg-surface); border: 1px solid var(--brand);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow-dropdown);
+  overflow: hidden; margin-bottom: 12px;
+}
+.aud-result {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+  cursor: pointer; transition: background 0.12s;
+}
+.aud-result:hover { background: var(--bg-selected); }
+.aud-result + .aud-result { border-top: 1px solid var(--border); }
+.aud-result-icon {
+  width: 30px; height: 30px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.aud-result-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.aud-result-meta { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.aud-result-add { margin-left: auto; font-size: 12px; color: var(--brand); font-weight: 600; opacity: 0; transition: opacity 0.12s; }
+.aud-result:hover .aud-result-add { opacity: 1; }
+
+/* Chips */
+.chip-team {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 8px 4px 10px; border-radius: 12px;
+  background: var(--chip-team-bg); color: var(--chip-team-text);
+  border: 1px solid var(--chip-team-border);
+  font-size: 12px; font-weight: 500; white-space: nowrap;
+}
+.chip-group {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 8px 4px 10px; border-radius: 12px;
+  background: var(--chip-group-bg); color: var(--chip-group-text);
+  border: 1px solid var(--chip-group-border);
+  font-size: 12px; font-weight: 500; white-space: nowrap;
+}
+.chip-x {
+  width: 15px; height: 15px; border-radius: 50%; background: rgba(0,0,0,0.07);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; cursor: pointer; transition: background 0.12s;
+}
+.chip-x:hover { background: rgba(209,52,56,0.15); }
+
+/* Audience right column sections */
+.aud-right-section { }
+.aud-right-section-header {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.aud-chip-row {
+  display: flex; flex-direction: column; gap: 5px;
+}
+.aud-chip-line {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.aud-chip-action {
+  font-size: 11px; color: var(--brand); cursor: pointer; background: none; border: none;
+  font-family: var(--font); padding: 0; transition: color 0.12s;
+}
+.aud-chip-action:hover { color: var(--brand-hover); text-decoration: underline; }
+
+.aud-recent-section { }
+.aud-recent-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 6px; }
+.aud-recent-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.aud-recent-chip {
+  padding: 4px 10px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--bg-surface);
+  font-size: 12px; color: var(--text-secondary); cursor: pointer;
+  transition: all 0.12s;
+}
+.aud-recent-chip:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-dim); }
+
+.aud-summary-card {
+  padding: 14px; border-radius: var(--radius-md);
+  border: 1px solid var(--border); background: var(--bg-secondary);
+  margin-top: auto;
+}
+.aud-summary-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; }
+.aud-summary-count-label { font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
+.aud-summary-count { font-size: 28px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+.aud-summary-unit { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.aud-summary-selected { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.aud-summary-detail { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+/* ── Modal overlay ── */
+.modal-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.36);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; animation: fadeIn 0.18s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  background: var(--bg-surface); border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.22), 0 4px 12px rgba(0,0,0,0.12);
+  width: 600px; max-height: 80vh; overflow-y: auto;
+  animation: modalIn 0.2s ease;
+}
+@keyframes modalIn { from { transform: scale(0.96) translateY(8px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+
+.modal-header {
+  padding: 20px 24px 0;
+  font-size: 18px; font-weight: 700; color: var(--text-primary);
+}
+.modal-body { padding: 16px 24px; }
+.modal-footer {
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  padding: 16px 24px; border-top: 1px solid var(--border);
+}
+
+.modal-reach {
+  padding: 14px; border-radius: var(--radius-md);
+  background: var(--brand-dim); border: 1px solid rgba(91,95,199,0.2);
+  margin-bottom: 16px; text-align: center;
+}
+.modal-reach-text { font-size: 14px; color: var(--text-secondary); }
+.modal-reach-text strong { color: var(--text-primary); }
+
+.modal-preview-wrap {
+  border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 16px;
+  max-height: 240px; overflow-y: auto;
+}
+
+/* Confirmation audience sections */
+.conf-aud-section { margin-bottom: 14px; }
+.conf-aud-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.conf-chip-wrap { display: flex; gap: 5px; flex-wrap: wrap; }
+
+/* ── Delivery tracker ── */
+.tracker-body {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 28px 24px 20px;
+}
+.tracker-ring-wrap { position: relative; width: 120px; height: 120px; margin-bottom: 24px; }
+.tracker-ring-wrap svg { transform: rotate(-90deg); }
+.tracker-ring-bg { fill: none; stroke: var(--border); stroke-width: 8; }
+.tracker-ring-fill { fill: none; stroke: var(--brand); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1); }
+.tracker-ring-fill.done { stroke: var(--success); }
+.tracker-center-text {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.tracker-pct { font-size: 22px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+.tracker-pct-label { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+.tracker-counters {
+  display: flex; gap: 20px; margin-bottom: 20px;
+}
+.tracker-counter { text-align: center; }
+.tracker-counter-val { font-size: 20px; font-weight: 700; line-height: 1; }
+.tracker-counter-label { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+.tracker-status { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.dot-anim span {
+  display: inline-block; animation: dotBlink 1.2s infinite;
+}
+.dot-anim span:nth-child(2) { animation-delay: 0.2s; }
+.dot-anim span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dotBlink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+
+.tracker-done-icon { font-size: 28px; margin-bottom: 6px; }
+.tracker-done-text { font-size: 16px; font-weight: 700; color: var(--success); text-align: center; }
+
+/* State divider for dual tracker view */
+.tracker-dual {
+  display: flex; flex-direction: column; width: 100%;
+}
+.tracker-state-label {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.6px;
+  padding: 10px 24px 0; border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+.tracker-state-divider { border: none; border-top: 1px dashed var(--border); margin: 12px 24px; }
+
+/* ── Audience mini chips in footer ── */
+.aud-foot-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.aud-foot-dot.blue { background: var(--chip-team-text); }
+.aud-foot-dot.purple { background: var(--chip-group-text); }
+
+/* Section sub-divider */
+.form-divider { border: none; border-top: 1px solid var(--border); margin: 4px 0 16px; }
+
+/* Audience full-width body */
+.aud-full-body {
+  flex: 1; display: flex; overflow: hidden;
+}
+</style>
+</head>
+<body>
+
+<!-- ── Playground chrome ── -->
+<div class="pg-topbar">
+  <div class="pg-title">
+    Company Communicator
+    <span class="pg-badge">Compose Flow — Design Reference</span>
+  </div>
+  <div class="pg-switcher">
+    <button class="pg-tab active" onclick="switchView('content-standard', this)">Content: Standard</button>
+    <button class="pg-tab" onclick="switchView('content-advanced', this)">Content: Advanced</button>
+    <button class="pg-tab" onclick="switchView('audience', this)">Audience Tab</button>
+    <button class="pg-tab" onclick="switchView('template-picker', this)">Template Picker</button>
+    <button class="pg-tab" onclick="switchView('confirmation', this)">Confirmation</button>
+    <button class="pg-tab" onclick="switchView('tracker', this)">Delivery Tracker</button>
+  </div>
+</div>
+
+<div class="pg-frame-wrap">
+  <div class="teams-shell">
+
+    <!-- ══════════════════════════════════════════
+         VIEW 1 + 2: Content Tab (Standard & Advanced)
+         ══════════════════════════════════════════ -->
+    <div class="view active" id="view-content-standard">
+      <div class="compose-panel">
+        <!-- Header -->
+        <div class="cp-header">
+          <span class="cp-title">New Message</span>
+          <div class="cp-spacer"></div>
+          <div class="cp-mode-toggle">
+            <span class="cp-mode-label">Standard</span>
+            <div class="mini-toggle-wrap">
+              <div class="mini-toggle" id="modeToggle1" onclick="toggleAdvanced(1)">
+                <div class="mini-knob"></div>
+              </div>
+            </div>
+            <span class="cp-mode-label">Advanced</span>
+          </div>
+          <button class="cp-close" title="Close">&#10005;</button>
+        </div>
+        <!-- Tabs -->
+        <div class="cp-tabs">
+          <button class="cp-tab active">Content</button>
+          <button class="cp-tab">Audience</button>
+        </div>
+        <!-- Body -->
+        <div class="cp-body">
+          <!-- Form -->
+          <div class="cp-form" id="formCol1">
+            <!-- Template Picker -->
+            <div class="tpl-section">
+              <div class="tpl-section-header" onclick="toggleTpl(this)">
+                <span class="tpl-section-title">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="#616161"/><rect x="9" y="1" width="6" height="6" rx="1" fill="#616161"/><rect x="1" y="9" width="6" height="6" rx="1" fill="#616161"/><rect x="9" y="9" width="6" height="6" rx="1" fill="#C7C7C7" stroke="#C7C7C7" stroke-width="0.5"/></svg>
+                  Templates
+                </span>
+                <span class="tpl-chevron open" id="tplChevron1">&#9660;</span>
+              </div>
+              <div id="tplBody1">
+                <div class="tpl-grid">
+                  <div class="tpl-card blank" onclick="selectTpl(this)">
+                    <span class="tpl-icon">&#9633;</span>
+                    <span class="tpl-name">Blank</span>
+                    <span class="tpl-desc">Start from scratch</span>
+                  </div>
+                  <div class="tpl-card sel" onclick="selectTpl(this)">
+                    <span class="tpl-icon">&#128227;</span>
+                    <span class="tpl-name">Announcement</span>
+                    <span class="tpl-desc">Company-wide update</span>
+                  </div>
+                  <div class="tpl-card" onclick="selectTpl(this)">
+                    <span class="tpl-icon">&#128197;</span>
+                    <span class="tpl-name">Event Invite</span>
+                    <span class="tpl-desc">Meeting or event</span>
+                  </div>
+                  <div class="tpl-card urgent" onclick="selectTpl(this)">
+                    <span class="tpl-icon">&#9888;</span>
+                    <span class="tpl-name">Urgent Alert</span>
+                    <span class="tpl-desc">Time-sensitive notice</span>
+                  </div>
+                  <div class="tpl-card" onclick="selectTpl(this)">
+                    <span class="tpl-icon">&#128279;</span>
+                    <span class="tpl-name">Link Share</span>
+                    <span class="tpl-desc">Share a resource</span>
+                  </div>
+                  <div class="tpl-card" onclick="selectTpl(this)">
+                    <span class="tpl-icon">&#128203;</span>
+                    <span class="tpl-name">Survey</span>
+                    <span class="tpl-desc">Collect responses</span>
+                  </div>
+                </div>
+                <hr class="tpl-divider">
+                <div class="tpl-my-section">
+                  <div class="tpl-my-label">My Templates</div>
+                  <div class="tpl-my-grid">
+                    <div class="tpl-my-card">
+                      <span style="font-size:14px">&#128196;</span>
+                      <span style="font-size:12px;font-weight:600">Benefits Update</span>
+                      <span class="tpl-my-x">&#10005;</span>
+                    </div>
+                    <div class="tpl-my-card">
+                      <span style="font-size:14px">&#128196;</span>
+                      <span style="font-size:12px;font-weight:600">IT Notice</span>
+                      <span class="tpl-my-x">&#10005;</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Headline -->
+            <div class="field">
+              <div class="field-label">Headline <span class="req">*</span></div>
+              <div class="field-input-row">
+                <input class="field-input-bare" id="headlineInput1" value="Q2 Planning Kickoff — Join Us Next Week" oninput="syncPreview(1)">
+                <span class="field-counter" id="headlineCounter1">38 / 200</span>
+              </div>
+            </div>
+
+            <!-- Body -->
+            <div class="field">
+              <div class="field-label">Body</div>
+              <div class="md-toolbar">
+                <button class="md-btn" title="Bold"><b>B</b></button>
+                <button class="md-btn" title="Italic"><i>I</i></button>
+                <div class="md-sep"></div>
+                <button class="md-btn" title="Bullet list">&#8226;&#8212;</button>
+                <button class="md-btn" title="Numbered list">1.</button>
+                <div class="md-sep"></div>
+                <button class="md-btn" title="Link">&#128279;</button>
+                <div class="md-sep"></div>
+                <button class="md-var-btn" title="Insert variable">
+                  <span style="font-size:11px">fx</span> Insert Variable &#9660;
+                </button>
+              </div>
+              <textarea class="field-textarea" id="bodyInput1" oninput="syncPreview(1)">Hi {{firstName}}, we're kicking off Q2 planning next week and we'd love your input. Please review the attached goals document and come prepared to share your team's priorities.</textarea>
+            </div>
+
+            <!-- Hero Image -->
+            <div class="field">
+              <div class="field-label">Hero Image <span class="opt">(optional)</span></div>
+              <div class="hero-dropzone">
+                <span style="font-size:18px">&#128247;</span>
+                <input class="field-input-bare" id="heroInput1" placeholder="https://example.com/image.jpg" oninput="syncPreview(1)" style="flex:1;padding:0">
+              </div>
+              <div class="hero-thumb-placeholder" id="heroPreview1">
+                Corporate image preview
+              </div>
+            </div>
+
+            <!-- Add details -->
+            <button class="expand-link" onclick="toggleExpand('detailsSection1', this)">
+              <span>+</span> Add details
+            </button>
+            <div class="expand-section" id="detailsSection1" style="display:none;">
+              <div class="field-label" style="margin-bottom:10px">Key Details</div>
+              <div class="kd-row">
+                <input class="field-input kd-label" value="Date">
+                <input class="field-input kd-value" value="March 15, 2026">
+                <button class="kd-x">&#10005;</button>
+              </div>
+              <div class="kd-row">
+                <input class="field-input kd-label" value="Location">
+                <input class="field-input kd-value" value="Building 25, Room 401">
+                <button class="kd-x">&#10005;</button>
+              </div>
+              <button class="add-row-link">&#43; Add row</button>
+            </div>
+
+            <!-- CTA -->
+            <div class="field">
+              <div class="field-label">Call to Action <span class="opt">(optional)</span></div>
+              <div class="cta-row">
+                <input class="field-input" id="ctaLabelInput1" placeholder="Button label" value="View Planning Doc" oninput="syncPreview(1)" style="flex:4">
+                <input class="field-input" id="ctaUrlInput1" placeholder="https://..." value="https://contoso.sharepoint.com/q2plan" oninput="syncPreview(1)" style="flex:6">
+              </div>
+              <div class="field-hint">Add a button that links to more info</div>
+            </div>
+
+            <!-- Add footnote -->
+            <button class="expand-link" onclick="toggleExpand('footnoteSection1', this)">
+              <span>+</span> Add footnote
+            </button>
+            <div class="expand-section" id="footnoteSection1" style="display:none;">
+              <textarea class="field-textarea" placeholder="Secondary text shown at the bottom of the card..." style="min-height:64px;font-size:12px;color:var(--text-secondary)">This message was sent on behalf of the Product Leadership team. For questions, contact planning@contoso.com</textarea>
+            </div>
+          </div>
+
+          <!-- Preview -->
+          <div class="cp-preview">
+            <div class="cp-preview-head">
+              <span class="cp-preview-label">Preview</span>
+              <span class="cp-preview-hint">Updates as you type</span>
+            </div>
+            <div class="cp-preview-body">
+              <div class="ac-card">
+                <div class="ac-hero" id="acHero1">Corporate header image</div>
+                <div class="ac-body">
+                  <div class="ac-headline" id="acHeadline1">Q2 Planning Kickoff — Join Us Next Week</div>
+                  <div class="ac-body-text" id="acBodyText1">
+                    Hi <span class="var-token">Sarah</span>, we're kicking off Q2 planning next week and we'd love your input. Please review the attached goals document and come prepared to share your team's priorities.
+                  </div>
+                  <div class="ac-meta">From: Admin &nbsp;&middot;&nbsp; Feb 19, 2026</div>
+                </div>
+                <div class="ac-footer">
+                  <button class="ac-btn" id="acBtn1">View Planning Doc</button>
+                </div>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);text-align:center;padding:4px 0;">
+                Adaptive Card &middot; Teams Light Theme
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="cp-footer">
+          <div class="cp-aud-summary">
+            <div class="cp-aud-chips">
+              <span class="aud-foot-dot blue"></span>
+            </div>
+            <span class="cp-aud-text">Engineering, Product &middot; ~487 people</span>
+          </div>
+          <div class="cp-actions">
+            <button class="btn">Save Draft</button>
+            <button class="btn-ghost">Send Preview</button>
+            <button class="btn">Schedule</button>
+            <button class="btn-primary">Review &#8594;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         VIEW 2: Content Tab — Advanced Mode
+         ══════════════════════════════════════════ -->
+    <div class="view" id="view-content-advanced">
+      <div class="compose-panel">
+        <div class="cp-header">
+          <span class="cp-title">New Message</span>
+          <div class="cp-spacer"></div>
+          <div class="cp-mode-toggle">
+            <span class="cp-mode-label">Standard</span>
+            <div class="mini-toggle-wrap">
+              <div class="mini-toggle on">
+                <div class="mini-knob"></div>
+              </div>
+            </div>
+            <span class="cp-mode-label" style="color:var(--brand);font-weight:600">Advanced</span>
+          </div>
+          <button class="cp-close">&#10005;</button>
+        </div>
+        <div class="cp-tabs">
+          <button class="cp-tab active">Content</button>
+          <button class="cp-tab">Audience</button>
+        </div>
+        <div class="cp-body">
+          <div class="cp-form">
+            <!-- Collapsed template row (just label for advanced view) -->
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:8px 10px;border-radius:var(--radius-sm);background:var(--bg-secondary);border:1px solid var(--border)">
+              <span style="font-size:13px">&#128227;</span>
+              <span style="font-size:13px;font-weight:600;color:var(--text-primary)">Announcement</span>
+              <span style="font-size:12px;color:var(--text-muted)">&mdash; Template</span>
+              <button class="expand-link" style="margin:0 0 0 auto;font-size:12px">Change</button>
+            </div>
+
+            <div class="field">
+              <div class="field-label">Headline <span class="req">*</span></div>
+              <div class="field-input-row">
+                <input class="field-input-bare" value="Q2 Planning Kickoff — Join Us Next Week">
+                <span class="field-counter">38 / 200</span>
+              </div>
+            </div>
+            <div class="field">
+              <div class="field-label">Body</div>
+              <div class="md-toolbar">
+                <button class="md-btn"><b>B</b></button>
+                <button class="md-btn"><i>I</i></button>
+                <div class="md-sep"></div>
+                <button class="md-btn">&#8226;&#8212;</button>
+                <button class="md-btn">1.</button>
+                <div class="md-sep"></div>
+                <button class="md-btn">&#128279;</button>
+                <div class="md-sep"></div>
+                <button class="md-var-btn"><span style="font-size:11px">fx</span> Insert Variable &#9660;</button>
+              </div>
+              <textarea class="field-textarea">Hi {{firstName}}, we're kicking off Q2 planning next week and we'd love your input. Please review the attached goals document.</textarea>
+            </div>
+            <div class="field">
+              <div class="field-label">Hero Image <span class="opt">(optional)</span></div>
+              <div class="hero-dropzone">
+                <span style="font-size:18px">&#128247;</span>
+                <input class="field-input-bare" value="https://contoso.com/images/q2-banner.jpg" style="flex:1;padding:0">
+              </div>
+              <div class="hero-thumb-placeholder">Corporate image preview</div>
+            </div>
+            <div class="field">
+              <div class="field-label">Call to Action <span class="opt">(optional)</span></div>
+              <div class="cta-row">
+                <input class="field-input" value="View Planning Doc" style="flex:4">
+                <input class="field-input" value="https://contoso.sharepoint.com/q2plan" style="flex:6">
+              </div>
+            </div>
+
+            <hr class="form-divider">
+
+            <!-- Block Editor -->
+            <div class="block-editor-section">
+              <div class="block-editor-header">
+                <span class="block-editor-title">Additional Blocks</span>
+                <div style="position:relative">
+                  <button class="add-block-btn" onclick="toggleBlockPicker(this)">
+                    <span style="font-size:16px;line-height:1">+</span> Add Block
+                    <div class="block-picker" id="blockPicker">
+                      <div class="block-pick-item"><span class="block-pick-icon">&#9638;</span> Column Layout</div>
+                      <div class="block-pick-item"><span class="block-pick-icon">&#128444;</span> Image Set</div>
+                      <div class="block-pick-item"><span class="block-pick-icon">&#128195;</span> Text Block</div>
+                      <div class="block-pick-item"><span class="block-pick-icon">&#9639;</span> Table</div>
+                      <div class="block-pick-item"><span class="block-pick-icon">&#9634;</span> Action Button</div>
+                      <div class="block-pick-item"><span class="block-pick-icon">&#8212;</span> Divider</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Block 1: Text Block -->
+              <div class="block-item">
+                <div class="block-drag">&#8942;</div>
+                <div class="block-inner">
+                  <div class="block-type-label">Text Block</div>
+                  <div class="block-content">
+                    Please note that all team leads are expected to submit their Q2 OKRs before the kickoff session.
+                    Use the template provided in the planning doc.
+                  </div>
+                </div>
+                <button class="block-x">&#10005;</button>
+              </div>
+
+              <!-- Block 2: Divider -->
+              <div class="block-item">
+                <div class="block-drag">&#8942;</div>
+                <div class="block-inner">
+                  <div class="block-type-label">Divider</div>
+                  <div class="block-divider-line"></div>
+                </div>
+                <button class="block-x">&#10005;</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preview -->
+          <div class="cp-preview">
+            <div class="cp-preview-head">
+              <span class="cp-preview-label">Preview</span>
+              <span class="cp-preview-hint">Updates as you type</span>
+            </div>
+            <div class="cp-preview-body">
+              <div class="ac-card">
+                <div class="ac-hero">Corporate header image</div>
+                <div class="ac-body">
+                  <div class="ac-headline">Q2 Planning Kickoff — Join Us Next Week</div>
+                  <div class="ac-body-text">
+                    Hi <span class="var-token">Sarah</span>, we're kicking off Q2 planning next week and we'd love your input.
+                  </div>
+                  <hr style="border:none;border-top:1px solid #f0f0f0;margin:8px 0">
+                  <div class="ac-body-text" style="font-size:12px;color:#616161">
+                    Please note that all team leads are expected to submit their Q2 OKRs before the kickoff session.
+                  </div>
+                  <div class="ac-meta">From: Admin &nbsp;&middot;&nbsp; Feb 19, 2026</div>
+                </div>
+                <div class="ac-footer">
+                  <button class="ac-btn">View Planning Doc</button>
+                </div>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);text-align:center;padding:4px 0">
+                Adaptive Card &middot; Teams Light Theme
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cp-footer">
+          <div class="cp-aud-summary">
+            <span class="aud-foot-dot blue"></span>
+            <span class="cp-aud-text">Engineering, Product &middot; ~487 people</span>
+          </div>
+          <div class="cp-actions">
+            <button class="btn">Save Draft</button>
+            <button class="btn-ghost">Send Preview</button>
+            <button class="btn">Schedule</button>
+            <button class="btn-primary">Review &#8594;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         VIEW 3: Audience Tab
+         ══════════════════════════════════════════ -->
+    <div class="view" id="view-audience">
+      <div class="compose-panel">
+        <div class="cp-header">
+          <span class="cp-title">New Message</span>
+          <div class="cp-spacer"></div>
+          <div class="cp-mode-toggle">
+            <span class="cp-mode-label">Standard</span>
+            <div class="mini-toggle-wrap">
+              <div class="mini-toggle"><div class="mini-knob"></div></div>
+            </div>
+            <span class="cp-mode-label">Advanced</span>
+          </div>
+          <button class="cp-close">&#10005;</button>
+        </div>
+        <div class="cp-tabs">
+          <button class="cp-tab">Content</button>
+          <button class="cp-tab active">Audience</button>
+        </div>
+        <div class="aud-full-body">
+          <!-- Left: Search & select -->
+          <div class="aud-left">
+            <!-- Everyone toggle -->
+            <div class="aud-everyone-row" onclick="this.classList.toggle('on');document.getElementById('audEveryoneToggle').classList.toggle('on')">
+              <div class="mini-toggle" id="audEveryoneToggle"><div class="mini-knob"></div></div>
+              <div class="aud-everyone-text">
+                <div class="aud-everyone-label">Send to everyone</div>
+                <div class="aud-everyone-sub">All users in your organization</div>
+              </div>
+            </div>
+
+            <!-- Teams search -->
+            <div style="margin-bottom:16px">
+              <div class="aud-section-header">
+                <span class="aud-section-icon">&#127970;</span> Teams
+              </div>
+              <div class="aud-search-wrap">
+                <span class="aud-search-icon">&#128269;</span>
+                <input class="aud-search" placeholder="Search teams..." value="Eng">
+              </div>
+              <div class="aud-dropdown">
+                <div class="aud-result">
+                  <div class="aud-result-icon" style="background:var(--chip-team-bg)">&#127970;</div>
+                  <div>
+                    <div class="aud-result-name">Engineering</div>
+                    <div class="aud-result-meta">142 members</div>
+                  </div>
+                  <span class="aud-result-add">+ Add</span>
+                </div>
+                <div class="aud-result">
+                  <div class="aud-result-icon" style="background:var(--chip-team-bg)">&#127970;</div>
+                  <div>
+                    <div class="aud-result-name">Product</div>
+                    <div class="aud-result-meta">87 members</div>
+                  </div>
+                  <span class="aud-result-add">+ Add</span>
+                </div>
+                <div class="aud-result">
+                  <div class="aud-result-icon" style="background:var(--chip-team-bg)">&#127970;</div>
+                  <div>
+                    <div class="aud-result-name">Marketing</div>
+                    <div class="aud-result-meta">64 members</div>
+                  </div>
+                  <span class="aud-result-add">+ Add</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Groups search -->
+            <div>
+              <div class="aud-section-header">
+                <span class="aud-section-icon">&#128101;</span> Groups
+              </div>
+              <div class="aud-search-wrap">
+                <span class="aud-search-icon">&#128269;</span>
+                <input class="aud-search" placeholder="Search groups..." value="Man">
+              </div>
+              <div class="aud-dropdown">
+                <div class="aud-result">
+                  <div class="aud-result-icon" style="background:var(--chip-group-bg)">&#128101;</div>
+                  <div>
+                    <div class="aud-result-name">All Managers</div>
+                    <div class="aud-result-meta">34 members</div>
+                  </div>
+                  <span class="aud-result-add">+ Add</span>
+                </div>
+                <div class="aud-result">
+                  <div class="aud-result-icon" style="background:var(--chip-group-bg)">&#128101;</div>
+                  <div>
+                    <div class="aud-result-name">Seattle Office</div>
+                    <div class="aud-result-meta">201 members</div>
+                  </div>
+                  <span class="aud-result-add">+ Add</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Selection & summary -->
+          <div class="aud-right">
+            <!-- Channel Posts section -->
+            <div class="aud-right-section">
+              <div class="aud-right-section-header">
+                <span style="font-size:14px">#</span> Channel Posts
+              </div>
+              <div class="aud-chip-row">
+                <div class="aud-chip-line">
+                  <span class="chip-team">&#127970; Engineering &middot; General <span class="chip-x">&#10005;</span></span>
+                  <button class="aud-chip-action">Send to members instead</button>
+                </div>
+                <div class="aud-chip-line">
+                  <span class="chip-team">&#127970; Marketing &middot; General <span class="chip-x">&#10005;</span></span>
+                  <button class="aud-chip-action">Send to members instead</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Individual Messages section -->
+            <div class="aud-right-section">
+              <div class="aud-right-section-header">
+                <span style="font-size:14px">&#128100;</span> Individual Messages
+              </div>
+              <div class="aud-chip-row">
+                <div class="aud-chip-line">
+                  <span class="chip-team">&#127970; Product &middot; 87 members <span class="chip-x">&#10005;</span></span>
+                  <button class="aud-chip-action">Send to channel instead</button>
+                </div>
+                <div class="aud-chip-line">
+                  <span class="chip-group">&#128101; All Managers &middot; 34 members <span class="chip-x">&#10005;</span></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recently used -->
+            <div class="aud-recent-section">
+              <div class="aud-recent-label">Recently used</div>
+              <div class="aud-recent-chips">
+                <span class="aud-recent-chip">&#127970; Engineering</span>
+                <span class="aud-recent-chip">&#128101; All Managers</span>
+              </div>
+            </div>
+
+            <!-- Summary card -->
+            <div class="aud-summary-card">
+              <div class="aud-summary-top">
+                <div>
+                  <div class="aud-summary-selected">4 audiences selected</div>
+                  <div class="aud-summary-detail">2 channel posts &middot; ~294 individual messages</div>
+                </div>
+                <div style="text-align:right">
+                  <div class="aud-summary-count-label">Est. reach</div>
+                  <div class="aud-summary-count">~328</div>
+                  <div class="aud-summary-unit">people</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cp-footer">
+          <div class="cp-aud-summary">
+            <span class="aud-foot-dot blue"></span>
+            <span class="aud-foot-dot purple" style="margin-left:2px"></span>
+            <span class="cp-aud-text">Engineering, Marketing, Product, All Managers &middot; ~328 people</span>
+          </div>
+          <div class="cp-actions">
+            <button class="btn">Save Draft</button>
+            <button class="btn-ghost">Send Preview</button>
+            <button class="btn">Schedule</button>
+            <button class="btn-primary">Review &#8594;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         VIEW 4: Template Picker (expanded)
+         ══════════════════════════════════════════ -->
+    <div class="view" id="view-template-picker">
+      <div class="compose-panel">
+        <div class="cp-header">
+          <span class="cp-title">New Message</span>
+          <div class="cp-spacer"></div>
+          <div class="cp-mode-toggle">
+            <span class="cp-mode-label">Standard</span>
+            <div class="mini-toggle-wrap">
+              <div class="mini-toggle"><div class="mini-knob"></div></div>
+            </div>
+            <span class="cp-mode-label">Advanced</span>
+          </div>
+          <button class="cp-close">&#10005;</button>
+        </div>
+        <div class="cp-tabs">
+          <button class="cp-tab active">Content</button>
+          <button class="cp-tab">Audience</button>
+        </div>
+        <div class="cp-body">
+          <div class="cp-form">
+            <!-- Template picker, fully open, with hover state shown -->
+            <div style="margin-bottom:10px">
+              <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:6px">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="#5B5FC7"/><rect x="9" y="1" width="6" height="6" rx="1" fill="#5B5FC7"/><rect x="1" y="9" width="6" height="6" rx="1" fill="#5B5FC7"/><rect x="9" y="9" width="6" height="6" rx="1" fill="#C7C7C7" stroke="#C7C7C7" stroke-width="0.5"/></svg>
+                Choose a starting template
+              </div>
+              <div class="tpl-grid" style="grid-template-columns:repeat(3,1fr);gap:10px">
+                <div class="tpl-card blank" onclick="selectTpl(this)">
+                  <span class="tpl-icon">&#9633;</span>
+                  <span class="tpl-name">Blank</span>
+                  <span class="tpl-desc">Start from scratch</span>
+                </div>
+                <div class="tpl-card" style="border-color:var(--brand);background:var(--brand-dim2);box-shadow:0 4px 12px rgba(91,95,199,0.16);transform:translateY(-2px)" onclick="selectTpl(this)">
+                  <span class="tpl-icon">&#128227;</span>
+                  <span class="tpl-name">Announcement</span>
+                  <span class="tpl-desc">Company-wide update</span>
+                </div>
+                <div class="tpl-card" onclick="selectTpl(this)">
+                  <span class="tpl-icon">&#128197;</span>
+                  <span class="tpl-name">Event Invite</span>
+                  <span class="tpl-desc">Meeting or event</span>
+                </div>
+                <div class="tpl-card urgent" onclick="selectTpl(this)">
+                  <span class="tpl-icon">&#9888;</span>
+                  <span class="tpl-name">Urgent Alert</span>
+                  <span class="tpl-desc">Time-sensitive notice</span>
+                </div>
+                <div class="tpl-card" onclick="selectTpl(this)">
+                  <span class="tpl-icon">&#128279;</span>
+                  <span class="tpl-name">Link Share</span>
+                  <span class="tpl-desc">Share a resource</span>
+                </div>
+                <div class="tpl-card" onclick="selectTpl(this)">
+                  <span class="tpl-icon">&#128203;</span>
+                  <span class="tpl-name">Survey</span>
+                  <span class="tpl-desc">Collect responses</span>
+                </div>
+              </div>
+            </div>
+            <hr class="tpl-divider" style="margin:4px 0 14px">
+            <div class="tpl-my-section" style="padding:0">
+              <div class="tpl-my-label">My Templates</div>
+              <div class="tpl-my-grid">
+                <div class="tpl-my-card">
+                  <span style="font-size:14px">&#128196;</span>
+                  <span style="font-size:12px;font-weight:600">Benefits Update</span>
+                  <span style="font-size:11px;color:var(--text-muted);margin-left:2px">Saved Feb 10</span>
+                  <span class="tpl-my-x">&#10005;</span>
+                </div>
+                <div class="tpl-my-card">
+                  <span style="font-size:14px">&#128196;</span>
+                  <span style="font-size:12px;font-weight:600">IT Notice</span>
+                  <span style="font-size:11px;color:var(--text-muted);margin-left:2px">Saved Jan 30</span>
+                  <span class="tpl-my-x">&#10005;</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="cp-preview">
+            <div class="cp-preview-head">
+              <span class="cp-preview-label">Preview</span>
+              <span class="cp-preview-hint" style="color:var(--brand);font-weight:500">Announcement selected</span>
+            </div>
+            <div class="cp-preview-body">
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Selecting a template pre-fills the content fields below. You can edit everything after.</div>
+              <div class="ac-card">
+                <div class="ac-hero">Corporate header image</div>
+                <div class="ac-body">
+                  <div class="ac-headline">Your announcement headline</div>
+                  <div class="ac-body-text" style="color:var(--text-muted);font-style:italic">Your message body will appear here...</div>
+                  <div class="ac-meta">From: Admin &nbsp;&middot;&nbsp; Feb 19, 2026</div>
+                </div>
+                <div class="ac-footer">
+                  <button class="ac-btn">Learn More</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="cp-footer">
+          <div class="cp-aud-summary">
+            <span class="cp-aud-text" style="color:var(--text-muted);font-style:italic">No audience selected yet</span>
+          </div>
+          <div class="cp-actions">
+            <button class="btn">Save Draft</button>
+            <button class="btn-ghost">Send Preview</button>
+            <button class="btn">Schedule</button>
+            <button class="btn-primary">Review &#8594;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         VIEW 5: Confirmation Dialog
+         ══════════════════════════════════════════ -->
+    <div class="view" id="view-confirmation">
+      <div class="compose-panel" style="position:relative">
+        <!-- Dimmed background compose form -->
+        <div class="cp-header" style="opacity:0.4;pointer-events:none">
+          <span class="cp-title">New Message</span>
+          <div class="cp-spacer"></div>
+          <button class="cp-close">&#10005;</button>
+        </div>
+        <div class="cp-tabs" style="opacity:0.4;pointer-events:none">
+          <button class="cp-tab active">Content</button>
+          <button class="cp-tab">Audience</button>
+        </div>
+        <div class="cp-body" style="opacity:0.4;pointer-events:none;flex:1">
+          <div class="cp-form">
+            <div style="height:300px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:13px">Compose form in background...</div>
+          </div>
+          <div class="cp-preview" style="flex:4">
+            <div class="cp-preview-head"><span class="cp-preview-label">Preview</span></div>
+            <div class="cp-preview-body"></div>
+          </div>
+        </div>
+        <div class="cp-footer" style="opacity:0.4;pointer-events:none">
+          <div class="cp-aud-summary"><span>Engineering, Product &middot; ~487 people</span></div>
+          <div class="cp-actions">
+            <button class="btn">Save Draft</button>
+            <button class="btn-primary">Review &#8594;</button>
+          </div>
+        </div>
+
+        <!-- Modal overlay -->
+        <div class="modal-overlay">
+          <div class="modal">
+            <div class="modal-header">Review &amp; Send</div>
+            <div class="modal-body">
+              <!-- Reach callout -->
+              <div class="modal-reach">
+                <div class="modal-reach-text">
+                  This message will reach <strong>~328 people</strong>
+                </div>
+              </div>
+
+              <!-- Card preview -->
+              <div class="modal-preview-wrap">
+                <div class="ac-card" style="border:none;border-radius:0;box-shadow:none">
+                  <div class="ac-hero" style="height:80px">Corporate header image</div>
+                  <div class="ac-body" style="padding:10px 14px">
+                    <div class="ac-headline" style="font-size:14px">Q2 Planning Kickoff — Join Us Next Week</div>
+                    <div class="ac-body-text" style="font-size:12px">Hi <span class="var-token" style="font-size:11px">Sarah</span>, we're kicking off Q2 planning next week and we'd love your input.</div>
+                    <div class="ac-meta">From: Admin &nbsp;&middot;&nbsp; Feb 19, 2026</div>
+                  </div>
+                  <div class="ac-footer" style="padding:0 14px 10px">
+                    <button class="ac-btn" style="font-size:12px;padding:6px">View Planning Doc</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Audience breakdown -->
+              <div class="conf-aud-section">
+                <div class="conf-aud-label">Channel Posts</div>
+                <div class="conf-chip-wrap">
+                  <span class="chip-team">&#127970; Engineering &middot; General</span>
+                  <span class="chip-team">&#127970; Marketing &middot; General</span>
+                </div>
+              </div>
+              <div class="conf-aud-section">
+                <div class="conf-aud-label">Individual Messages</div>
+                <div class="conf-chip-wrap">
+                  <span class="chip-team">&#127970; Product &middot; 87 members</span>
+                  <span class="chip-group">&#128101; All Managers &middot; 34 members</span>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn">Back to editing</button>
+              <button class="btn-primary">Confirm &amp; Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         VIEW 6: Delivery Tracker
+         ══════════════════════════════════════════ -->
+    <div class="view" id="view-tracker">
+      <div class="compose-panel" style="position:relative">
+        <!-- Dimmed compose behind -->
+        <div class="cp-header" style="opacity:0.35;pointer-events:none">
+          <span class="cp-title">New Message</span>
+        </div>
+        <div class="cp-tabs" style="opacity:0.35;pointer-events:none">
+          <button class="cp-tab active">Content</button>
+          <button class="cp-tab">Audience</button>
+        </div>
+        <div class="cp-body" style="opacity:0.35;pointer-events:none;flex:1">
+          <div class="cp-form"><div style="height:300px"></div></div>
+          <div class="cp-preview" style="flex:4"><div class="cp-preview-head"><span class="cp-preview-label">Preview</span></div><div class="cp-preview-body"></div></div>
+        </div>
+        <div class="cp-footer" style="opacity:0.35;pointer-events:none">
+          <div class="cp-aud-summary"><span>Engineering, Product &middot; ~328 people</span></div>
+        </div>
+
+        <!-- Modal overlay with tracker -->
+        <div class="modal-overlay">
+          <div class="modal" style="width:580px">
+            <div class="modal-header" style="padding-bottom:4px">Sending Message</div>
+
+            <!-- In-progress state -->
+            <div class="tracker-dual">
+              <div style="padding:0 24px 8px">
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:14px;padding-top:12px">State 1 &mdash; In Progress</div>
+                <div style="display:flex;align-items:center;gap:32px">
+                  <!-- Ring -->
+                  <div class="tracker-ring-wrap" style="flex-shrink:0">
+                    <svg width="120" height="120" viewBox="0 0 120 120">
+                      <circle class="tracker-ring-bg" cx="60" cy="60" r="50"></circle>
+                      <circle class="tracker-ring-fill" cx="60" cy="60" r="50"
+                        stroke-dasharray="314.16"
+                        stroke-dashoffset="88" id="ringFill1"></circle>
+                    </svg>
+                    <div class="tracker-center-text">
+                      <div class="tracker-pct" id="ringPct1">72%</div>
+                      <div class="tracker-pct-label">sent</div>
+                    </div>
+                  </div>
+                  <!-- Counters + status -->
+                  <div style="flex:1">
+                    <div class="tracker-counters" style="margin-bottom:12px">
+                      <div class="tracker-counter">
+                        <div class="tracker-counter-val" style="color:var(--success)" id="deliveredCount1">236</div>
+                        <div class="tracker-counter-label">Delivered</div>
+                      </div>
+                      <div class="tracker-counter">
+                        <div class="tracker-counter-val" style="color:var(--danger)">2</div>
+                        <div class="tracker-counter-label">Failed</div>
+                      </div>
+                      <div class="tracker-counter">
+                        <div class="tracker-counter-val" style="color:var(--text-muted)" id="remainingCount1">90</div>
+                        <div class="tracker-counter-label">Remaining</div>
+                      </div>
+                    </div>
+                    <div class="tracker-status">
+                      Sending<span class="dot-anim"><span>.</span><span>.</span><span>.</span></span>
+                    </div>
+                    <div style="font-size:12px;color:var(--text-muted)">Q2 Planning Kickoff &mdash; ~328 recipients</div>
+                  </div>
+                </div>
+              </div>
+
+              <hr class="tracker-state-divider">
+
+              <!-- Completed state -->
+              <div style="padding:0 24px 20px">
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:14px">State 2 &mdash; Complete</div>
+                <div style="display:flex;align-items:center;gap:32px">
+                  <!-- Ring complete -->
+                  <div class="tracker-ring-wrap" style="flex-shrink:0">
+                    <svg width="120" height="120" viewBox="0 0 120 120">
+                      <circle class="tracker-ring-bg" cx="60" cy="60" r="50"></circle>
+                      <circle class="tracker-ring-fill done" cx="60" cy="60" r="50"
+                        stroke-dasharray="314.16"
+                        stroke-dashoffset="0"></circle>
+                    </svg>
+                    <div class="tracker-center-text">
+                      <div class="tracker-pct" style="color:var(--success)">100%</div>
+                      <div class="tracker-pct-label">sent</div>
+                    </div>
+                  </div>
+                  <!-- Done counters -->
+                  <div style="flex:1">
+                    <div class="tracker-counters" style="margin-bottom:12px">
+                      <div class="tracker-counter">
+                        <div class="tracker-counter-val" style="color:var(--success)">326</div>
+                        <div class="tracker-counter-label">Delivered</div>
+                      </div>
+                      <div class="tracker-counter">
+                        <div class="tracker-counter-val" style="color:var(--danger)">2</div>
+                        <div class="tracker-counter-label">Failed</div>
+                      </div>
+                      <div class="tracker-counter">
+                        <div class="tracker-counter-val" style="color:var(--text-muted)">0</div>
+                        <div class="tracker-counter-label">Remaining</div>
+                      </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+                      <span style="font-size:20px">&#10003;</span>
+                      <div class="tracker-done-text" style="font-size:14px">Delivered to 326 people</div>
+                    </div>
+                    <button class="btn-primary" style="padding:7px 24px">Done</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /teams-shell -->
+</div><!-- /pg-frame-wrap -->
+
+<script>
+// ── View switching ──
+function switchView(id, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  document.querySelectorAll('.pg-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ── Template selection ──
+function selectTpl(card) {
+  const grid = card.closest('.tpl-grid');
+  if (!grid) return;
+  grid.querySelectorAll('.tpl-card').forEach(c => c.classList.remove('sel'));
+  card.classList.add('sel');
+}
+
+// ── Collapsible template section ──
+function toggleTpl(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.tpl-chevron');
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  chevron.classList.toggle('open', !open);
+}
+
+// ── Expandable sections ──
+function toggleExpand(id, btn) {
+  const section = document.getElementById(id);
+  const open = section.style.display !== 'none';
+  section.style.display = open ? 'none' : 'block';
+  const prefix = open ? '+' : '\u2212';
+  const text = btn.textContent.replace(/^[+\u2212]\s*/, prefix + ' ');
+  btn.innerHTML = '<span>' + prefix + '</span>' + btn.innerHTML.replace(/^<span>[^<]*<\/span>/, '');
+}
+
+// ── Block picker toggle ──
+function toggleBlockPicker(btn) {
+  const picker = btn.querySelector('.block-picker');
+  picker.classList.toggle('open');
+  document.addEventListener('click', function handler(e) {
+    if (!btn.contains(e.target)) {
+      picker.classList.remove('open');
+      document.removeEventListener('click', handler);
+    }
+  }, { capture: true });
+  event.stopPropagation();
+}
+
+// ── Advanced mode toggle (view 1) ──
+function toggleAdvanced(n) {
+  const toggle = document.getElementById('modeToggle' + n);
+  toggle.classList.toggle('on');
+}
+
+// ── Live preview sync ──
+function syncPreview(n) {
+  const headline = document.getElementById('headlineInput' + n);
+  const body = document.getElementById('bodyInput' + n);
+  const ctaLabel = document.getElementById('ctaLabelInput' + n);
+  const heroInput = document.getElementById('heroInput' + n);
+
+  if (headline) {
+    const h = headline.value;
+    document.getElementById('acHeadline' + n).textContent = h || 'Your announcement headline';
+    const counter = document.getElementById('headlineCounter' + n);
+    if (counter) counter.textContent = h.length + ' / 200';
+  }
+  if (body && document.getElementById('acBodyText' + n)) {
+    const raw = body.value;
+    // render {{varName}} as colored chip
+    const rendered = raw.replace(/\{\{(\w+)\}\}/g, function(_, name) {
+      // Capitalize first letter as sample value
+      const sample = name.charAt(0).toUpperCase() + name.slice(1).replace(/([A-Z])/g, ' $1').trim();
+      return '<span class="var-token">' + sample + '</span>';
+    });
+    document.getElementById('acBodyText' + n).innerHTML = rendered;
+  }
+  if (ctaLabel && document.getElementById('acBtn' + n)) {
+    document.getElementById('acBtn' + n).textContent = ctaLabel.value || 'Learn More';
+  }
+}
+
+// Initialize headline counter
+(function() {
+  const h = document.getElementById('headlineInput1');
+  const c = document.getElementById('headlineCounter1');
+  if (h && c) c.textContent = h.value.length + ' / 200';
+})();
+</script>
+</body>
+</html>

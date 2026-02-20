@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Company Communicator — Audience Picker Explorer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-app: #1a1a2e; --bg-surface: #16213e; --bg-card: #1e2a4a; --bg-card-hover: #243356;
+    --bg-input: #0f1629; --accent: #7b6cf6; --accent-light: #9d92f8;
+    --accent-dim: rgba(123,108,246,0.15); --accent-glow: rgba(123,108,246,0.3);
+    --text-primary: #e8eaed; --text-secondary: #9aa0a8; --text-muted: #6b7280;
+    --border: rgba(255,255,255,0.08); --border-focus: rgba(123,108,246,0.5);
+    --success: #34d399; --success-bg: rgba(52,211,153,0.12);
+    --warning: #fbbf24; --warning-bg: rgba(251,191,36,0.12);
+    --danger: #f87171; --danger-bg: rgba(248,113,113,0.12);
+    --info: #60a5fa; --info-bg: rgba(96,165,250,0.12);
+    --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px; --radius-xl: 20px;
+    --shadow-elevated: 0 8px 32px rgba(0,0,0,0.4), 0 0 1px rgba(255,255,255,0.08);
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  body { font-family: var(--font); background: var(--bg-app); color: var(--text-primary); min-height: 100vh; }
+
+  /* ── Top bar ── */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between; padding: 12px 24px;
+    background: linear-gradient(135deg, #0f0c29, #1a1a3e, #24243e);
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100;
+  }
+  .topbar h1 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .layout-switcher { display: flex; gap: 4px; background: var(--bg-input); border-radius: var(--radius-md); padding: 3px; }
+  .layout-tab {
+    padding: 8px 18px; border-radius: 8px; border: none; background: transparent;
+    color: var(--text-secondary); font-family: var(--font); font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .layout-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+  .layout-tab.active { color: #fff; background: var(--accent); box-shadow: 0 2px 8px rgba(123,108,246,0.3); }
+
+  .desc-bar {
+    padding: 14px 24px; background: var(--accent-dim); border-bottom: 1px solid var(--border);
+    font-size: 13px; color: var(--text-secondary); line-height: 1.5; display: flex; align-items: center; gap: 8px;
+  }
+  .desc-bar .tag {
+    background: var(--accent); color: #fff; padding: 2px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;
+  }
+
+  /* ── Preview frame (simulates the slide-over compose panel) ── */
+  .preview-frame {
+    margin: 24px; border-radius: var(--radius-xl); border: 1px solid var(--border);
+    background: var(--bg-surface); overflow: hidden; box-shadow: var(--shadow-elevated);
+    height: 600px; position: relative;
+  }
+
+  /* ── Shared: slide-over header ── */
+  .slide-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--bg-card); flex-shrink: 0;
+  }
+  .slide-header h3 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .close-x {
+    width: 28px; height: 28px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: transparent; color: var(--text-secondary); font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── Shared: card fields (abbreviated) ── */
+  .card-fields { padding: 16px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .card-fields-inner { display: flex; gap: 16px; }
+  .fields-col { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .field label { display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+  .field .opt { font-weight: 400; color: var(--text-muted); }
+  .field input, .field textarea {
+    width: 100%; padding: 8px 11px; background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--font); font-size: 12px;
+  }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+  .field textarea { resize: none; height: 48px; }
+  .preview-mini {
+    width: 200px; background: var(--bg-card); border-radius: var(--radius-sm); border: 1px solid var(--border);
+    overflow: hidden; flex-shrink: 0;
+  }
+  .preview-mini-img { height: 50px; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .preview-mini-body { padding: 8px; }
+  .preview-mini-body h5 { font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+  .preview-mini-body p { font-size: 9px; color: var(--text-muted); line-height: 1.3; }
+  .preview-mini-btn { display: block; margin: 4px 8px 8px; padding: 4px; background: var(--accent); color: #fff; border: none; border-radius: 4px; font-size: 9px; font-weight: 600; text-align: center; }
+  .collapsed-hint { font-size: 11px; color: var(--text-muted); font-style: italic; padding: 4px 0; }
+
+  /* ── Shared: bottom bar ── */
+  .bottom-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px; border-top: 1px solid var(--border); background: var(--bg-card); flex-shrink: 0;
+  }
+  .actions { display: flex; gap: 6px; }
+  .btn {
+    padding: 7px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: transparent; color: var(--text-secondary); font-family: var(--font);
+    font-size: 12px; font-weight: 500; cursor: pointer;
+  }
+  .btn:hover { background: rgba(255,255,255,0.05); }
+  .btn.primary { background: linear-gradient(135deg, var(--accent), #6366f1); color: #fff; border: none; font-weight: 600; }
+
+  /* ── Shared: chip styles ── */
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 12px;
+    border-radius: 14px; font-size: 11px; font-weight: 500; background: var(--accent-dim);
+    color: var(--accent-light); border: 1px solid rgba(123,108,246,0.2);
+  }
+  .chip .chip-x {
+    width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center; font-size: 10px;
+    cursor: pointer; color: var(--text-muted); transition: all 0.15s;
+  }
+  .chip .chip-x:hover { background: var(--danger-bg); color: var(--danger); }
+  .chip-team { background: var(--info-bg); color: var(--info); border-color: rgba(96,165,250,0.2); }
+  .chip-team .chip-x:hover { background: var(--danger-bg); color: var(--danger); }
+  .chip-group { background: rgba(168,85,247,0.12); color: #c084fc; border-color: rgba(168,85,247,0.2); }
+
+  /* ── Everyone toggle ── */
+  .everyone-row {
+    display: flex; align-items: center; gap: 10px; padding: 8px 0;
+  }
+  .mini-toggle {
+    width: 36px; height: 20px; background: var(--bg-input); border-radius: 10px;
+    border: 1px solid var(--border); cursor: pointer; position: relative; transition: all 0.2s; flex-shrink: 0;
+  }
+  .mini-toggle.on { background: var(--accent); border-color: var(--accent); }
+  .mini-toggle .knob {
+    width: 14px; height: 14px; background: #fff; border-radius: 50%;
+    position: absolute; top: 2px; left: 2px; transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .mini-toggle.on .knob { transform: translateX(16px); }
+  .everyone-label { font-size: 12px; color: var(--text-secondary); }
+  .everyone-sublabel { font-size: 10px; color: var(--text-muted); }
+
+  /* ── Search box ── */
+  .search-input-wrap {
+    position: relative; margin-bottom: 8px;
+  }
+  .search-input {
+    width: 100%; padding: 9px 12px 9px 32px; background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--font); font-size: 12px;
+  }
+  .search-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--text-muted); }
+  .search-spinner {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+
+  /* ── Search results dropdown ── */
+  .search-dropdown {
+    background: var(--bg-card); border: 1px solid var(--border-focus); border-radius: var(--radius-sm);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4); overflow: hidden; margin-bottom: 8px;
+  }
+  .search-dropdown-label { padding: 8px 12px; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+  .search-result {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+    cursor: pointer; transition: background 0.1s;
+  }
+  .search-result:hover { background: var(--accent-dim); }
+  .search-result .sr-icon { width: 28px; height: 28px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  .search-result .sr-name { font-size: 12px; font-weight: 500; }
+  .search-result .sr-meta { font-size: 10px; color: var(--text-muted); }
+  .search-result .sr-add { margin-left: auto; font-size: 10px; color: var(--accent-light); font-weight: 600; opacity: 0; transition: opacity 0.15s; }
+  .search-result:hover .sr-add { opacity: 1; }
+
+  /* ── Selected list ── */
+  .selected-section { margin-top: 10px; }
+  .selected-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .selected-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  /* ── Recently used ── */
+  .recent-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .recent-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .recent-items { display: flex; flex-wrap: wrap; gap: 4px; }
+  .recent-item {
+    display: flex; align-items: center; gap: 4px; padding: 4px 10px;
+    border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    font-size: 11px; color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
+  }
+  .recent-item:hover { background: var(--accent-dim); border-color: var(--border-focus); color: var(--accent-light); }
+  .recent-item .ri-icon { font-size: 10px; }
+
+  /* ── Layout containers ── */
+  .layout-wrap { display: none; flex-direction: column; height: 100%; }
+  .layout-wrap.active { display: flex; }
+  .audience-area { flex: 1; overflow-y: auto; padding: 16px 20px; }
+
+  /* ── Layout 1: Compact Inline ── */
+  .inline-audience { border-top: 1px solid var(--border); }
+  .inline-audience-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px; cursor: pointer; transition: background 0.15s;
+  }
+  .inline-audience-header:hover { background: rgba(255,255,255,0.02); }
+  .inline-audience-header h4 { font-size: 12px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
+  .inline-audience-header .chevron { font-size: 12px; color: var(--text-muted); transition: transform 0.2s; }
+  .inline-audience-header .chevron.open { transform: rotate(180deg); }
+  .inline-audience-body { padding: 0 20px 16px; }
+  .inline-summary-chips { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 20px 10px; }
+
+  /* ── Layout 2: Tabbed ── */
+  .tab-row {
+    display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .tab-btn {
+    flex: 1; padding: 10px; text-align: center; font-family: var(--font); font-size: 13px;
+    font-weight: 500; color: var(--text-muted); background: transparent; border: none;
+    cursor: pointer; transition: all 0.15s; border-bottom: 2px solid transparent;
+  }
+  .tab-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.02); }
+  .tab-btn.active { color: var(--accent-light); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab-content { display: none; flex: 1; overflow-y: auto; }
+  .tab-content.active { display: flex; flex-direction: column; }
+
+  /* ── Layout 3: Bottom Drawer ── */
+  .drawer-compose-body { flex: 1; overflow-y: auto; display: flex; }
+  .drawer-editor { flex: 1; padding: 16px 20px; overflow-y: auto; }
+  .drawer-preview { width: 220px; background: var(--bg-card); border-left: 1px solid var(--border); padding: 12px; flex-shrink: 0; display: flex; flex-direction: column; }
+  .drawer-preview-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+  .drawer-bar {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px;
+    border-top: 1px solid var(--border); background: var(--bg-card); cursor: pointer;
+    transition: background 0.15s; flex-shrink: 0;
+  }
+  .drawer-bar:hover { background: var(--bg-card-hover); }
+  .drawer-bar .drawer-icon { font-size: 14px; }
+  .drawer-bar .drawer-text { flex: 1; }
+  .drawer-bar .drawer-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+  .drawer-bar .drawer-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .drawer-bar .drawer-chevron { font-size: 14px; color: var(--text-muted); transition: transform 0.3s; }
+  .drawer-bar .drawer-chevron.open { transform: rotate(180deg); }
+
+  .drawer-panel {
+    border-top: 1px solid var(--border-focus); background: var(--bg-surface);
+    overflow-y: auto; flex-shrink: 0; animation: drawerUp 0.25s ease;
+  }
+  @keyframes drawerUp { from { max-height: 0; opacity: 0; } to { max-height: 300px; opacity: 1; } }
+  .drawer-panel-inner { padding: 14px 20px; }
+
+  /* ── Prompt output ── */
+  .prompt-section {
+    margin: 0 24px 24px; background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+  }
+  .prompt-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02);
+  }
+  .prompt-header span { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+  .copy-btn {
+    padding: 5px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: transparent; color: var(--accent-light); font-family: var(--font); font-size: 12px;
+    cursor: pointer;
+  }
+  .copy-btn:hover { background: var(--accent-dim); }
+  .copy-btn.copied { background: var(--success-bg); color: var(--success); border-color: transparent; }
+  .prompt-body { padding: 16px 18px; font-size: 13px; line-height: 1.7; color: var(--text-secondary); max-height: 150px; overflow-y: auto; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1><span style="font-size:20px">👥</span> Audience Picker Explorer</h1>
+  <div class="layout-switcher">
+    <button class="layout-tab active" onclick="switchLayout('inline')">Compact Inline</button>
+    <button class="layout-tab" onclick="switchLayout('tabs')">Dedicated Tab</button>
+    <button class="layout-tab" onclick="switchLayout('drawer')">Bottom Drawer</button>
+  </div>
+</div>
+
+<div class="desc-bar">
+  <span class="tag" id="descTag">Efficient</span>
+  <span id="descText">Audience is a collapsible section below the card fields. Chips with inline X for removal. Compact and always accessible without leaving the compose view.</span>
+</div>
+
+<div class="preview-frame">
+
+  <!-- ═══ LAYOUT 1: Compact Inline ═══ -->
+  <div class="layout-wrap active" id="layout-inline">
+    <div class="slide-header">
+      <h3><span style="font-size:16px">✏️</span> New Message</h3>
+      <button class="close-x">✕</button>
+    </div>
+
+    <!-- Abbreviated card fields -->
+    <div class="card-fields">
+      <div class="card-fields-inner">
+        <div class="fields-col">
+          <div class="field"><label>Headline</label><input value="Q2 Planning Kickoff" /></div>
+          <div class="field"><label>Body</label><textarea>We're kicking off Q2 planning next week. Please review the goals document.</textarea></div>
+          <div class="field"><label>Call to Action <span class="opt">(optional)</span></label>
+            <div style="display:flex;gap:6px;"><input placeholder="Button label" value="View Goals" style="flex:1" /><input placeholder="https://..." value="https://contoso.sh..." style="flex:1.2" /></div>
+          </div>
+        </div>
+        <div class="preview-mini">
+          <div class="preview-mini-img">🎯</div>
+          <div class="preview-mini-body"><h5>Q2 Planning Kickoff</h5><p>We're kicking off Q2 planning next week...</p></div>
+          <button class="preview-mini-btn">View Goals</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inline audience section -->
+    <div class="inline-audience" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+      <div class="inline-audience-header" onclick="toggleInlineAudience()">
+        <h4>
+          👥 Audience
+          <span style="font-size:11px; font-weight:400; color:var(--text-muted);">· 3 selected</span>
+        </h4>
+        <span class="chevron open" id="inlineChevron">▼</span>
+      </div>
+      <div id="inlineAudienceBody" style="flex:1; overflow-y:auto;">
+        <div class="inline-audience-body">
+          <div class="everyone-row">
+            <div class="mini-toggle" onclick="this.classList.toggle('on')"><div class="knob"></div></div>
+            <div>
+              <div class="everyone-label">Send to everyone</div>
+              <div class="everyone-sublabel">All users in your organization</div>
+            </div>
+          </div>
+
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" placeholder="Search teams or groups..." value="Engi" />
+            <div class="search-spinner"></div>
+          </div>
+
+          <div class="search-dropdown">
+            <div class="search-dropdown-label">Teams</div>
+            <div class="search-result">
+              <div class="sr-icon" style="background:var(--info-bg)">🏢</div>
+              <div><div class="sr-name">Engineering</div><div class="sr-meta">142 members</div></div>
+              <span class="sr-add">+ Add</span>
+            </div>
+            <div class="search-result">
+              <div class="sr-icon" style="background:var(--info-bg)">🏢</div>
+              <div><div class="sr-name">Engineering - Backend</div><div class="sr-meta">38 members</div></div>
+              <span class="sr-add">+ Add</span>
+            </div>
+            <div class="search-dropdown-label">Groups</div>
+            <div class="search-result">
+              <div class="sr-icon" style="background:rgba(168,85,247,0.12)">👥</div>
+              <div><div class="sr-name">Engineering Leads</div><div class="sr-meta">Security group · 12 members</div></div>
+              <span class="sr-add">+ Add</span>
+            </div>
+          </div>
+
+          <div class="selected-section">
+            <div class="selected-label">Selected audiences</div>
+            <div class="selected-chips">
+              <span class="chip chip-team">🏢 Engineering <span class="chip-x">✕</span></span>
+              <span class="chip chip-team">🏢 Product <span class="chip-x">✕</span></span>
+              <span class="chip chip-group">👥 Design Team <span class="chip-x">✕</span></span>
+            </div>
+          </div>
+
+          <div class="recent-section">
+            <div class="recent-label">Recently used</div>
+            <div class="recent-items">
+              <span class="recent-item"><span class="ri-icon">🏢</span> Marketing</span>
+              <span class="recent-item"><span class="ri-icon">👥</span> All Managers</span>
+              <span class="recent-item"><span class="ri-icon">🏢</span> Sales</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <div style="font-size:12px; color:var(--text-muted);">Estimated reach: <strong style="color:var(--text-primary)">~487 people</strong></div>
+      <div class="actions">
+        <button class="btn">Save Draft</button>
+        <button class="btn">Schedule</button>
+        <button class="btn primary">Send Now →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ LAYOUT 2: Dedicated Tab ═══ -->
+  <div class="layout-wrap" id="layout-tabs">
+    <div class="slide-header">
+      <h3><span style="font-size:16px">✏️</span> New Message</h3>
+      <button class="close-x">✕</button>
+    </div>
+
+    <div class="tab-row">
+      <button class="tab-btn" id="tabContent" onclick="switchTab('content')">✏️ Content</button>
+      <button class="tab-btn active" id="tabAudience" onclick="switchTab('audience')">👥 Audience</button>
+    </div>
+
+    <!-- Content tab (shown abbreviated) -->
+    <div class="tab-content" id="tabContentPanel">
+      <div style="padding:20px;">
+        <div class="field"><label>Headline</label><input value="Q2 Planning Kickoff" /></div>
+        <div class="field" style="margin-top:10px"><label>Body</label><textarea>We're kicking off Q2 planning next week.</textarea></div>
+        <div class="collapsed-hint" style="margin-top:12px;">+ Hero Image, Call to Action...</div>
+      </div>
+    </div>
+
+    <!-- Audience tab -->
+    <div class="tab-content active" id="tabAudiencePanel">
+      <div class="audience-area">
+        <div class="everyone-row">
+          <div class="mini-toggle" onclick="this.classList.toggle('on')"><div class="knob"></div></div>
+          <div>
+            <div class="everyone-label">Send to everyone</div>
+            <div class="everyone-sublabel">All users in your organization</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px; margin-top:8px;">
+          <!-- Teams column -->
+          <div style="flex:1;">
+            <div style="font-size:11px; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">Teams</div>
+            <div class="search-input-wrap">
+              <span class="search-icon">🔍</span>
+              <input class="search-input" placeholder="Search teams..." value="Engi" />
+              <div class="search-spinner"></div>
+            </div>
+            <div class="search-dropdown">
+              <div class="search-result">
+                <div class="sr-icon" style="background:var(--info-bg)">🏢</div>
+                <div><div class="sr-name">Engineering</div><div class="sr-meta">142 members</div></div>
+                <span class="sr-add">+ Add</span>
+              </div>
+              <div class="search-result">
+                <div class="sr-icon" style="background:var(--info-bg)">🏢</div>
+                <div><div class="sr-name">Engineering - Backend</div><div class="sr-meta">38 members</div></div>
+                <span class="sr-add">+ Add</span>
+              </div>
+            </div>
+            <div style="margin-top:8px;">
+              <span class="chip chip-team" style="margin-bottom:4px">🏢 Engineering <span class="chip-x">✕</span></span>
+              <span class="chip chip-team">🏢 Product <span class="chip-x">✕</span></span>
+            </div>
+          </div>
+
+          <!-- Groups column -->
+          <div style="flex:1;">
+            <div style="font-size:11px; font-weight:600; color:var(--text-secondary); margin-bottom:6px;">Groups</div>
+            <div class="search-input-wrap">
+              <span class="search-icon">🔍</span>
+              <input class="search-input" placeholder="Search groups..." />
+            </div>
+            <div style="margin-top:8px;">
+              <span class="chip chip-group">👥 Design Team <span class="chip-x">✕</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="recent-section">
+          <div class="recent-label">Suggested (recently used)</div>
+          <div class="recent-items">
+            <span class="recent-item"><span class="ri-icon">🏢</span> Marketing</span>
+            <span class="recent-item"><span class="ri-icon">👥</span> All Managers</span>
+            <span class="recent-item"><span class="ri-icon">🏢</span> Sales</span>
+            <span class="recent-item"><span class="ri-icon">👥</span> HR Leaders</span>
+            <span class="recent-item"><span class="ri-icon">🏢</span> Finance</span>
+          </div>
+        </div>
+
+        <div style="margin-top:16px; padding:14px; background:var(--bg-card); border-radius:var(--radius-sm); border:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:13px; font-weight:600;">Summary</div>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">3 audiences selected</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:22px; font-weight:700; color:var(--accent-light);">~487</div>
+              <div style="font-size:10px; color:var(--text-muted);">estimated recipients</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:4px; margin-top:10px; flex-wrap:wrap;">
+            <span class="chip chip-team">🏢 Engineering · 142</span>
+            <span class="chip chip-team">🏢 Product · 89</span>
+            <span class="chip chip-group">👥 Design Team · 34</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <div style="font-size:12px; color:var(--text-muted);">Estimated reach: <strong style="color:var(--text-primary)">~487 people</strong></div>
+      <div class="actions">
+        <button class="btn">Save Draft</button>
+        <button class="btn">Schedule</button>
+        <button class="btn primary">Send Now →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ LAYOUT 3: Bottom Drawer ═══ -->
+  <div class="layout-wrap" id="layout-drawer">
+    <div class="slide-header">
+      <h3><span style="font-size:16px">✏️</span> New Message</h3>
+      <button class="close-x">✕</button>
+    </div>
+
+    <div class="drawer-compose-body">
+      <div class="drawer-editor">
+        <div class="field"><label>Headline</label><input value="Q2 Planning Kickoff" /></div>
+        <div class="field" style="margin-top:10px"><label>Body</label><textarea style="height:64px">We're kicking off Q2 planning next week. Please review the goals document.</textarea></div>
+        <div class="field" style="margin-top:10px"><label>Hero Image <span class="opt">(optional)</span></label>
+          <div style="border:1px dashed var(--border); border-radius:var(--radius-sm); padding:14px; text-align:center; color:var(--text-muted); font-size:11px; cursor:pointer;">Drop an image or paste a URL</div>
+        </div>
+        <div class="field" style="margin-top:10px"><label>Call to Action <span class="opt">(optional)</span></label>
+          <div style="display:flex;gap:6px;"><input placeholder="Button label" value="View Goals" style="flex:1" /><input placeholder="https://..." value="https://contoso.sharepoint.com/goals" style="flex:1.2" /></div>
+        </div>
+      </div>
+      <div class="drawer-preview">
+        <div class="drawer-preview-label">Live Preview</div>
+        <div class="preview-mini" style="width:100%;">
+          <div class="preview-mini-img" style="height:70px">🎯</div>
+          <div class="preview-mini-body"><h5>Q2 Planning Kickoff</h5><p>We're kicking off Q2 planning next week. Please review the goals document.</p></div>
+          <button class="preview-mini-btn">View Goals</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drawer: audience bar (always visible) -->
+    <div class="drawer-bar" onclick="toggleDrawer()">
+      <span class="drawer-icon">👥</span>
+      <div class="drawer-text">
+        <div class="drawer-label">Audience · 3 selected · ~487 people</div>
+        <div class="drawer-chips">
+          <span class="chip chip-team" style="padding:2px 8px; font-size:10px; border:none;">🏢 Engineering</span>
+          <span class="chip chip-team" style="padding:2px 8px; font-size:10px; border:none;">🏢 Product</span>
+          <span class="chip chip-group" style="padding:2px 8px; font-size:10px; border:none;">👥 Design Team</span>
+        </div>
+      </div>
+      <span class="drawer-chevron" id="drawerChevron">▲</span>
+    </div>
+
+    <!-- Drawer: expanded panel -->
+    <div class="drawer-panel" id="drawerPanel">
+      <div class="drawer-panel-inner">
+        <div style="display:flex; gap:16px;">
+          <div style="flex:1;">
+            <div class="everyone-row" style="margin-bottom:6px;">
+              <div class="mini-toggle" onclick="this.classList.toggle('on')"><div class="knob"></div></div>
+              <div>
+                <div class="everyone-label">Send to everyone</div>
+              </div>
+            </div>
+            <div class="search-input-wrap">
+              <span class="search-icon">🔍</span>
+              <input class="search-input" placeholder="Search teams or groups..." value="Engi" />
+              <div class="search-spinner"></div>
+            </div>
+            <div class="search-dropdown">
+              <div class="search-result">
+                <div class="sr-icon" style="background:var(--info-bg); width:24px; height:24px; font-size:11px;">🏢</div>
+                <div><div class="sr-name">Engineering</div><div class="sr-meta">142 members</div></div>
+                <span class="sr-add">+ Add</span>
+              </div>
+              <div class="search-result">
+                <div class="sr-icon" style="background:var(--info-bg); width:24px; height:24px; font-size:11px;">🏢</div>
+                <div><div class="sr-name">Engineering - Backend</div><div class="sr-meta">38 members</div></div>
+                <span class="sr-add">+ Add</span>
+              </div>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <div class="selected-label" style="margin-bottom:6px;">Selected</div>
+            <div class="selected-chips" style="flex-direction:column; gap:4px;">
+              <span class="chip chip-team">🏢 Engineering · 142 <span class="chip-x">✕</span></span>
+              <span class="chip chip-team">🏢 Product · 89 <span class="chip-x">✕</span></span>
+              <span class="chip chip-group">👥 Design Team · 34 <span class="chip-x">✕</span></span>
+            </div>
+            <div class="recent-section" style="margin-top:8px; padding-top:8px;">
+              <div class="recent-label">Recently used</div>
+              <div class="recent-items">
+                <span class="recent-item"><span class="ri-icon">🏢</span> Marketing</span>
+                <span class="recent-item"><span class="ri-icon">👥</span> All Managers</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <div style="font-size:12px; color:var(--text-muted);">Estimated reach: <strong style="color:var(--text-primary)">~487 people</strong></div>
+      <div class="actions">
+        <button class="btn">Save Draft</button>
+        <button class="btn">Schedule</button>
+        <button class="btn primary">Send Now →</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Prompt output -->
+<div class="prompt-section">
+  <div class="prompt-header">
+    <span>Design Decision</span>
+    <button class="copy-btn" id="copyBtn" onclick="copyPrompt()">Copy</button>
+  </div>
+  <div class="prompt-body" id="promptOutput"></div>
+</div>
+
+<script>
+  const descriptions = {
+    inline: {
+      tag: 'Efficient',
+      desc: 'Audience is a collapsible section below the card fields. Chips with inline X for removal. Search dropdown with loading spinner. Compact and always accessible without leaving compose.',
+      pros: 'Everything on one scrollable page — no tab switching. Collapsible keeps it tidy when not editing. Chips with close buttons right on them. Search spinner gives clear feedback. Recently-used suggestions speed repeat sends.',
+      cons: 'Long scroll if card fields are also expanded. Audience competes with card content for vertical space.'
+    },
+    tabs: {
+      tag: 'Organized',
+      desc: 'Content and Audience are separate tabs at the top of the compose panel. The Audience tab has dedicated columns for Teams vs. Groups, a summary card with estimated reach, and recently-used suggestions.',
+      pros: 'Maximum space for both card editing and audience selection. Clean separation of concerns. Two-column Teams/Groups layout is clear. Summary card with recipient count is satisfying. Great for complex audience selection.',
+      cons: 'Requires tab switching — you can\'t see your card content while picking audiences. Extra click to move between content and audience.'
+    },
+    drawer: {
+      tag: 'Contextual',
+      desc: 'Audience is a persistent summary bar at the bottom of compose. Click to expand a drawer upward with search, selected list, and recently-used. Collapse back down when done.',
+      pros: 'Always see who you\'re sending to (chip summary visible at all times). Card builder gets full space. Drawer expand/collapse is quick and tactile. No context switch — audience editing is an "enhancement" not a "step".',
+      cons: 'Drawer height is limited — complex audience selection with many results may feel cramped. Two layers of interaction (bar + expanded) to learn.'
+    }
+  };
+
+  let currentLayout = 'inline';
+  let drawerOpen = true;
+  let inlineOpen = true;
+
+  function switchLayout(id) {
+    currentLayout = id;
+    document.querySelectorAll('.layout-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    document.querySelectorAll('.layout-wrap').forEach(el => el.classList.remove('active'));
+    document.getElementById('layout-' + id).classList.add('active');
+    updateDesc();
+    updatePrompt();
+  }
+
+  function switchTab(tab) {
+    document.getElementById('tabContent').classList.toggle('active', tab === 'content');
+    document.getElementById('tabAudience').classList.toggle('active', tab === 'audience');
+    document.getElementById('tabContentPanel').classList.toggle('active', tab === 'content');
+    document.getElementById('tabAudiencePanel').classList.toggle('active', tab === 'audience');
+  }
+
+  function toggleDrawer() {
+    drawerOpen = !drawerOpen;
+    document.getElementById('drawerPanel').style.display = drawerOpen ? 'block' : 'none';
+    document.getElementById('drawerChevron').classList.toggle('open', drawerOpen);
+  }
+
+  function toggleInlineAudience() {
+    inlineOpen = !inlineOpen;
+    document.getElementById('inlineAudienceBody').style.display = inlineOpen ? 'block' : 'none';
+    document.getElementById('inlineChevron').classList.toggle('open', inlineOpen);
+  }
+
+  function updateDesc() {
+    const info = descriptions[currentLayout];
+    document.getElementById('descTag').textContent = info.tag;
+    document.getElementById('descText').textContent = info.desc;
+  }
+
+  function updatePrompt() {
+    const info = descriptions[currentLayout];
+    const names = { inline: 'Compact Inline', tabs: 'Dedicated Tab', drawer: 'Bottom Drawer' };
+    document.getElementById('promptOutput').textContent =
+      `I want the "${names[currentLayout]}" audience picker within the Communication Center + Slide-Over compose layout.\n\n` +
+      `What I like: ${info.pros}\n\n` +
+      `Concerns: ${info.cons}\n\n` +
+      `Key UX requirements: chip-style selection with inline remove (X right on the chip), search with visible loading spinner, ` +
+      `member count shown per team/group, "recently used" suggestions for quick repeat sends, estimated total recipient count, ` +
+      `and a compact "Send to everyone" toggle that doesn't waste space.`;
+  }
+
+  function copyPrompt() {
+    const text = document.getElementById('promptOutput').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  updateDesc();
+  updatePrompt();
+</script>
+
+</body>
+</html>
