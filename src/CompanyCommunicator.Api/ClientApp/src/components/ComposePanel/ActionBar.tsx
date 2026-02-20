@@ -186,24 +186,35 @@ function SchedulePopover({ notificationId, isSaving, onSaveDraft }: SchedulePopo
   const styles = useStyles();
   const [open, setOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null | undefined>(null);
+  const [selectedTime, setSelectedTime] = useState('09:00');
   const scheduleMutation = useScheduleNotification();
 
   const handleSchedule = useCallback(async () => {
     if (!selectedDate) return;
 
-    let id = notificationId;
-    if (!id) {
-      id = await onSaveDraft() ?? null;
-    }
-    if (!id) return;
+    try {
+      // Combine date + time
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+      const combined = new Date(selectedDate);
+      combined.setHours(hours ?? 9, minutes ?? 0, 0, 0);
 
-    await scheduleMutation.mutateAsync({
-      id,
-      body: { scheduledDate: selectedDate.toISOString() },
-    });
-    setOpen(false);
-    setSelectedDate(null);
-  }, [selectedDate, notificationId, onSaveDraft, scheduleMutation]);
+      let id = notificationId;
+      if (!id) {
+        id = await onSaveDraft() ?? null;
+      }
+      if (!id) return;
+
+      await scheduleMutation.mutateAsync({
+        id,
+        body: { scheduledDate: combined.toISOString() },
+      });
+      setOpen(false);
+      setSelectedDate(null);
+      setSelectedTime('09:00');
+    } catch {
+      // Error is surfaced via scheduleMutation.error
+    }
+  }, [selectedDate, selectedTime, notificationId, onSaveDraft, scheduleMutation]);
 
   const minDate = new Date();
   minDate.setMinutes(minDate.getMinutes() + 5); // At least 5 minutes in the future
@@ -229,6 +240,13 @@ function SchedulePopover({ notificationId, isSaving, onSaveDraft }: SchedulePopo
             onSelectDate={(date) => { setSelectedDate(date); }}
             minDate={minDate}
           />
+          <Field label="Time">
+            <Input
+              type="time"
+              value={selectedTime}
+              onChange={(_e, data) => { setSelectedTime(data.value); }}
+            />
+          </Field>
           <div className={styles.scheduleActions}>
             <Button
               appearance="secondary"
@@ -236,6 +254,7 @@ function SchedulePopover({ notificationId, isSaving, onSaveDraft }: SchedulePopo
               onClick={() => {
                 setOpen(false);
                 setSelectedDate(null);
+                setSelectedTime('09:00');
               }}
             >
               Cancel
