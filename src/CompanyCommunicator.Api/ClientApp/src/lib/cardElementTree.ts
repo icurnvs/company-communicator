@@ -19,6 +19,24 @@ import type {
   TableSlotValue,
   ExpandableSectionSlotValue,
   IconTextRowSlotValue,
+  RichTextSlotValue,
+  RichTextSegment,
+  IconSlotValue,
+  BadgeSlotValue,
+  CodeBlockSlotValue,
+  RatingDisplaySlotValue,
+  CompoundButtonSlotValue,
+  FlowLayoutSlotValue,
+  GridLayoutSlotValue,
+  ChartDataPoint,
+  DonutChartSlotValue,
+  VerticalBarSlotValue,
+  GroupedBarSlotValue,
+  HorizontalBarSlotValue,
+  StackedBarSlotValue,
+  LineChartSlotValue,
+  GaugeSlotValue,
+  AnyBlockType,
 } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -60,13 +78,13 @@ export function resolveTemplate(
     for (const additional of sorted) {
       const fakeSlot: SlotDefinition = {
         id: additional.id,
-        type: additional.type,
+        type: additional.type as SlotType,
         label: '',
         visibility: 'required',
         order: additional.order,
       };
       const overrides = document.advancedOverrides?.[additional.id];
-      const element = buildSlotElement(fakeSlot, additional.data, overrides);
+      const element = buildSlotElement(fakeSlot, additional.data, overrides, additional.type);
       if (element) {
         nodes.push(...(Array.isArray(element) ? element : [element]));
       }
@@ -84,8 +102,10 @@ function buildSlotElement(
   slot: SlotDefinition,
   value: unknown,
   overrides?: Record<string, unknown>,
+  typeOverride?: AnyBlockType,
 ): CardElementNode | CardElementNode[] | null {
-  const builder = SLOT_BUILDERS[slot.type];
+  const type: AnyBlockType = typeOverride ?? slot.type;
+  const builder = SLOT_BUILDERS[type];
   if (!builder) return null;
 
   const nodes = builder(slot.id, value, overrides);
@@ -98,7 +118,7 @@ type SlotBuilder = (
   overrides?: Record<string, unknown>,
 ) => CardElementNode | CardElementNode[] | null;
 
-const SLOT_BUILDERS: Record<SlotType, SlotBuilder> = {
+const SLOT_BUILDERS: Record<AnyBlockType, SlotBuilder> = {
   heading: buildHeading,
   subheading: buildSubheading,
   bodyText: buildBodyText,
@@ -114,6 +134,24 @@ const SLOT_BUILDERS: Record<SlotType, SlotBuilder> = {
   table: buildTable,
   expandableSection: buildExpandableSection,
   iconTextRow: buildIconTextRow,
+  // Phase C2 — Content blocks
+  richText: buildRichText,
+  icon: buildIconBlock,
+  badge: buildBadge,
+  codeBlock: buildCodeBlock,
+  ratingDisplay: buildRatingDisplay,
+  compoundButton: buildCompoundButton,
+  // Phase C2 — Layout blocks
+  flowLayout: buildFlowLayout,
+  gridLayout: buildGridLayout,
+  // Phase C2 — Chart blocks
+  donutChart: buildDonutChart,
+  verticalBar: buildVerticalBar,
+  groupedBar: buildGroupedBar,
+  horizontalBar: buildHorizontalBar,
+  stackedBar: buildStackedBar,
+  lineChart: buildLineChart,
+  gauge: buildGauge,
 };
 
 // ---------------------------------------------------------------------------
@@ -685,5 +723,514 @@ function buildIconTextRow(
         children: [children[v.iconName ? 1 : 0]!],
       },
     ],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Phase C2 — Content block builders
+// ---------------------------------------------------------------------------
+
+function buildRichText(
+  slotId: string,
+  value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  const v = value as RichTextSlotValue | undefined;
+  if (!v?.segments?.length) return null;
+
+  const inlines = v.segments.map((seg: RichTextSegment) => {
+    const run: Record<string, unknown> = { type: 'TextRun', text: seg.text };
+    if (seg.bold) run['weight'] = 'Bolder';
+    if (seg.italic) run['italic'] = true;
+    if (seg.strikethrough) run['strikethrough'] = true;
+    if (seg.underline) run['underline'] = true;
+    if (seg.highlight) run['highlight'] = true;
+    if (seg.color) run['color'] = seg.color;
+    return run;
+  });
+
+  return {
+    id: slotId,
+    sourceType: 'richText',
+    placement: 'body',
+    acType: 'RichTextBlock',
+    properties: {
+      inlines,
+      spacing: 'Medium',
+      ...overrides,
+    },
+  };
+}
+
+function buildIconBlock(
+  slotId: string,
+  value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  const v = value as IconSlotValue | undefined;
+  if (!v?.name) return null;
+
+  return {
+    id: slotId,
+    sourceType: 'icon',
+    placement: 'body',
+    acType: 'Icon',
+    properties: {
+      name: v.name,
+      size: v.size ?? 'Standard',
+      color: v.color ?? 'Default',
+      style: v.style ?? 'Regular',
+      spacing: 'Medium',
+      ...overrides,
+    },
+  };
+}
+
+function buildBadge(
+  slotId: string,
+  value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  const v = value as BadgeSlotValue | undefined;
+  if (!v?.text) return null;
+
+  const props: Record<string, unknown> = {
+    text: v.text,
+    spacing: 'Medium',
+    ...overrides,
+  };
+  if (v.icon) props['icon'] = { name: v.icon };
+  if (v.appearance) props['appearance'] = v.appearance;
+
+  return {
+    id: slotId,
+    sourceType: 'badge',
+    placement: 'body',
+    acType: 'Badge',
+    properties: props,
+  };
+}
+
+function buildCodeBlock(
+  slotId: string,
+  value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  const v = value as CodeBlockSlotValue | undefined;
+  if (!v?.code) return null;
+
+  return {
+    id: slotId,
+    sourceType: 'codeBlock',
+    placement: 'body',
+    acType: 'CodeBlock',
+    properties: {
+      codeSnippet: v.code,
+      language: v.language || 'PlainText',
+      startLineNumber: v.startLineNumber ?? 1,
+      spacing: 'Medium',
+      ...overrides,
+    },
+  };
+}
+
+function buildRatingDisplay(
+  slotId: string,
+  value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  const v = value as RatingDisplaySlotValue | undefined;
+  if (v?.value == null) return null;
+
+  const props: Record<string, unknown> = {
+    value: v.value,
+    max: v.max ?? 5,
+    spacing: 'Medium',
+    ...overrides,
+  };
+  if (v.color) props['color'] = v.color;
+  if (v.style) props['style'] = v.style;
+  if (v.count != null) props['count'] = v.count;
+
+  return {
+    id: slotId,
+    sourceType: 'ratingDisplay',
+    placement: 'body',
+    acType: 'Rating',
+    properties: props,
+  };
+}
+
+function buildCompoundButton(
+  slotId: string,
+  value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  const v = value as CompoundButtonSlotValue | undefined;
+  if (!v?.title) return null;
+
+  const props: Record<string, unknown> = {
+    title: v.title,
+    spacing: 'Medium',
+    ...overrides,
+  };
+  if (v.description) props['description'] = v.description;
+  if (v.icon) props['icon'] = { name: v.icon };
+  if (v.badge) props['badge'] = v.badge;
+  if (v.url) {
+    props['selectAction'] = {
+      type: 'Action.OpenUrl',
+      url: v.url,
+    };
+  }
+
+  return {
+    id: slotId,
+    sourceType: 'compoundButton',
+    placement: 'body',
+    acType: 'CompoundButton',
+    properties: props,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Phase C2 — Layout block builders
+// ---------------------------------------------------------------------------
+
+function buildFlowLayout(
+  slotId: string,
+  value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  const v = value as FlowLayoutSlotValue | undefined;
+  if (!v?.items?.length) return null;
+
+  const children: CardElementNode[] = v.items.map((item, i) => {
+    if (item.icon) {
+      return {
+        id: `${slotId}-item-${i}`,
+        sourceType: 'flowLayout' as const,
+        placement: 'body' as const,
+        acType: 'Container',
+        properties: {},
+        children: [
+          {
+            id: `${slotId}-item-${i}-icon`,
+            sourceType: 'flowLayout' as const,
+            placement: 'body' as const,
+            acType: 'Icon',
+            properties: { name: item.icon, size: 'Small' },
+          },
+          {
+            id: `${slotId}-item-${i}-text`,
+            sourceType: 'flowLayout' as const,
+            placement: 'body' as const,
+            acType: 'TextBlock',
+            properties: { text: item.text, wrap: true, size: 'Small' },
+          },
+        ],
+      };
+    }
+    return {
+      id: `${slotId}-item-${i}`,
+      sourceType: 'flowLayout' as const,
+      placement: 'body' as const,
+      acType: 'TextBlock',
+      properties: { text: item.text, wrap: true },
+    };
+  });
+
+  const layout: Record<string, unknown> = { type: 'Layout.Flow' };
+  if (v.itemWidth) layout['itemWidth'] = v.itemWidth;
+  if (v.columnSpacing) layout['columnSpacing'] = v.columnSpacing;
+
+  return {
+    id: slotId,
+    sourceType: 'flowLayout',
+    placement: 'body',
+    acType: 'Container',
+    properties: {
+      layouts: [layout],
+      spacing: 'Medium',
+      ...overrides,
+    },
+    children,
+  };
+}
+
+function buildGridLayout(
+  slotId: string,
+  value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  const v = value as GridLayoutSlotValue | undefined;
+  if (!v?.areas?.length) return null;
+
+  const gridAreas = v.areas.map((area, i) => ({
+    name: area.name || `area-${i}`,
+    column: (i % (v.columns?.length || 2)) + 1,
+    row: Math.floor(i / (v.columns?.length || 2)) + 1,
+  }));
+
+  const children: CardElementNode[] = v.areas.map((area, i) => {
+    const items: CardElementNode[] = [];
+
+    if (area.imageUrl) {
+      items.push({
+        id: `${slotId}-area-${i}-img`,
+        sourceType: 'gridLayout' as const,
+        placement: 'body' as const,
+        acType: 'Image',
+        properties: { url: area.imageUrl, size: 'Stretch' },
+      });
+    }
+
+    if (area.content) {
+      items.push({
+        id: `${slotId}-area-${i}-text`,
+        sourceType: 'gridLayout' as const,
+        placement: 'body' as const,
+        acType: 'TextBlock',
+        properties: { text: area.content, wrap: true },
+      });
+    }
+
+    return {
+      id: `${slotId}-area-${i}`,
+      sourceType: 'gridLayout' as const,
+      placement: 'body' as const,
+      acType: 'Container',
+      properties: {
+        'grid.area': area.name || `area-${i}`,
+      },
+      children: items,
+    };
+  });
+
+  return {
+    id: slotId,
+    sourceType: 'gridLayout',
+    placement: 'body',
+    acType: 'Container',
+    properties: {
+      layouts: [{
+        type: 'Layout.AreaGrid',
+        columns: v.columns?.length ? v.columns : [50, 50],
+        areas: gridAreas,
+      }],
+      spacing: 'Medium',
+      ...overrides,
+    },
+    children,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Phase C2 — Chart block builders
+// ---------------------------------------------------------------------------
+
+/** Shared helper for simple single-series charts */
+function buildSimpleChart(
+  slotId: string,
+  sourceType: AnyBlockType,
+  acType: string,
+  data: ChartDataPoint[],
+  extraProps: Record<string, unknown>,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  if (!data?.length) return null;
+
+  return {
+    id: slotId,
+    sourceType,
+    placement: 'body',
+    acType,
+    properties: {
+      data: data.map((d) => {
+        const point: Record<string, unknown> = { x: d.label, y: d.value };
+        if (d.color) point['color'] = d.color;
+        return point;
+      }),
+      spacing: 'Medium',
+      ...extraProps,
+      ...overrides,
+    },
+  };
+}
+
+function buildDonutChart(
+  slotId: string,
+  value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  const v = value as DonutChartSlotValue | undefined;
+  if (!v?.data?.length) return null;
+
+  const props: Record<string, unknown> = {};
+  if (v.title) props['title'] = v.title;
+  if (v.colorSet) props['colorSet'] = v.colorSet;
+
+  return {
+    id: slotId,
+    sourceType: 'donutChart',
+    placement: 'body',
+    acType: 'Chart.Donut',
+    properties: {
+      data: v.data.map((d) => {
+        const point: Record<string, unknown> = { legend: d.label, value: d.value };
+        if (d.color) point['color'] = d.color;
+        return point;
+      }),
+      spacing: 'Medium',
+      ...props,
+      ...overrides,
+    },
+  };
+}
+
+function buildVerticalBar(
+  slotId: string,
+  value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  const v = value as VerticalBarSlotValue | undefined;
+  const extra: Record<string, unknown> = {};
+  if (v?.title) extra['title'] = v.title;
+  if (v?.showBarValues) extra['showBarValues'] = true;
+  return buildSimpleChart(slotId, 'verticalBar', 'Chart.VerticalBar', v?.data ?? [], extra, overrides);
+}
+
+function buildGroupedBar(
+  slotId: string,
+  value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  const v = value as GroupedBarSlotValue | undefined;
+  if (!v?.series?.length) return null;
+
+  const props: Record<string, unknown> = {
+    data: v.series.map((s) => {
+      const series: Record<string, unknown> = { legend: s.legend, values: s.values };
+      if (s.color) series['color'] = s.color;
+      return series;
+    }),
+    spacing: 'Medium',
+  };
+  if (v.title) props['title'] = v.title;
+  if (v.stacked) props['stacked'] = true;
+  if (v.showBarValues) props['showBarValues'] = true;
+  if (v.xAxisTitle) props['xAxisTitle'] = v.xAxisTitle;
+  if (v.yAxisTitle) props['yAxisTitle'] = v.yAxisTitle;
+
+  return {
+    id: slotId,
+    sourceType: 'groupedBar',
+    placement: 'body',
+    acType: 'Chart.VerticalBar.Grouped',
+    properties: { ...props, ...overrides },
+  };
+}
+
+function buildHorizontalBar(
+  slotId: string,
+  value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  const v = value as HorizontalBarSlotValue | undefined;
+  const extra: Record<string, unknown> = {};
+  if (v?.title) extra['title'] = v.title;
+  if (v?.displayMode) extra['displayMode'] = v.displayMode;
+  return buildSimpleChart(slotId, 'horizontalBar', 'Chart.HorizontalBar', v?.data ?? [], extra, overrides);
+}
+
+function buildStackedBar(
+  slotId: string,
+  value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  const v = value as StackedBarSlotValue | undefined;
+  if (!v?.series?.length) return null;
+
+  const props: Record<string, unknown> = {
+    data: v.series.map((s) => ({
+      title: s.title,
+      data: s.data.map((d) => {
+        const point: Record<string, unknown> = { legend: d.label, value: d.value };
+        if (d.color) point['color'] = d.color;
+        return point;
+      }),
+    })),
+    spacing: 'Medium',
+  };
+  if (v.title) props['title'] = v.title;
+
+  return {
+    id: slotId,
+    sourceType: 'stackedBar',
+    placement: 'body',
+    acType: 'Chart.HorizontalBar.Stacked',
+    properties: { ...props, ...overrides },
+  };
+}
+
+function buildLineChart(
+  slotId: string,
+  value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  const v = value as LineChartSlotValue | undefined;
+  if (!v?.series?.length) return null;
+
+  const props: Record<string, unknown> = {
+    data: v.series.map((s) => {
+      const series: Record<string, unknown> = { legend: s.legend, values: s.values };
+      if (s.color) series['color'] = s.color;
+      return series;
+    }),
+    spacing: 'Medium',
+  };
+  if (v.title) props['title'] = v.title;
+  if (v.xAxisTitle) props['xAxisTitle'] = v.xAxisTitle;
+  if (v.yAxisTitle) props['yAxisTitle'] = v.yAxisTitle;
+
+  return {
+    id: slotId,
+    sourceType: 'lineChart',
+    placement: 'body',
+    acType: 'Chart.Line',
+    properties: { ...props, ...overrides },
+  };
+}
+
+function buildGauge(
+  slotId: string,
+  value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode | null {
+  const v = value as GaugeSlotValue | undefined;
+  if (v?.value == null) return null;
+
+  const props: Record<string, unknown> = {
+    value: v.value,
+    min: v.min ?? 0,
+    max: v.max ?? 100,
+    spacing: 'Medium',
+  };
+  if (v.valueFormat) props['valueFormat'] = v.valueFormat;
+  if (v.segments?.length) {
+    props['segments'] = v.segments.map((s) => {
+      const seg: Record<string, unknown> = { legend: s.legend, size: s.size };
+      if (s.color) seg['color'] = s.color;
+      return seg;
+    });
+  }
+  if (v.subLabel) props['subLabel'] = v.subLabel;
+
+  return {
+    id: slotId,
+    sourceType: 'gauge',
+    placement: 'body',
+    acType: 'Chart.Gauge',
+    properties: { ...props, ...overrides },
   };
 }
