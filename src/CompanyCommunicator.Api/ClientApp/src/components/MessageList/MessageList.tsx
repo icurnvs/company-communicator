@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import {
   makeStyles,
   tokens,
@@ -375,7 +375,7 @@ interface MessageRowProps {
   t: (key: string) => string;
 }
 
-function MessageRow({
+const MessageRow = memo(function MessageRow({
   notification,
   tab,
   isSelected,
@@ -446,7 +446,7 @@ function MessageRow({
       )}
     </div>
   );
-}
+});
 
 // ---------------------------------------------------------------------------
 // Main MessageList component
