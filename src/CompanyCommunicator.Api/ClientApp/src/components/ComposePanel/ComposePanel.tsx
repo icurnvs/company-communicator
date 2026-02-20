@@ -16,6 +16,7 @@ import {
 } from '@fluentui/react-components';
 import { Dismiss24Regular } from '@fluentui/react-icons';
 import { useSendNotification } from '@/api/notifications';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useComposeForm } from './useComposeForm';
 import { ActionBar } from './ActionBar';
 import { ContentTab } from './ContentTab';
@@ -163,6 +164,7 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
 
   // Escape key handler
   const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, true);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {

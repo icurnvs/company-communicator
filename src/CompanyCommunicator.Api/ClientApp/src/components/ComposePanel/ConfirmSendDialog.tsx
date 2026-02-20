@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   makeStyles,
   tokens,
@@ -15,6 +15,7 @@ import {
   Send16Regular,
   CheckmarkCircle16Regular,
 } from '@fluentui/react-icons';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { AdaptiveCardPreview } from '@/components/AdaptiveCardPreview/AdaptiveCardPreview';
 import type { CardData } from '@/lib/adaptiveCard';
 import type { ComposeFormValues } from '@/lib/validators';
@@ -160,6 +161,13 @@ export function ConfirmSendDialog({
   const [error, setError] = useState<string | null>(null);
   const [sentNotificationId, setSentNotificationId] = useState<string | null>(null);
 
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, true);
+
+  useEffect(() => {
+    dialogRef.current?.focus();
+  }, []);
+
   const { channelPosts, individuals } = categorizeAudiences(formValues.audiences);
   const reach = estimateReach(formValues.allUsers, formValues.audiences);
 
@@ -216,11 +224,13 @@ export function ConfirmSendDialog({
   return (
     <div className={styles.overlay} onClick={handleOverlayClick}>
       <div
+        ref={dialogRef}
         className={styles.dialog}
         onClick={(e) => { e.stopPropagation(); }}
         role="dialog"
         aria-modal="true"
         aria-label={phase === 'review' ? 'Review & Send' : 'Sending...'}
+        tabIndex={-1}
       >
         {/* Header */}
         <div className={styles.header}>
