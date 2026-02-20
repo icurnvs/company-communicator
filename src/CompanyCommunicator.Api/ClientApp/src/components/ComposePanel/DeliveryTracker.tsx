@@ -145,7 +145,14 @@ export function DeliveryTracker({ notificationId, onDone }: DeliveryTrackerProps
   return (
     <div className={styles.root}>
       {/* Progress ring */}
-      <div className={styles.progressRing}>
+      <div
+        className={styles.progressRing}
+        role="progressbar"
+        aria-valuenow={percentage}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Delivery progress: ${percentage}%`}
+      >
         <svg className={styles.svgRing} viewBox="0 0 120 120">
           {/* Background circle */}
           <circle
@@ -197,7 +204,7 @@ export function DeliveryTracker({ notificationId, onDone }: DeliveryTrackerProps
       </div>
 
       {/* Status label */}
-      <div className={styles.statusRow}>
+      <div className={styles.statusRow} aria-live="polite">
         {isSent && <CheckmarkCircle24Regular className={styles.successIcon} />}
         {isFailed && <DismissCircle24Regular className={styles.failIcon} />}
         <Text size={400} weight={isTerminal ? 'semibold' : 'regular'}>
