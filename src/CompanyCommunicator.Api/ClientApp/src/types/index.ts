@@ -266,4 +266,25 @@ export type {
   TableSlotValue,
   ExpandableSectionSlotValue,
   IconTextRowSlotValue,
+  // Phase C2 — Content block values
+  RichTextSegment,
+  RichTextSlotValue,
+  IconSlotValue,
+  BadgeSlotValue,
+  CodeBlockSlotValue,
+  RatingDisplaySlotValue,
+  CompoundButtonSlotValue,
+  // Phase C2 — Layout block values
+  FlowLayoutSlotValue,
+  GridLayoutSlotValue,
+  // Phase C2 — Chart block values
+  ChartDataPoint,
+  ChartSeriesData,
+  DonutChartSlotValue,
+  VerticalBarSlotValue,
+  GroupedBarSlotValue,
+  HorizontalBarSlotValue,
+  StackedBarSlotValue,
+  LineChartSlotValue,
+  GaugeSlotValue,
 } from './cardBuilder';
