@@ -6,6 +6,12 @@ import {
   Text,
   Button,
   Spinner,
+  Dialog,
+  DialogSurface,
+  DialogBody,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@fluentui/react-components';
 import { ChevronDownRegular, ChevronUpRegular, Dismiss16Regular } from '@fluentui/react-icons';
 import { useTemplates, useDeleteTemplate } from '@/api/templates';
@@ -264,6 +270,10 @@ export function TemplatePicker({ form, defaultCollapsed = false }: TemplatePicke
   const styles = useStyles();
   const [expanded, setExpanded] = useState(!defaultCollapsed);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const { data: customTemplates, isLoading: isLoadingTemplates } = useTemplates();
   const deleteTemplateMutation = useDeleteTemplate();
@@ -282,15 +292,19 @@ export function TemplatePicker({ form, defaultCollapsed = false }: TemplatePicke
     }
 
     if (hasContent && templateId !== BLANK_TEMPLATE_ID) {
-      const confirmed = window.confirm(
-        'Replace current content with this template?',
-      );
-      if (!confirmed) return;
-    } else if (hasContent && templateId === BLANK_TEMPLATE_ID) {
-      const confirmed = window.confirm(
-        'Clear current content and start with a blank card?',
-      );
-      if (!confirmed) return;
+      setPendingAction({
+        message: 'Replace current content with this template?',
+        onConfirm: () => { applySchema(form, schema); },
+      });
+      return;
+    }
+
+    if (hasContent && templateId === BLANK_TEMPLATE_ID) {
+      setPendingAction({
+        message: 'Clear current content and start with a blank card?',
+        onConfirm: () => { applySchema(form, schema); },
+      });
+      return;
     }
 
     applySchema(form, schema);
@@ -301,11 +315,14 @@ export function TemplatePicker({ form, defaultCollapsed = false }: TemplatePicke
   // ---------------------------------------------------------------------------
 
   const handleDelete = (id: string) => {
-    const confirmed = window.confirm('Delete this custom template?');
-    if (!confirmed) return;
-    setDeletingId(id);
-    deleteTemplateMutation.mutate(id, {
-      onSettled: () => { setDeletingId(null); },
+    setPendingAction({
+      message: 'Delete this custom template?',
+      onConfirm: () => {
+        setDeletingId(id);
+        deleteTemplateMutation.mutate(id, {
+          onSettled: () => { setDeletingId(null); },
+        });
+      },
     });
   };
 
@@ -398,6 +415,35 @@ export function TemplatePicker({ form, defaultCollapsed = false }: TemplatePicke
           )}
         </div>
       )}
+
+      <Dialog
+        open={pendingAction !== null}
+        onOpenChange={(_e, data) => { if (!data.open) setPendingAction(null); }}
+      >
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Confirm</DialogTitle>
+            <DialogContent>{pendingAction?.message}</DialogContent>
+            <DialogActions>
+              <Button
+                appearance="secondary"
+                onClick={() => { setPendingAction(null); }}
+              >
+                Cancel
+              </Button>
+              <Button
+                appearance="primary"
+                onClick={() => {
+                  pendingAction?.onConfirm();
+                  setPendingAction(null);
+                }}
+              >
+                Confirm
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </div>
   );
 }
