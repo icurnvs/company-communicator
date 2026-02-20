@@ -1,11 +1,12 @@
-import { useState, useCallback, lazy, Suspense } from 'react';
+import { useState, useCallback, useEffect, lazy, Suspense } from 'react';
 import { makeStyles, tokens } from '@fluentui/react-components';
 import { ErrorBoundary } from '@/components/Layout/ErrorBoundary';
 import { Sidebar } from '@/components/Sidebar/Sidebar';
 import { MessageList } from '@/components/MessageList/MessageList';
+import { HomeDashboard } from '@/components/HomeDashboard/HomeDashboard';
 import { DetailPanel } from '@/components/DetailPanel/DetailPanel';
 import type { ComposeFormValues } from '@/lib/validators';
-import type { NotificationTab, NotificationDto, KeyDetailPair, CustomVariable, AdvancedBlock, CardPreference } from '@/types';
+import type { SidebarView, NotificationDto, KeyDetailPair, CustomVariable, AdvancedBlock, CardPreference } from '@/types';
 
 const ComposePanel = lazy(() =>
   import('@/components/ComposePanel/ComposePanel').then((m) => ({
@@ -22,45 +23,58 @@ const useStyles = makeStyles({
     display: 'grid',
     height: '100vh',
     overflow: 'hidden',
-    position: 'relative', // anchor for overlay panels
+    position: 'relative',
     backgroundColor: tokens.colorNeutralBackground1,
-    // Fixed 2-column grid — detail panel is overlayed, not a third column
     gridTemplateColumns: '200px 1fr',
+    maxWidth: '1400px',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    boxShadow: tokens.shadow16,
   },
-  messageListArea: {
+  contentArea: {
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
-    position: 'relative', // anchor for the detail panel overlay
   },
-  // Detail panel slides in from the right, overlaying the message list
-  detailOverlay: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: '360px',
-    maxWidth: '100%',
+  // Centered dialog backdrop for the detail panel
+  detailBackdrop: {
+    position: 'fixed',
+    inset: 0,
     zIndex: 50,
-    boxShadow: tokens.shadow16,
-    borderLeft: `1px solid ${tokens.colorNeutralStroke2}`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: tokens.colorBackgroundOverlay,
+    backdropFilter: 'blur(4px)',
+    animationName: {
+      from: { opacity: 0 },
+      to: { opacity: 1 },
+    },
+    animationDuration: '200ms',
+    animationTimingFunction: 'ease-out',
+    animationFillMode: 'both',
+  },
+  // Centered dialog for the detail panel
+  detailDialog: {
+    position: 'relative',
+    width: 'calc(100% - 48px)',
+    maxWidth: '600px',
+    maxHeight: '70vh',
+    borderRadius: tokens.borderRadiusXLarge,
+    boxShadow: tokens.shadow64,
     backgroundColor: tokens.colorNeutralBackground1,
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
+    animationName: {
+      from: { opacity: 0, transform: 'scale(0.97)' },
+      to: { opacity: 1, transform: 'scale(1)' },
+    },
+    animationDuration: '220ms',
+    animationTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
+    animationFillMode: 'both',
   },
 });
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export interface CommunicationCenterState {
-  selectedTab: NotificationTab;
-  selectedMessageId: string | null;
-  composeOpen: boolean;
-  composeEditId: string | null;
-}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -69,14 +83,14 @@ export interface CommunicationCenterState {
 export function CommunicationCenter() {
   const styles = useStyles();
 
-  const [selectedTab, setSelectedTab] = useState<NotificationTab>('Sent');
+  const [activeView, setActiveView] = useState<SidebarView>('Home');
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeEditId, setComposeEditId] = useState<string | null>(null);
   const [cloneValues, setCloneValues] = useState<Partial<ComposeFormValues> | null>(null);
 
-  const handleTabChange = useCallback((tab: NotificationTab) => {
-    setSelectedTab(tab);
+  const handleViewChange = useCallback((view: SidebarView) => {
+    setActiveView(view);
     setSelectedMessageId(null);
   }, []);
 
@@ -100,11 +114,21 @@ export function CommunicationCenter() {
     setSelectedMessageId(null);
   }, []);
 
+  // Escape key closes the detail dialog (skip when compose is open — it has its own handler)
+  useEffect(() => {
+    if (!selectedMessageId || composeOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleCloseDetail();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => { document.removeEventListener('keydown', onKeyDown); };
+  }, [selectedMessageId, composeOpen, handleCloseDetail]);
+
   const handleDeliveryDone = useCallback(() => {
     setComposeOpen(false);
     setComposeEditId(null);
     setCloneValues(null);
-    setSelectedTab('Sent');
+    setActiveView('Sent');
   }, []);
 
   // "Use as template" — opens compose pre-filled with an existing notification's
@@ -144,33 +168,46 @@ export function CommunicationCenter() {
     setComposeOpen(true);
   }, []);
 
+  // Determine whether to show Home or a message list tab
+  const isHome = activeView === 'Home';
+
   return (
     <div className={styles.root} role="main">
       {/* Zone 1 — Sidebar */}
       <Sidebar
-        activeTab={selectedTab}
-        onTabChange={handleTabChange}
+        activeView={activeView}
+        onViewChange={handleViewChange}
         onComposeClick={() => { handleOpenCompose(); }}
       />
 
-      {/* Zone 2 — Message list + Detail panel overlay */}
+      {/* Zone 2 — Content area */}
       <ErrorBoundary>
-        <div className={styles.messageListArea}>
-          <MessageList
-            activeTab={selectedTab}
-            selectedMessageId={selectedMessageId}
-            onSelectMessage={handleSelectMessage}
-          />
+        <div className={styles.contentArea}>
+          {isHome ? (
+            <HomeDashboard onNavigate={handleViewChange} />
+          ) : (
+            <MessageList
+              activeTab={activeView}
+              selectedMessageId={selectedMessageId}
+              onSelectMessage={handleSelectMessage}
+            />
+          )}
 
-          {/* Detail panel — overlays message list from the right */}
+          {/* Detail panel — centered dialog */}
           {selectedMessageId && (
-            <div className={styles.detailOverlay}>
-              <DetailPanel
-                notificationId={selectedMessageId}
-                onClose={handleCloseDetail}
-                onEdit={handleOpenCompose}
-                onCloneToCompose={handleCloneToCompose}
-              />
+            <div
+              className={styles.detailBackdrop}
+              onClick={(e) => { if (e.target === e.currentTarget) handleCloseDetail(); }}
+              aria-hidden="true"
+            >
+              <div className={styles.detailDialog} role="dialog" aria-modal="true" aria-label="Message details">
+                <DetailPanel
+                  notificationId={selectedMessageId}
+                  onClose={handleCloseDetail}
+                  onEdit={handleOpenCompose}
+                  onCloneToCompose={handleCloneToCompose}
+                />
+              </div>
             </div>
           )}
         </div>

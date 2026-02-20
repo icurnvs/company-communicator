@@ -1,6 +1,8 @@
 import { makeStyles, mergeClasses, tokens, Button, CounterBadge, Text } from '@fluentui/react-components';
 import {
   Add24Regular,
+  Home24Regular,
+  Home24Filled,
   Send24Regular,
   Send24Filled,
   Edit24Regular,
@@ -10,7 +12,7 @@ import {
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { useNotifications } from '@/api/notifications';
-import type { NotificationTab } from '@/types';
+import type { NotificationTab, SidebarView } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -41,6 +43,14 @@ const useStyles = makeStyles({
     gap: tokens.spacingVerticalXS,
     padding: `0 ${tokens.spacingHorizontalS}`,
     overflowY: 'auto',
+  },
+  separator: {
+    height: '1px',
+    backgroundColor: tokens.colorNeutralStroke2,
+    marginTop: tokens.spacingVerticalXS,
+    marginBottom: tokens.spacingVerticalXS,
+    marginLeft: tokens.spacingHorizontalS,
+    marginRight: tokens.spacingHorizontalS,
   },
   navItem: {
     display: 'flex',
@@ -89,8 +99,8 @@ function useTabCount(status: NotificationTab): number {
 // ---------------------------------------------------------------------------
 
 interface SidebarProps {
-  activeTab: NotificationTab;
-  onTabChange: (tab: NotificationTab) => void;
+  activeView: SidebarView;
+  onViewChange: (view: SidebarView) => void;
   onComposeClick: () => void;
 }
 
@@ -177,9 +187,12 @@ function NavItem({
 // Sidebar
 // ---------------------------------------------------------------------------
 
-export function Sidebar({ activeTab, onTabChange, onComposeClick }: SidebarProps) {
+export function Sidebar({ activeView, onViewChange, onComposeClick }: SidebarProps) {
   const styles = useStyles();
   const { t } = useTranslation();
+
+  const isHomeActive = activeView === 'Home';
+  const HomeIcon = isHomeActive ? Home24Filled : Home24Regular;
 
   return (
     <nav className={styles.root} aria-label={t('nav.notifications')}>
@@ -196,12 +209,33 @@ export function Sidebar({ activeTab, onTabChange, onComposeClick }: SidebarProps
       </div>
 
       <div className={styles.nav} role="list">
+        {/* Home nav item */}
+        <button
+          type="button"
+          className={mergeClasses(styles.navItem, isHomeActive ? styles.navItemActive : undefined)}
+          onClick={() => { onViewChange('Home'); }}
+          aria-current={isHomeActive ? 'page' : undefined}
+          aria-label={t('sidebar.home')}
+        >
+          <HomeIcon />
+          <Text
+            size={300}
+            className={mergeClasses(styles.navItemLabel, isHomeActive ? styles.navItemLabelActive : undefined)}
+          >
+            {t('sidebar.home')}
+          </Text>
+        </button>
+
+        {/* Separator */}
+        <div className={styles.separator} role="separator" />
+
+        {/* Notification tab items */}
         {NAV_ITEMS.map((item) => (
           <NavItem
             key={item.tab}
             item={item}
-            isActive={activeTab === item.tab}
-            onSelect={() => onTabChange(item.tab)}
+            isActive={activeView === item.tab}
+            onSelect={() => onViewChange(item.tab)}
           />
         ))}
       </div>

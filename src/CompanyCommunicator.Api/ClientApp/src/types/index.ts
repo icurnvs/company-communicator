@@ -196,6 +196,8 @@ export interface PaginatedResult<T> {
 
 export type NotificationTab = 'Draft' | 'Sent' | 'Scheduled';
 
+export type SidebarView = 'Home' | NotificationTab;
+
 export interface ApiError {
   status: number;
   message: string;

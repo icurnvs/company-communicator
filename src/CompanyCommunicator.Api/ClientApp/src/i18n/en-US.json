@@ -20,10 +20,20 @@
     "notifications": "Notifications"
   },
   "sidebar": {
+    "home": "Home",
     "compose": "Compose",
     "sent": "Sent",
     "drafts": "Drafts",
     "scheduled": "Scheduled"
+  },
+  "dashboard": {
+    "title": "Company Communicator",
+    "sentCount": "Sent",
+    "draftCount": "Drafts",
+    "scheduledCount": "Scheduled",
+    "viewAll": "View all",
+    "recentMessages": "Recent Messages",
+    "noRecent": "No messages sent yet"
   },
   "compose": {
     "newMessage": "New Message",

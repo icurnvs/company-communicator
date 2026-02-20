@@ -146,11 +146,16 @@ const useStyles = makeStyles({
     width: '100%',
   },
 
-  // Scrollable list area
+  // Card grid area
   listArea: {
     flex: 1,
     overflowY: 'auto',
     overflowX: 'hidden',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+    gap: '16px',
+    padding: '16px',
+    alignContent: 'start',
   },
 
   // Empty / loading / error states
@@ -159,76 +164,69 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100%',
     padding: tokens.spacingHorizontalXL,
     gap: tokens.spacingVerticalM,
     color: tokens.colorNeutralForeground3,
     textAlign: 'center',
+    gridColumn: '1 / -1',
+    minHeight: '200px',
   },
 
-  // Message row — outer wrapper (position relative for progress bar)
-  rowWrapper: {
-    position: 'relative',
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+  // Card
+  card: {
+    display: 'flex',
+    flexDirection: 'column',
+    padding: '16px',
+    borderRadius: tokens.borderRadiusLarge,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    backgroundColor: tokens.colorNeutralBackground1,
+    cursor: 'pointer',
+    transitionProperty: 'box-shadow, border-color',
+    transitionDuration: '0.15s',
+    transitionTimingFunction: 'ease',
+    ':hover': {
+      boxShadow: tokens.shadow4,
+      borderColor: tokens.colorBrandStroke1,
+    },
+    ':focus-visible': {
+      outlineWidth: '2px',
+      outlineStyle: 'solid',
+      outlineColor: tokens.colorBrandStroke1,
+      outlineOffset: '2px',
+    },
+  },
+  cardSelected: {
+    borderColor: tokens.colorBrandStroke1,
+    boxShadow: tokens.shadow8,
+    ':hover': {
+      borderColor: tokens.colorBrandStroke1,
+      boxShadow: tokens.shadow8,
+    },
   },
 
-  row: {
+  // Card top row: avatar + title + date
+  cardTop: {
     display: 'flex',
     alignItems: 'center',
-    gap: tokens.spacingHorizontalM,
-    padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
-    cursor: 'pointer',
-    minHeight: '64px',
-    backgroundColor: tokens.colorNeutralBackground1,
-    transition: 'background-color 0.1s ease',
-    ':hover': {
-      backgroundColor: tokens.colorNeutralBackground1Hover,
-    },
-    // Remove default button styles if ever rendered as button
-    border: 'none',
-    width: '100%',
-    textAlign: 'left',
+    gap: '8px',
   },
 
-  rowSelected: {
-    backgroundColor: tokens.colorNeutralBackground1Selected,
-    ':hover': {
-      backgroundColor: tokens.colorNeutralBackground1Selected,
-    },
-  },
-
-  // Avatar circle
+  // Avatar circle (slightly smaller for cards)
   avatar: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '40px',
-    height: '40px',
+    width: '32px',
+    height: '32px',
     borderRadius: tokens.borderRadiusCircular,
     flexShrink: 0,
     color: tokens.colorNeutralForegroundInverted,
-    fontSize: tokens.fontSizeBase300,
+    fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
     userSelect: 'none',
   },
 
-  // Row body (text content)
-  rowBody: {
-    flex: 1,
-    minWidth: 0, // Allow text truncation
-    display: 'flex',
-    flexDirection: 'column',
-    gap: tokens.spacingVerticalXXS,
-  },
-
-  rowTopLine: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: tokens.spacingHorizontalS,
-  },
-
-  rowTitle: {
+  cardTitle: {
     flex: 1,
     minWidth: 0,
     overflow: 'hidden',
@@ -240,26 +238,38 @@ const useStyles = makeStyles({
     lineHeight: tokens.lineHeightBase300,
   },
 
-  rowDate: {
+  cardDate: {
     flexShrink: 0,
     fontSize: tokens.fontSizeBase100,
     color: tokens.colorNeutralForeground3,
     whiteSpace: 'nowrap',
   },
 
-  rowPreview: {
+  // Card body: preview text
+  cardBody: {
+    marginTop: '8px',
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical',
     overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
     fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground3,
     lineHeight: tokens.lineHeightBase200,
+    minHeight: `calc(${tokens.lineHeightBase200} * 2)`,
   },
 
-  rowBottomLine: {
+  // Card footer: status + delivery count
+  cardFooter: {
     display: 'flex',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 'auto',
+    paddingTop: '12px',
+  },
+
+  deliveryCount: {
+    fontSize: tokens.fontSizeBase100,
+    color: tokens.colorNeutralForeground3,
   },
 
   // Status badge — inline text with colored dot
@@ -291,19 +301,20 @@ const useStyles = makeStyles({
     animationIterationCount: 'infinite',
   },
 
-  // Indeterminate progress bar for in-progress rows
+  // Indeterminate progress bar for in-progress cards
   '@keyframes indeterminate': {
     '0%': { transform: 'translateX(-100%)' },
     '100%': { transform: 'translateX(400%)' },
   },
   progressBarTrack: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     height: '2px',
     backgroundColor: tokens.colorNeutralBackground3,
     overflow: 'hidden',
+    borderRadius: `0 0 ${tokens.borderRadiusLarge} ${tokens.borderRadiusLarge}`,
+    marginTop: '12px',
+    marginLeft: '-16px',
+    marginRight: '-16px',
+    marginBottom: '-16px',
   },
   progressBarFill: {
     height: '100%',
@@ -365,7 +376,7 @@ function StatusBadge({ status, t, styles }: StatusBadgeProps) {
   );
 }
 
-interface MessageRowProps {
+interface MessageCardProps {
   notification: NotificationSummaryDto;
   tab: NotificationTab;
   isSelected: boolean;
@@ -374,39 +385,39 @@ interface MessageRowProps {
   t: (key: string) => string;
 }
 
-const MessageRow = memo(function MessageRow({
+const MessageCard = memo(function MessageCard({
   notification,
   tab,
   isSelected,
   onSelect,
   styles,
   t,
-}: MessageRowProps) {
+}: MessageCardProps) {
   const isInProgress = IN_PROGRESS_STATUSES.includes(notification.status);
   const avatarColor = getAvatarColor(notification.title);
   const initials = getAvatarInitials(notification.title);
   const relDate = formatRelativeDate(getRelevantDate(notification, tab));
   const preview = notification.summary
-    ? notification.summary.slice(0, 80)
+    ? notification.summary.slice(0, 120)
     : '';
 
   return (
-    <div className={styles.rowWrapper}>
-      <div
-        role="button"
-        tabIndex={0}
-        className={mergeClasses(styles.row, isSelected ? styles.rowSelected : undefined)}
-        onClick={() => { onSelect(notification); }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            onSelect(notification);
-          }
-        }}
-        aria-pressed={isSelected}
-        aria-label={`${notification.title} — ${t(`status.${notification.status}`)}`}
-      >
-        {/* Avatar */}
+    <div
+      role="button"
+      tabIndex={0}
+      className={mergeClasses(styles.card, isSelected ? styles.cardSelected : undefined)}
+      onClick={() => { onSelect(notification); }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(notification);
+        }
+      }}
+      aria-pressed={isSelected}
+      aria-label={`${notification.title} — ${t(`status.${notification.status}`)}`}
+    >
+      {/* Top row: avatar + title + date */}
+      <div className={styles.cardTop}>
         <div
           className={styles.avatar}
           style={{ backgroundColor: avatarColor }}
@@ -414,27 +425,27 @@ const MessageRow = memo(function MessageRow({
         >
           {initials}
         </div>
+        <span className={styles.cardTitle} title={notification.title}>
+          {notification.title}
+        </span>
+        {relDate && (
+          <span className={styles.cardDate}>{relDate}</span>
+        )}
+      </div>
 
-        {/* Body */}
-        <div className={styles.rowBody}>
-          {/* Top line: title + date */}
-          <div className={styles.rowTopLine}>
-            <span className={styles.rowTitle} title={notification.title}>
-              {notification.title}
-            </span>
-            {relDate && (
-              <span className={styles.rowDate}>{relDate}</span>
-            )}
-          </div>
+      {/* Body: preview text */}
+      <div className={styles.cardBody}>
+        {preview}
+      </div>
 
-          {/* Bottom line: preview + status */}
-          <div className={styles.rowBottomLine}>
-            <span className={styles.rowPreview} title={preview || undefined}>
-              {preview}
-            </span>
-            <StatusBadge status={notification.status} t={t} styles={styles} />
-          </div>
-        </div>
+      {/* Footer: status badge + delivery count */}
+      <div className={styles.cardFooter}>
+        <StatusBadge status={notification.status} t={t} styles={styles} />
+        {tab === 'Sent' && notification.totalRecipientCount > 0 && (
+          <span className={styles.deliveryCount}>
+            {notification.succeededCount}/{notification.totalRecipientCount} delivered
+          </span>
+        )}
       </div>
 
       {/* In-progress indeterminate progress bar */}
@@ -526,7 +537,7 @@ export function MessageList({
     );
   } else if (isError) {
     bodyContent = (
-      <div style={{ padding: tokens.spacingHorizontalM }}>
+      <div className={styles.centerState}>
         <MessageBar intent="error">
           <MessageBarBody>
             {error instanceof Error ? error.message : t('errors.loadFailed')}
@@ -548,7 +559,7 @@ export function MessageList({
     );
   } else {
     bodyContent = filteredItems.map((notification) => (
-      <MessageRow
+      <MessageCard
         key={notification.id}
         notification={notification}
         tab={activeTab}
@@ -576,7 +587,7 @@ export function MessageList({
         />
       </div>
 
-      {/* Scrollable list */}
+      {/* Card grid */}
       <div className={styles.listArea} role="list" aria-label={t('messageList.title')}>
         {bodyContent}
       </div>
