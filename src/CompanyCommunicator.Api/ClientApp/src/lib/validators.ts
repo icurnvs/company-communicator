@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { CreateNotificationRequest, UpdateNotificationRequest, ExtendedSlotType, CardSettings } from '@/types';
+import type { CreateNotificationRequest, UpdateNotificationRequest, CardSettings } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Audience schema
@@ -100,6 +100,7 @@ export const composeFormSchema = z
         z.object({
           id: z.string(),
           type: z.enum([
+            // Phase C (Extended)
             'imageGallery',
             'statsRow',
             'quoteCallout',
@@ -107,6 +108,24 @@ export const composeFormSchema = z
             'table',
             'expandableSection',
             'iconTextRow',
+            // Phase C2 — Content
+            'richText',
+            'icon',
+            'badge',
+            'codeBlock',
+            'ratingDisplay',
+            'compoundButton',
+            // Phase C2 — Layout
+            'flowLayout',
+            'gridLayout',
+            // Phase C2 — Charts
+            'donutChart',
+            'verticalBar',
+            'groupedBar',
+            'horizontalBar',
+            'stackedBar',
+            'lineChart',
+            'gauge',
           ]),
           data: z.record(z.unknown()),
           order: z.number(),
@@ -244,7 +263,7 @@ export interface TemplateMetadata {
   themeId: string;
   slotVisibility: Record<string, boolean>;
   slotOrder?: Record<string, number> | null;
-  additionalSlots?: Array<{ id: string; type: ExtendedSlotType; data: Record<string, unknown>; order: number }> | null;
+  additionalSlots?: Array<{ id: string; type: string; data: Record<string, unknown>; order: number }> | null;
   advancedOverrides?: Record<string, Record<string, unknown>> | null;
   cardSettings?: CardSettings | null;
 }
