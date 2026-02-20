@@ -69,6 +69,10 @@ function serializeNode(node: CardElementNode): object | null {
         // ActionSet.actions are already in properties
         break;
 
+      case 'RichTextBlock':
+        // RichTextBlock.inlines are already in properties — no child processing
+        break;
+
       default:
         // For other types with children, put them in items
         result['items'] = children.map(serializeNode).filter(Boolean);

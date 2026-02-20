@@ -136,6 +136,15 @@ export interface MultiSeriesEditorProps {
   onChange: (series: ChartSeriesData[]) => void;
 }
 
+// Adapter: convert ChartSeriesData.values to/from ChartDataPoint[] for SingleSeriesEditor
+function toPoints(values: { x: string; y: number }[]): ChartDataPoint[] {
+  return values.map((v) => ({ label: v.x, value: v.y }));
+}
+
+function fromPoints(points: ChartDataPoint[]): { x: string; y: number }[] {
+  return points.map((p) => ({ x: p.label, y: p.value }));
+}
+
 export function MultiSeriesEditor({ series, onChange }: MultiSeriesEditorProps) {
   const styles = useStyles();
 
@@ -156,13 +165,6 @@ export function MultiSeriesEditor({ series, onChange }: MultiSeriesEditorProps) 
   const removeSeries = useCallback((index: number) => {
     onChange(series.filter((_, i) => i !== index));
   }, [series, onChange]);
-
-  // Adapter: convert ChartSeriesData.values to/from ChartDataPoint[] for SingleSeriesEditor
-  const toPoints = (values: { x: string; y: number }[]): ChartDataPoint[] =>
-    values.map((v) => ({ label: v.x, value: v.y }));
-
-  const fromPoints = (points: ChartDataPoint[]): { x: string; y: number }[] =>
-    points.map((p) => ({ x: p.label, y: p.value }));
 
   return (
     <div className={styles.container}>

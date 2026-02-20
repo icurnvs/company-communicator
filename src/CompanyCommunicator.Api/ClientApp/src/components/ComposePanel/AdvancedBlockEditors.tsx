@@ -185,6 +185,7 @@ function RichTextEditor({ data, onChange, styles }: EditorProps) {
               appearance={seg.bold ? 'primary' : 'subtle'}
               onClick={() => { updateSegment(i, { bold: !seg.bold }); }}
               aria-label="Bold"
+              aria-pressed={seg.bold ?? false}
             >
               <strong>B</strong>
             </Button>
@@ -194,6 +195,7 @@ function RichTextEditor({ data, onChange, styles }: EditorProps) {
               appearance={seg.italic ? 'primary' : 'subtle'}
               onClick={() => { updateSegment(i, { italic: !seg.italic }); }}
               aria-label="Italic"
+              aria-pressed={seg.italic ?? false}
             >
               <em>I</em>
             </Button>
@@ -203,6 +205,7 @@ function RichTextEditor({ data, onChange, styles }: EditorProps) {
               appearance={seg.strikethrough ? 'primary' : 'subtle'}
               onClick={() => { updateSegment(i, { strikethrough: !seg.strikethrough }); }}
               aria-label="Strikethrough"
+              aria-pressed={seg.strikethrough ?? false}
             >
               <s>S</s>
             </Button>
@@ -212,6 +215,7 @@ function RichTextEditor({ data, onChange, styles }: EditorProps) {
               appearance={seg.underline ? 'primary' : 'subtle'}
               onClick={() => { updateSegment(i, { underline: !seg.underline }); }}
               aria-label="Underline"
+              aria-pressed={seg.underline ?? false}
             >
               <u>U</u>
             </Button>

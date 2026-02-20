@@ -78,7 +78,7 @@ export function resolveTemplate(
     for (const additional of sorted) {
       const fakeSlot: SlotDefinition = {
         id: additional.id,
-        type: additional.type as SlotType,
+        type: 'bodyText' as SlotType, // placeholder; typeOverride below drives builder dispatch
         label: '',
         visibility: 'required',
         order: additional.order,
@@ -357,7 +357,11 @@ function buildFooter(
   };
 }
 
-function buildDivider(slotId: string): CardElementNode {
+function buildDivider(
+  slotId: string,
+  _value: unknown,
+  overrides?: Record<string, unknown>,
+): CardElementNode {
   return {
     id: slotId,
     sourceType: 'divider',
@@ -367,6 +371,7 @@ function buildDivider(slotId: string): CardElementNode {
       text: ' ',
       separator: true,
       spacing: 'Medium',
+      ...overrides,
     },
   };
 }
@@ -1015,7 +1020,7 @@ function buildGridLayout(
     properties: {
       layouts: [{
         type: 'Layout.AreaGrid',
-        columns: v.columns?.length ? v.columns : [50, 50],
+        columns: (v.columns?.length ? v.columns : [50, 50]).map((w) => `${w}px`),
         areas: gridAreas,
       }],
       spacing: 'Medium',
