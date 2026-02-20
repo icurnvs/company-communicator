@@ -1,27 +1,9 @@
 import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Spinner } from '@fluentui/react-components';
-import { AppLayout } from '@/components/Layout/AppLayout';
+import { CommunicationCenter } from '@/components/CommunicationCenter/CommunicationCenter';
 
-// Lazy load pages for code splitting
-const NotificationList = lazy(() =>
-  import('@/components/NotificationList/NotificationList').then((m) => ({
-    default: m.NotificationList,
-  })),
-);
-
-const StatusView = lazy(() =>
-  import('@/components/StatusView/StatusView').then((m) => ({
-    default: m.StatusView,
-  })),
-);
-
-const NotificationForm = lazy(() =>
-  import('@/components/NotificationForm/NotificationForm').then((m) => ({
-    default: m.NotificationForm,
-  })),
-);
-
+// Lazy load dialog pages for code splitting
 const ExportManager = lazy(() =>
   import('@/components/ExportManager/ExportManager').then((m) => ({
     default: m.ExportManager,
@@ -48,31 +30,11 @@ export function App() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Main-frame routes (shown in the Teams tab) */}
-        <Route
-          path="/"
-          element={
-            <AppLayout>
-              <NotificationList />
-            </AppLayout>
-          }
-        />
-        <Route
-          path="/notifications/:id"
-          element={
-            <AppLayout showNewButton={false}>
-              <StatusView />
-            </AppLayout>
-          }
-        />
+        {/* Main Teams tab — Communication Center layout */}
+        <Route path="/" element={<CommunicationCenter />} />
 
-        {/* Dialog routes (opened via Teams dialog.url.open()) */}
-        <Route path="/compose" element={<NotificationForm />} />
-        <Route path="/compose/:id" element={<NotificationForm />} />
-        <Route
-          path="/export/:notificationId"
-          element={<ExportManager />}
-        />
+        {/* Dialog route — opened via Teams dialog.url.open() for CSV export */}
+        <Route path="/export/:notificationId" element={<ExportManager />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
