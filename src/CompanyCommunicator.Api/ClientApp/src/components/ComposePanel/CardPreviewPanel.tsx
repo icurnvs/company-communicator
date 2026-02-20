@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import {
   makeStyles,
+  mergeClasses,
   tokens,
   ToggleButton,
   Caption1,
@@ -124,6 +125,7 @@ export function CardPreviewPanel({ cardPayload, cardTheme }: CardPreviewPanelPro
       const hostConfig = buildThemedHostConfig(recipientTheme, cardTheme);
       const card = new AdaptiveCards.AdaptiveCard();
       card.hostConfig = new AdaptiveCards.HostConfig(hostConfig);
+      card.onExecuteAction = () => {};
       card.parse(cardPayload);
       const rendered = card.render();
       if (rendered) {
@@ -175,7 +177,7 @@ export function CardPreviewPanel({ cardPayload, cardTheme }: CardPreviewPanelPro
         </ToggleButton>
       </div>
 
-      <div className={`${styles.previewContainer} ${bgClass}`} ref={containerRef}>
+      <div className={mergeClasses(styles.previewContainer, bgClass)} ref={containerRef}>
         {!cardPayload && (
           <div className={styles.emptyState}>
             <Caption1>Select a template to see a preview</Caption1>

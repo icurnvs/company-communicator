@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Controller, useFieldArray } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import {
@@ -206,16 +206,11 @@ function BodyTextEditor({
   onAddCustomVariable?: (name: string) => void;
 }) {
   const styles = useStyles();
-  const { control, watch, formState: { errors } } = form;
+  const { control, formState: { errors } } = form;
   const bodyTextareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const watchedValues = watch();
-
-  const handleAddCustomVariable = (name: string) => {
-    if (!onAddCustomVariable) return;
-    const current = watchedValues.customVariables ?? [];
-    if (current.some((v) => v.name === name)) return;
-    onAddCustomVariable(name);
-  };
+  const allUsers = form.watch('allUsers');
+  const audiences = form.watch('audiences');
+  const customVariables = form.watch('customVariables');
 
   return (
     <Controller
@@ -228,10 +223,10 @@ function BodyTextEditor({
               <div className={styles.bodyToolbarLeft}>
                 <VariableInsert
                   textareaRef={bodyTextareaRef}
-                  allUsers={watchedValues.allUsers}
-                  audiences={watchedValues.audiences}
-                  customVariables={watchedValues.customVariables}
-                  onAddCustomVariable={handleAddCustomVariable}
+                  allUsers={allUsers}
+                  audiences={audiences}
+                  customVariables={customVariables}
+                  onAddCustomVariable={(name) => { onAddCustomVariable?.(name); }}
                 />
               </div>
               <CharCount value={field.value} max={4000} />
@@ -301,10 +296,12 @@ function KeyDetailsEditor({ form }: { form: UseFormReturn<ComposeFormValues> }) 
     remove: removeKeyDetail,
   } = useFieldArray({ control, name: 'keyDetails' });
 
-  // Ensure at least one row exists
-  if (keyDetailFields.length === 0) {
-    appendKeyDetail({ label: '', value: '' });
-  }
+  // Ensure at least one row exists (in an effect to avoid calling during render)
+  useEffect(() => {
+    if (keyDetailFields.length === 0) {
+      appendKeyDetail({ label: '', value: '' });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className={styles.keyDetailsContainer}>

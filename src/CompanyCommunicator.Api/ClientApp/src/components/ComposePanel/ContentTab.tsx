@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import {
   makeStyles,
@@ -95,21 +95,32 @@ export function ContentTab({ form, isEdit = false }: ContentTabProps) {
     },
   );
 
+  // Keep activeTemplate in sync when form is reset (e.g. edit-mode fetch)
+  const watchedTemplateId = watch('templateId');
+  useEffect(() => {
+    const resolved = watchedTemplateId ? getTemplateById(watchedTemplateId) : null;
+    if (resolved) {
+      setActiveTemplate(resolved);
+    }
+  }, [watchedTemplateId]);
+
   // Watch form values for live preview (deferred to avoid blocking inputs)
   const watchedValues = watch();
   const deferredValues = useDeferredValue(watchedValues);
 
   const themeId = watchedValues.themeId ?? DEFAULT_THEME_ID;
   const slotVisibility = watchedValues.slotVisibility ?? {};
-  const cardTheme = useMemo(() => getThemeById(themeId), [themeId]);
 
-  // Build the preview card payload via the pipeline
+  // Build the preview card payload via the pipeline (all from deferred values)
   const previewResult = useMemo(() => {
+    const deferredThemeId = deferredValues.themeId ?? DEFAULT_THEME_ID;
+    const deferredSlotVis = deferredValues.slotVisibility ?? {};
+
     const document = formValuesToCardDocument(
       deferredValues,
       activeTemplate,
-      themeId,
-      slotVisibility,
+      deferredThemeId,
+      deferredSlotVis,
     );
 
     const customVars = deferredValues.customVariables
@@ -121,7 +132,12 @@ export function ContentTab({ form, isEdit = false }: ContentTabProps) {
     } catch {
       return null;
     }
-  }, [deferredValues, activeTemplate, themeId, slotVisibility]);
+  }, [deferredValues, activeTemplate]);
+
+  const cardTheme = useMemo(
+    () => getThemeById(deferredValues.themeId ?? DEFAULT_THEME_ID),
+    [deferredValues.themeId],
+  );
 
   // ---------------------------------------------------------------------------
   // Callbacks
