@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { makeStyles, tokens } from '@fluentui/react-components';
 import { ErrorBoundary } from '@/components/Layout/ErrorBoundary';
 import { Sidebar } from '@/components/Sidebar/Sidebar';
-import type { NotificationTab } from '@/types';
+import { MessageList } from '@/components/MessageList/MessageList';
+import { DetailPanel } from '@/components/DetailPanel/DetailPanel';
+import { ComposePanel } from '@/components/ComposePanel/ComposePanel';
+import type { NotificationTab, NotificationDto } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -13,6 +16,7 @@ const useStyles = makeStyles({
     display: 'grid',
     height: '100vh',
     overflow: 'hidden',
+    position: 'relative', // anchor for compose slide-over absolute positioning
     backgroundColor: tokens.colorNeutralBackground1,
     // Default: sidebar + message list only; detail panel added dynamically via
     // inline style when a message is selected.
@@ -31,13 +35,6 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
-  },
-  placeholder: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    color: tokens.colorNeutralForeground3,
   },
 });
 
@@ -95,6 +92,13 @@ export function CommunicationCenter() {
     },
   };
 
+  // "Use as template" — opens compose pre-filled with an existing notification's
+  // content as a new draft (no editId so it creates a new notification on save).
+  const handleCloneToCompose = useCallback((_notification: NotificationDto) => {
+    // For now, open a new compose. Task 18 will implement full content cloning.
+    actions.onOpenCompose(null);
+  }, []);
+
   return (
     <div
       className={hasDetail ? `${styles.root} ${styles.rootWithDetail}` : styles.root}
@@ -110,47 +114,36 @@ export function CommunicationCenter() {
       {/* Zone 2 — Message list */}
       <ErrorBoundary>
         <div className={styles.messageListArea}>
-          {/*
-           * Task 7 will replace this placeholder with <MessageList />.
-           * Props to pass:
-           *   activeTab={selectedTab}
-           *   selectedMessageId={selectedMessageId}
-           *   onSelectMessage={actions.onSelectMessage}
-           *   composeOpen={composeOpen}
-           *   composeEditId={composeEditId}
-           *   onCloseCompose={actions.onCloseCompose}
-           *   onOpenCompose={actions.onOpenCompose}
-           */}
-          <div className={styles.placeholder}>
-            Message list — Task 7
-          </div>
+          <MessageList
+            activeTab={selectedTab}
+            selectedMessageId={selectedMessageId}
+            onSelectMessage={actions.onSelectMessage}
+            onOpenCompose={actions.onOpenCompose}
+          />
         </div>
       </ErrorBoundary>
 
       {/* Zone 3 — Detail panel (only rendered when a message is selected) */}
-      {hasDetail && (
+      {hasDetail && selectedMessageId && (
         <ErrorBoundary>
           <div className={styles.detailPanelArea}>
-            {/*
-             * Task 8 will replace this placeholder with <DetailPanel />.
-             * Props to pass:
-             *   notificationId={selectedMessageId}
-             *   onClose={() => actions.onSelectMessage(null)}
-             *   onEdit={(id) => actions.onOpenCompose(id)}
-             */}
-            <div className={styles.placeholder}>
-              Detail panel — Task 8
-            </div>
+            <DetailPanel
+              notificationId={selectedMessageId}
+              onClose={() => actions.onSelectMessage(null)}
+              onEdit={(id) => actions.onOpenCompose(id)}
+              onCloneToCompose={handleCloneToCompose}
+            />
           </div>
         </ErrorBoundary>
       )}
 
-      {/*
-       * Task 9 will add the compose slide-over here, conditionally rendered
-       * when composeOpen is true and covering Zones 2 + 3.
-       * State available: composeOpen={composeOpen}, composeEditId={composeEditId}
-       * Actions: onClose={actions.onCloseCompose}
-       */}
+      {/* Compose slide-over — covers Zones 2 + 3 when open */}
+      {composeOpen && (
+        <ComposePanel
+          editId={composeEditId}
+          onClose={actions.onCloseCompose}
+        />
+      )}
     </div>
   );
 }
