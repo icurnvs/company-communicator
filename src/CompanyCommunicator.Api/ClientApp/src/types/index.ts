@@ -229,3 +229,40 @@ export interface UpdateTemplateRequest {
 }
 
 export type TeamsTheme = 'default' | 'dark' | 'contrast';
+
+// ---------------------------------------------------------------------------
+// Card builder pipeline types (new)
+// ---------------------------------------------------------------------------
+export type {
+  SlotType,
+  CoreSlotType,
+  ExtendedSlotType,
+  AdvancedBlockType as NewAdvancedBlockType,
+  AnyBlockType,
+  SlotVisibility,
+  SlotDefinition,
+  TemplateCategory,
+  TemplateDefinition,
+  ThemeDefinition,
+  CardDocument,
+  AdditionalSlot,
+  CardElementNode,
+  ElementPlacement,
+  CardBuildInput,
+  SlotValueMap,
+  HeadingSlotValue,
+  SubheadingSlotValue,
+  BodyTextSlotValue,
+  HeroImageSlotValue,
+  KeyDetailsSlotValue,
+  KeyDetailPairValue,
+  LinkButtonSlotValue,
+  FooterSlotValue,
+  ImageGallerySlotValue,
+  StatsRowSlotValue,
+  QuoteCalloutSlotValue,
+  ColumnsSlotValue,
+  TableSlotValue,
+  ExpandableSectionSlotValue,
+  IconTextRowSlotValue,
+} from './cardBuilder';
