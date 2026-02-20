@@ -408,14 +408,19 @@ internal sealed class AdaptiveCardService : IAdaptiveCardService
         foreach (var img in imagesNode)
         {
             var url = img?.GetValue<string>() ?? img?["url"]?.GetValue<string>();
-            if (!string.IsNullOrEmpty(url))
+
+            // Reject any image URL that is not an absolute HTTPS URL to prevent
+            // mixed-content issues and block non-HTTP schemes (data:, javascript:, etc.).
+            if (!IsValidHttpsUrl(url))
             {
-                imageElements.Add(new JsonObject
-                {
-                    ["type"] = "Image",
-                    ["url"] = url,
-                });
+                continue;
             }
+
+            imageElements.Add(new JsonObject
+            {
+                ["type"] = "Image",
+                ["url"] = url,
+            });
         }
 
         if (imageElements.Count == 0)
@@ -566,7 +571,15 @@ internal sealed class AdaptiveCardService : IAdaptiveCardService
         var title = data["title"]?.GetValue<string>();
         var url = data["url"]?.GetValue<string>();
 
-        if (string.IsNullOrEmpty(title) || string.IsNullOrEmpty(url))
+        if (string.IsNullOrEmpty(title))
+        {
+            return;
+        }
+
+        // Only emit the action when the URL is an absolute HTTPS URL.
+        // Reject http://, javascript:, data:, and anything else that could
+        // introduce mixed-content or script-injection vectors.
+        if (!IsValidHttpsUrl(url))
         {
             return;
         }
@@ -582,6 +595,8 @@ internal sealed class AdaptiveCardService : IAdaptiveCardService
     /// <summary>
     /// Performs simple string replacement of <c>{{key}}</c> tokens using the
     /// supplied <paramref name="variables"/> dictionary.
+    /// Values are JSON-escaped before substitution to prevent malformed JSON
+    /// or injection of arbitrary Adaptive Card elements.
     /// Uses <see cref="StringBuilder"/> to avoid repeated string allocations.
     /// </summary>
     private static string ReplaceVariables(string text, Dictionary<string, string> variables)
@@ -589,9 +604,26 @@ internal sealed class AdaptiveCardService : IAdaptiveCardService
         var sb = new StringBuilder(text);
         foreach (var (key, value) in variables)
         {
-            sb.Replace("{{" + key + "}}", value);
+            // JSON-serialize the value and strip the surrounding quotes produced by
+            // JsonSerializer so that only the escaped inner content is substituted.
+            // This ensures characters like `"`, `\`, and newlines cannot break the
+            // surrounding JSON structure or inject additional card elements.
+            var escaped = JsonSerializer.Serialize(value)[1..^1];
+            sb.Replace("{{" + key + "}}", escaped);
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> when <paramref name="url"/> is a non-empty,
+    /// well-formed absolute HTTPS URL.  Rejects <c>http://</c>, <c>data:</c>,
+    /// <c>javascript:</c>, and all other non-HTTPS schemes.
+    /// </summary>
+    private static bool IsValidHttpsUrl(string? url)
+    {
+        return !string.IsNullOrWhiteSpace(url)
+            && Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            && uri.Scheme == Uri.UriSchemeHttps;
     }
 }

@@ -122,7 +122,7 @@ public sealed class TemplatesController : ControllerBase
             return Unauthorized();
         }
 
-        var validationError = ValidateTemplateRequest(request.Name, request.CardSchema);
+        var validationError = ValidateTemplateRequest(request.Name, request.Description, request.CardSchema);
         if (validationError is not null)
         {
             return BadRequest(new ProblemDetails
@@ -178,7 +178,7 @@ public sealed class TemplatesController : ControllerBase
             return Unauthorized();
         }
 
-        var validationError = ValidateTemplateRequest(request.Name, request.CardSchema);
+        var validationError = ValidateTemplateRequest(request.Name, request.Description, request.CardSchema);
         if (validationError is not null)
         {
             return BadRequest(new ProblemDetails
@@ -260,12 +260,14 @@ public sealed class TemplatesController : ControllerBase
     }
 
     /// <summary>
-    /// Validates the template name and card schema fields shared by create and update requests.
-    /// Returns a human-readable error string when invalid, or <see langword="null"/> when valid.
+    /// Validates the template name, optional description, and card schema fields shared by
+    /// create and update requests. Returns a human-readable error string when invalid, or
+    /// <see langword="null"/> when valid.
     /// </summary>
     /// <param name="name">The template display name.</param>
+    /// <param name="description">The optional template description.</param>
     /// <param name="cardSchema">The JSON card schema string.</param>
-    private static string? ValidateTemplateRequest(string name, string cardSchema)
+    private static string? ValidateTemplateRequest(string name, string? description, string cardSchema)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -277,9 +279,19 @@ public sealed class TemplatesController : ControllerBase
             return "Name must not exceed 200 characters.";
         }
 
+        if (description is not null && description.Length > 500)
+        {
+            return "Description must not exceed 500 characters.";
+        }
+
         if (string.IsNullOrWhiteSpace(cardSchema))
         {
             return "CardSchema is required.";
+        }
+
+        if (cardSchema.Length > 50_000)
+        {
+            return "Card schema must not exceed 50,000 characters.";
         }
 
         if (!IsValidJson(cardSchema))
@@ -297,7 +309,7 @@ public sealed class TemplatesController : ControllerBase
     {
         try
         {
-            JsonDocument.Parse(json);
+            using var doc = JsonDocument.Parse(json);
             return true;
         }
         catch (JsonException)

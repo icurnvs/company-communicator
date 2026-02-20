@@ -130,7 +130,12 @@ internal static class InputValidator
             return (false, "Summary must not exceed 4000 characters.");
         }
 
-        // ImageLink: optional, must be https if provided
+        // ImageLink: optional, max 1000, must be https if provided
+        if (imageLink is not null && imageLink.Length > 1000)
+        {
+            return (false, "Image URL must not exceed 1,000 characters.");
+        }
+
         var (imageLinkValid, imageLinkError) = ValidateUrl(imageLink);
         if (!imageLinkValid)
         {
@@ -143,7 +148,12 @@ internal static class InputValidator
             return (false, "ButtonTitle must not exceed 200 characters.");
         }
 
-        // ButtonLink: optional, must be https if provided
+        // ButtonLink: optional, max 1000, must be https if provided
+        if (buttonLink is not null && buttonLink.Length > 1000)
+        {
+            return (false, "Button URL must not exceed 1,000 characters.");
+        }
+
         var (buttonLinkValid, buttonLinkError) = ValidateUrl(buttonLink);
         if (!buttonLinkValid)
         {
@@ -174,7 +184,12 @@ internal static class InputValidator
             }
         }
 
-        // KeyDetails: optional, must be a valid JSON array if provided
+        // KeyDetails: optional, max 50,000, must be a valid JSON array if provided
+        if (keyDetails is not null && keyDetails.Length > 50_000)
+        {
+            return (false, "Key details must not exceed 50,000 characters.");
+        }
+
         if (keyDetails is not null)
         {
             try
@@ -197,7 +212,12 @@ internal static class InputValidator
             return (false, "SecondaryText must not exceed 2000 characters.");
         }
 
-        // CustomVariables: optional, must be a valid JSON object if provided
+        // CustomVariables: optional, max 50,000, must be a valid JSON object if provided
+        if (customVariables is not null && customVariables.Length > 50_000)
+        {
+            return (false, "Custom variables must not exceed 50,000 characters.");
+        }
+
         if (customVariables is not null)
         {
             try
@@ -214,7 +234,12 @@ internal static class InputValidator
             }
         }
 
-        // AdvancedBlocks: optional, must be a valid JSON array if provided
+        // AdvancedBlocks: optional, max 100,000, must be a valid JSON array if provided
+        if (advancedBlocks is not null && advancedBlocks.Length > 100_000)
+        {
+            return (false, "Advanced blocks must not exceed 100,000 characters.");
+        }
+
         if (advancedBlocks is not null)
         {
             try
