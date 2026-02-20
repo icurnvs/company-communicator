@@ -28,4 +28,9 @@ export const queryKeys = {
     download: (id: string) =>
       [...queryKeys.exports.all, id, 'download'] as const,
   },
+  templates: {
+    all: ['templates'] as const,
+    list: () => [...queryKeys.templates.all, 'list'] as const,
+    detail: (id: string) => [...queryKeys.templates.all, id] as const,
+  },
 } as const;

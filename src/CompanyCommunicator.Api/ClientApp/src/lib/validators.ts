@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { CreateNotificationRequest, UpdateNotificationRequest } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Audience schema
@@ -9,17 +10,34 @@ export const audienceDtoSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
-// Notification form schema (used by react-hook-form with Zod resolver)
-// This covers both Create and Update operations
+// Key detail pair schema
 // ---------------------------------------------------------------------------
-export const notificationFormSchema = z
-  .object({
-    title: z
-      .string()
-      .min(1, 'Title is required')
-      .max(200, 'Title cannot exceed 200 characters'),
+export const keyDetailPairSchema = z.object({
+  label: z.string().min(1, 'Label is required'),
+  value: z.string().min(1, 'Value is required'),
+});
 
-    summary: z.string().max(4000).optional().nullable(),
+// ---------------------------------------------------------------------------
+// Custom variable schema
+// ---------------------------------------------------------------------------
+export const customVariableSchema = z.object({
+  name: z.string().min(1, 'Variable name is required'),
+  value: z.string(),
+});
+
+// ---------------------------------------------------------------------------
+// Compose form schema (used by react-hook-form with Zod resolver)
+// Covers both Create and Update with the redesigned card builder fields
+// ---------------------------------------------------------------------------
+export const composeFormSchema = z
+  .object({
+    // Content tab — Standard mode
+    headline: z
+      .string()
+      .min(1, 'Headline is required')
+      .max(200, 'Headline cannot exceed 200 characters'),
+
+    body: z.string().max(4000).optional().nullable(),
 
     imageLink: z
       .string()
@@ -28,6 +46,8 @@ export const notificationFormSchema = z
       .optional()
       .nullable()
       .or(z.literal('')),
+
+    keyDetails: z.array(keyDetailPairSchema).optional().nullable(),
 
     buttonTitle: z.string().max(200).optional().nullable(),
 
@@ -39,13 +59,41 @@ export const notificationFormSchema = z
       .nullable()
       .or(z.literal('')),
 
-    allUsers: z.boolean(),
+    secondaryText: z
+      .string()
+      .max(2000, 'Secondary text cannot exceed 2000 characters')
+      .optional()
+      .nullable(),
 
+    // Content tab — Dynamic variables
+    customVariables: z.array(customVariableSchema).optional().nullable(),
+
+    // Content tab — Advanced mode
+    cardPreference: z.enum(['Standard', 'Advanced']).optional().nullable(),
+    advancedBlocks: z
+      .array(
+        z.object({
+          id: z.string(),
+          type: z.enum([
+            'ColumnLayout',
+            'ImageSet',
+            'TextBlock',
+            'Table',
+            'ActionButton',
+            'Divider',
+          ]),
+          data: z.record(z.unknown()),
+        }),
+      )
+      .optional()
+      .nullable(),
+
+    // Audience tab
+    allUsers: z.boolean(),
     audiences: z.array(audienceDtoSchema).optional().nullable(),
   })
   .refine(
     (data) => {
-      // Button title and link must both be set or both be empty
       const hasTitle = Boolean(data.buttonTitle?.trim());
       const hasLink = Boolean(data.buttonLink?.trim());
       return hasTitle === hasLink;
@@ -58,7 +106,6 @@ export const notificationFormSchema = z
   )
   .refine(
     (data) => {
-      // At least one audience is required
       if (data.allUsers) return true;
       return (data.audiences ?? []).length > 0;
     },
@@ -69,7 +116,11 @@ export const notificationFormSchema = z
     },
   );
 
-export type NotificationFormValues = z.infer<typeof notificationFormSchema>;
+export type ComposeFormValues = z.infer<typeof composeFormSchema>;
+
+// Keep the old schema name as alias for backwards compat during migration
+export const notificationFormSchema = composeFormSchema;
+export type NotificationFormValues = ComposeFormValues;
 
 // ---------------------------------------------------------------------------
 // Schedule form schema
@@ -83,16 +134,64 @@ export const scheduleFormSchema = z.object({
 export type ScheduleFormValues = z.infer<typeof scheduleFormSchema>;
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers — convert form values to API request shapes
 // ---------------------------------------------------------------------------
-export function formValuesToCreateRequest(values: NotificationFormValues) {
+export function formValuesToCreateRequest(
+  values: ComposeFormValues,
+): CreateNotificationRequest {
   return {
-    title: values.title,
-    summary: values.summary || null,
+    title: values.headline,
+    summary: values.body || null,
     imageLink: values.imageLink || null,
     buttonTitle: values.buttonTitle || null,
     buttonLink: values.buttonLink || null,
     allUsers: values.allUsers,
     audiences: values.allUsers ? null : (values.audiences ?? null),
+    keyDetails: values.keyDetails?.length
+      ? JSON.stringify(values.keyDetails)
+      : null,
+    secondaryText: values.secondaryText || null,
+    customVariables:
+      values.customVariables?.length
+        ? JSON.stringify(
+            Object.fromEntries(
+              values.customVariables.map((v) => [v.name, v.value]),
+            ),
+          )
+        : null,
+    advancedBlocks: values.advancedBlocks?.length
+      ? JSON.stringify(values.advancedBlocks)
+      : null,
+    cardPreference: values.cardPreference || null,
+  };
+}
+
+export function formValuesToUpdateRequest(
+  values: ComposeFormValues,
+): UpdateNotificationRequest {
+  return {
+    title: values.headline,
+    summary: values.body || null,
+    imageLink: values.imageLink || null,
+    buttonTitle: values.buttonTitle || null,
+    buttonLink: values.buttonLink || null,
+    allUsers: values.allUsers,
+    audiences: values.allUsers ? null : (values.audiences ?? null),
+    keyDetails: values.keyDetails?.length
+      ? JSON.stringify(values.keyDetails)
+      : null,
+    secondaryText: values.secondaryText || null,
+    customVariables:
+      values.customVariables?.length
+        ? JSON.stringify(
+            Object.fromEntries(
+              values.customVariables.map((v) => [v.name, v.value]),
+            ),
+          )
+        : null,
+    advancedBlocks: values.advancedBlocks?.length
+      ? JSON.stringify(values.advancedBlocks)
+      : null,
+    cardPreference: values.cardPreference || null,
   };
 }

@@ -1,5 +1,50 @@
 // TypeScript interfaces matching backend C# DTOs (camelCase JSON)
 
+// ---------------------------------------------------------------------------
+// Card builder types
+// ---------------------------------------------------------------------------
+export interface KeyDetailPair {
+  label: string;
+  value: string;
+}
+
+export interface CustomVariable {
+  name: string;
+  value: string;
+}
+
+export type CardPreference = 'Standard' | 'Advanced';
+
+export type AdvancedBlockType =
+  | 'ColumnLayout'
+  | 'ImageSet'
+  | 'TextBlock'
+  | 'Table'
+  | 'ActionButton'
+  | 'Divider';
+
+export interface AdvancedBlock {
+  id: string;
+  type: AdvancedBlockType;
+  data: Record<string, unknown>;
+}
+
+/** Card schema stored in templates — same shape as compose form content state. */
+export interface CardSchema {
+  headline: string;
+  body?: string | null;
+  imageLink?: string | null;
+  keyDetails?: KeyDetailPair[];
+  buttonTitle?: string | null;
+  buttonLink?: string | null;
+  secondaryText?: string | null;
+  advancedBlocks?: AdvancedBlock[];
+  cardPreference?: CardPreference;
+}
+
+// ---------------------------------------------------------------------------
+// Notification DTOs
+// ---------------------------------------------------------------------------
 export interface NotificationDto {
   id: string;
   title: string;
@@ -23,6 +68,11 @@ export interface NotificationDto {
   unknownCount: number;
   errorMessage: string | null;
   audiences: AudienceDto[];
+  keyDetails: string | null;
+  secondaryText: string | null;
+  customVariables: string | null;
+  advancedBlocks: string | null;
+  cardPreference: string | null;
 }
 
 export interface NotificationSummaryDto {
@@ -36,6 +86,7 @@ export interface NotificationSummaryDto {
   totalRecipientCount: number;
   succeededCount: number;
   failedCount: number;
+  summary: string | null;
 }
 
 export type NotificationStatus =
@@ -71,6 +122,11 @@ export interface CreateNotificationRequest {
   buttonLink?: string | null;
   allUsers: boolean;
   audiences?: AudienceDto[] | null;
+  keyDetails?: string | null;
+  secondaryText?: string | null;
+  customVariables?: string | null;
+  advancedBlocks?: string | null;
+  cardPreference?: string | null;
 }
 
 export interface UpdateNotificationRequest {
@@ -81,6 +137,11 @@ export interface UpdateNotificationRequest {
   buttonLink?: string | null;
   allUsers: boolean;
   audiences?: AudienceDto[] | null;
+  keyDetails?: string | null;
+  secondaryText?: string | null;
+  customVariables?: string | null;
+  advancedBlocks?: string | null;
+  cardPreference?: string | null;
 }
 
 export interface ScheduleNotificationRequest {
@@ -138,4 +199,28 @@ export interface ApiError {
   status: number;
   message: string;
   detail?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Template DTOs
+// ---------------------------------------------------------------------------
+export interface TemplateDto {
+  id: string;
+  name: string;
+  description: string | null;
+  cardSchema: string;
+  createdBy: string;
+  createdDate: string;
+}
+
+export interface CreateTemplateRequest {
+  name: string;
+  description?: string | null;
+  cardSchema: string;
+}
+
+export interface UpdateTemplateRequest {
+  name: string;
+  description?: string | null;
+  cardSchema: string;
 }
