@@ -11,6 +11,7 @@ import {
 import { Dismiss24Regular } from '@fluentui/react-icons';
 import { useComposeForm } from './useComposeForm';
 import { ContentTab } from './ContentTab';
+import { AudienceTab } from './AudienceTab';
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -103,15 +104,6 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     minHeight: 0,
-  },
-
-  // Audience tab placeholder
-  audiencePlaceholder: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: tokens.colorNeutralForeground3,
   },
 
   // Action bar area at the bottom of the panel
@@ -288,11 +280,7 @@ export function ComposePanel({ editId, onClose }: ComposePanelProps) {
             <>
               {activeTab === 'content' && <ContentTab form={form} isEdit={isEdit} />}
 
-              {activeTab === 'audience' && (
-                <div className={styles.audiencePlaceholder}>
-                  <Text>Audience — Task 11</Text>
-                </div>
-              )}
+              {activeTab === 'audience' && <AudienceTab form={form} />}
             </>
           )}
         </div>
