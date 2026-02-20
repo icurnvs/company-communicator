@@ -7,6 +7,7 @@ import {
   Text,
   Button,
   Spinner,
+  Switch,
   Dialog,
   DialogSurface,
   DialogBody,
@@ -152,6 +153,24 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
   // Discard-changes dialog state (replaces window.confirm which is blocked in Teams)
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
+  // Advanced mode state — persisted to localStorage
+  const [advancedMode, setAdvancedMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('cc-advanced-mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleAdvancedToggle = useCallback((_e: unknown, data: { checked: boolean }) => {
+    setAdvancedMode(data.checked);
+    try {
+      localStorage.setItem('cc-advanced-mode', String(data.checked));
+    } catch {
+      // localStorage unavailable in Teams iframe — silent fallback
+    }
+  }, []);
+
   // ---------------------------------------------------------------------------
   // Form hook
   // ---------------------------------------------------------------------------
@@ -255,6 +274,12 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
           </Text>
 
           <div className={styles.headerActions}>
+            <Switch
+              checked={advancedMode}
+              onChange={handleAdvancedToggle}
+              label="Advanced"
+              labelPosition="before"
+            />
             {isSaving && <Spinner size="tiny" label="Saving..." labelPosition="before" />}
             <Button
               appearance="subtle"
@@ -294,7 +319,7 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
             </div>
           ) : (
             <>
-              {activeTab === 'content' && <ContentTab form={form} isEdit={isEdit} />}
+              {activeTab === 'content' && <ContentTab form={form} isEdit={isEdit} advancedMode={advancedMode} />}
 
               {activeTab === 'audience' && <AudienceTab form={form} />}
             </>
@@ -316,6 +341,7 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
           lastAutoSaved={lastAutoSaved}
           onSaveDraft={saveDraft}
           onReview={handleReview}
+          advancedMode={advancedMode}
         />
 
         {/* Confirm Send Dialog — snapshot form values at render time */}

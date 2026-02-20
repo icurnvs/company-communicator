@@ -385,6 +385,8 @@ export interface ActionBarProps {
   onSaveDraft: () => Promise<string | undefined>;
   /** Opens the pre-send confirmation dialog. */
   onReview: () => void;
+  /** Whether advanced mode is active. */
+  advancedMode?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -399,6 +401,7 @@ export function ActionBar({
   lastAutoSaved,
   onSaveDraft,
   onReview,
+  advancedMode = false,
 }: ActionBarProps) {
   const styles = useStyles();
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);

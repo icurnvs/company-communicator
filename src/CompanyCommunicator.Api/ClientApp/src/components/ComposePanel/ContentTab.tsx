@@ -74,13 +74,14 @@ const useStyles = makeStyles({
 export interface ContentTabProps {
   form: UseFormReturn<ComposeFormValues>;
   isEdit?: boolean;
+  advancedMode?: boolean;
 }
 
 // ---------------------------------------------------------------------------
 // ContentTab
 // ---------------------------------------------------------------------------
 
-export function ContentTab({ form, isEdit = false }: ContentTabProps) {
+export function ContentTab({ form, isEdit = false, advancedMode = false }: ContentTabProps) {
   const styles = useStyles();
   const { watch, setValue } = form;
 
