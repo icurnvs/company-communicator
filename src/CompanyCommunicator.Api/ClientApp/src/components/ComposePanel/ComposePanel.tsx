@@ -286,7 +286,7 @@ export function ComposePanel({ editId, onClose }: ComposePanelProps) {
             </div>
           ) : (
             <>
-              {activeTab === 'content' && <ContentTab form={form} />}
+              {activeTab === 'content' && <ContentTab form={form} isEdit={isEdit} />}
 
               {activeTab === 'audience' && (
                 <div className={styles.audiencePlaceholder}>

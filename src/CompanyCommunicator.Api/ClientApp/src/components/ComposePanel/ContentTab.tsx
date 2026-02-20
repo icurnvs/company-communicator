@@ -15,6 +15,7 @@ import { Add16Regular, Delete16Regular } from '@fluentui/react-icons';
 import { AdaptiveCardPreview } from '@/components/AdaptiveCardPreview/AdaptiveCardPreview';
 import type { CardData } from '@/lib/adaptiveCard';
 import type { ComposeFormValues } from '@/lib/validators';
+import { TemplatePicker } from './TemplatePicker';
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -139,6 +140,8 @@ const useStyles = makeStyles({
 
 export interface ContentTabProps {
   form: UseFormReturn<ComposeFormValues>;
+  /** When true (editing an existing message), the template picker starts collapsed. */
+  isEdit?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -195,7 +198,7 @@ function CharCount({ value, max }: { value: string | null | undefined; max: numb
 // ContentTab
 // ---------------------------------------------------------------------------
 
-export function ContentTab({ form }: ContentTabProps) {
+export function ContentTab({ form, isEdit = false }: ContentTabProps) {
   const styles = useStyles();
 
   const {
@@ -245,6 +248,9 @@ export function ContentTab({ form }: ContentTabProps) {
       {/* Left: Form fields                                                    */}
       {/* ------------------------------------------------------------------ */}
       <div className={styles.formArea}>
+
+        {/* Template picker — expanded for new messages, collapsed when editing */}
+        <TemplatePicker form={form} defaultCollapsed={isEdit} />
 
         {/* Headline */}
         <Controller
