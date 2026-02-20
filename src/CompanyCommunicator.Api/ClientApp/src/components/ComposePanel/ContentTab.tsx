@@ -19,6 +19,7 @@ import { TemplatePicker } from './TemplatePicker';
 import { ThemePicker } from './ThemePicker';
 import { SlotList } from './SlotList';
 import { CardPreviewPanel } from './CardPreviewPanel';
+import { CardSettingsPanel } from './CardSettingsPanel';
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -189,6 +190,9 @@ export function ContentTab({ form, isEdit = false, advancedMode = false }: Conte
           onTemplateSelect={handleTemplateSelect}
         />
 
+        {/* Card Settings — only in advanced mode */}
+        {advancedMode && <CardSettingsPanel form={form} />}
+
         <div className={styles.themeSection}>
           <Text className={styles.sectionLabel}>Color Theme</Text>
           <ThemePicker
@@ -201,6 +205,7 @@ export function ContentTab({ form, isEdit = false, advancedMode = false }: Conte
           template={activeTemplate}
           form={form}
           slotVisibility={slotVisibility}
+          advancedMode={advancedMode}
           onToggleSlot={handleToggleSlot}
           onAddCustomVariable={handleAddCustomVariable}
         />
