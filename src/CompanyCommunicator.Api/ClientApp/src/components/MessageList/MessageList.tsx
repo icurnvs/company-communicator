@@ -507,11 +507,8 @@ export function MessageList({
   const handleSelect = useCallback(
     (notification: NotificationSummaryDto) => {
       onSelectMessage(notification.id);
-      if (notification.status === 'Draft') {
-        onOpenCompose(notification.id);
-      }
     },
-    [onSelectMessage, onOpenCompose],
+    [onSelectMessage],
   );
 
   const emptyMessages: Record<NotificationTab, string> = {
