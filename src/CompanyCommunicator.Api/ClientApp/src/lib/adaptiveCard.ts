@@ -1,22 +1,68 @@
 import * as AdaptiveCards from 'adaptivecards';
+import type { KeyDetailPair, AdvancedBlock, CustomVariable } from '@/types';
 
 export interface CardData {
   title: string;
   summary?: string | null;
   imageLink?: string | null;
+  keyDetails?: KeyDetailPair[] | null;
   buttonTitle?: string | null;
   buttonLink?: string | null;
+  secondaryText?: string | null;
   author?: string | null;
+  advancedBlocks?: AdvancedBlock[] | null;
+  customVariables?: CustomVariable[] | null;
 }
 
-// Build an Adaptive Card JSON payload (schema 1.4)
+// ---------------------------------------------------------------------------
+// Variable resolution
+// ---------------------------------------------------------------------------
+const RECIPIENT_SAMPLE_VALUES: Record<string, string> = {
+  firstName: 'Sarah',
+  displayName: 'Sarah Johnson',
+  department: 'Engineering',
+  jobTitle: 'Software Engineer',
+  officeLocation: 'Building 25',
+};
+
+/** Replace {{variableName}} tokens in text with sample/custom values for preview. */
+export function resolvePreviewVariables(
+  text: string,
+  customVariables?: CustomVariable[] | null,
+): string {
+  let result = text;
+
+  // Recipient variables → sample values
+  for (const [name, sample] of Object.entries(RECIPIENT_SAMPLE_VALUES)) {
+    result = result.replaceAll(`{{${name}}}`, sample);
+  }
+
+  // Custom variables → author-defined values
+  if (customVariables?.length) {
+    for (const v of customVariables) {
+      if (v.name) {
+        result = result.replaceAll(`{{${v.name}}}`, v.value || `{{${v.name}}}`);
+      }
+    }
+  }
+
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Build Adaptive Card JSON payload (schema 1.4)
+// ---------------------------------------------------------------------------
 export function buildCardPayload(data: CardData): object {
   const body: object[] = [];
+  const actions: object[] = [];
+
+  const resolve = (text: string | null | undefined): string =>
+    text ? resolvePreviewVariables(text, data.customVariables) : '';
 
   // Title
   body.push({
     type: 'TextBlock',
-    text: data.title || 'Message Title',
+    text: resolve(data.title) || 'Message Title',
     size: 'Large',
     weight: 'Bolder',
     wrap: true,
@@ -44,11 +90,63 @@ export function buildCardPayload(data: CardData): object {
     });
   }
 
-  // Summary
+  // Summary / Body
   if (data.summary) {
     body.push({
       type: 'TextBlock',
-      text: data.summary,
+      text: resolve(data.summary),
+      wrap: true,
+      spacing: 'Medium',
+    });
+  }
+
+  // Key Details → FactSet
+  if (data.keyDetails?.length) {
+    const facts = data.keyDetails
+      .filter((kd) => kd.label && kd.value)
+      .map((kd) => ({
+        title: resolve(kd.label),
+        value: resolve(kd.value),
+      }));
+    if (facts.length > 0) {
+      body.push({
+        type: 'FactSet',
+        facts,
+        spacing: 'Medium',
+      });
+    }
+  }
+
+  // Advanced blocks (when in Advanced mode)
+  if (data.advancedBlocks?.length) {
+    for (const block of data.advancedBlocks) {
+      const element = buildAdvancedBlockElement(block, resolve);
+      if (element) {
+        if (block.type === 'ActionButton') {
+          actions.push(element);
+        } else {
+          body.push(element);
+        }
+      }
+    }
+  }
+
+  // Primary action button
+  if (data.buttonTitle && data.buttonLink) {
+    actions.unshift({
+      type: 'Action.OpenUrl',
+      title: resolve(data.buttonTitle),
+      url: data.buttonLink,
+    });
+  }
+
+  // Secondary text (footnote)
+  if (data.secondaryText) {
+    body.push({
+      type: 'TextBlock',
+      text: resolve(data.secondaryText),
+      size: 'Small',
+      isSubtle: true,
       wrap: true,
       spacing: 'Medium',
     });
@@ -61,33 +159,142 @@ export function buildCardPayload(data: CardData): object {
     body,
   };
 
-  // Action button
-  if (data.buttonTitle && data.buttonLink) {
-    card['actions'] = [
-      {
-        type: 'Action.OpenUrl',
-        title: data.buttonTitle,
-        url: data.buttonLink,
-      },
-    ];
+  if (actions.length > 0) {
+    card['actions'] = actions;
   }
 
   return card;
 }
 
+// ---------------------------------------------------------------------------
+// Advanced block → Adaptive Card element
+// ---------------------------------------------------------------------------
+function buildAdvancedBlockElement(
+  block: AdvancedBlock,
+  resolve: (text: string | null | undefined) => string,
+): object | null {
+  const d = block.data;
+
+  switch (block.type) {
+    case 'TextBlock':
+      return {
+        type: 'TextBlock',
+        text: resolve(d['text'] as string | undefined),
+        size: (d['size'] as string) || 'Default',
+        weight: (d['weight'] as string) || 'Default',
+        wrap: true,
+        spacing: 'Medium',
+      };
+
+    case 'Divider':
+      return {
+        type: 'TextBlock',
+        text: ' ',
+        separator: true,
+        spacing: 'Medium',
+      };
+
+    case 'ImageSet': {
+      const images = d['images'] as (string | { url: string })[] | undefined;
+      if (!images?.length) return null;
+      return {
+        type: 'ImageSet',
+        imageSize: 'Medium',
+        images: images.map((img) => ({
+          type: 'Image',
+          url: typeof img === 'string' ? img : img.url,
+        })),
+      };
+    }
+
+    case 'ColumnLayout': {
+      const columns = d['columns'] as { text?: string }[] | undefined;
+      if (!columns?.length) return null;
+      return {
+        type: 'ColumnSet',
+        columns: columns.map((col) => ({
+          type: 'Column',
+          width: 'stretch',
+          items: [
+            {
+              type: 'TextBlock',
+              text: resolve(col.text),
+              wrap: true,
+            },
+          ],
+        })),
+        spacing: 'Medium',
+      };
+    }
+
+    case 'Table': {
+      const headers = d['headers'] as string[] | undefined;
+      const rows = d['rows'] as string[][] | undefined;
+      if (!headers?.length) return null;
+      const elements: object[] = [];
+
+      // Header row
+      elements.push({
+        type: 'ColumnSet',
+        separator: true,
+        spacing: 'Medium',
+        columns: headers.map((h) => ({
+          type: 'Column',
+          width: 'stretch',
+          items: [
+            { type: 'TextBlock', text: resolve(h), weight: 'Bolder', wrap: true },
+          ],
+        })),
+      });
+
+      // Data rows
+      if (rows?.length) {
+        for (const row of rows) {
+          elements.push({
+            type: 'ColumnSet',
+            columns: row.map((cell) => ({
+              type: 'Column',
+              width: 'stretch',
+              items: [
+                { type: 'TextBlock', text: resolve(cell), wrap: true },
+              ],
+            })),
+          });
+        }
+      }
+
+      // Return a container wrapping all table rows
+      return {
+        type: 'Container',
+        items: elements,
+        spacing: 'Medium',
+      };
+    }
+
+    case 'ActionButton':
+      return {
+        type: 'Action.OpenUrl',
+        title: resolve(d['title'] as string | undefined) || 'Click Here',
+        url: (d['url'] as string) || '',
+      };
+
+    default:
+      return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Render an Adaptive Card into a DOM element; returns cleanup function
+// ---------------------------------------------------------------------------
 export function renderCard(
   container: HTMLElement,
   cardPayload: object,
   theme: 'default' | 'dark' | 'contrast' = 'default',
 ): () => void {
-  // Clear previous content
   container.innerHTML = '';
 
   try {
     const adaptiveCard = new AdaptiveCards.AdaptiveCard();
-
-    // Apply host config based on Teams theme
     const hostConfig = buildHostConfig(theme);
     adaptiveCard.hostConfig = new AdaptiveCards.HostConfig(hostConfig);
 
