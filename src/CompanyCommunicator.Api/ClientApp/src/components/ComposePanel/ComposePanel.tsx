@@ -39,6 +39,13 @@ const useStyles = makeStyles({
     inset: 0,
     backgroundColor: tokens.colorBackgroundOverlay,
     zIndex: 100,
+    animationName: {
+      from: { opacity: 0 },
+      to: { opacity: 1 },
+    },
+    animationDuration: '250ms',
+    animationTimingFunction: 'ease-out',
+    animationFillMode: 'both',
   },
 
   // The slide-over panel itself
@@ -55,6 +62,13 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground1,
     boxShadow: tokens.shadow64,
     overflow: 'hidden',
+    animationName: {
+      from: { transform: 'translateX(100%)' },
+      to: { transform: 'translateX(0)' },
+    },
+    animationDuration: '250ms',
+    animationTimingFunction: 'ease-out',
+    animationFillMode: 'both',
   },
 
   // Panel header
