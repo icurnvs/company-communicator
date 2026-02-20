@@ -254,15 +254,19 @@ internal sealed class GraphService : IGraphService
 
         await _resilience.ExecuteAsync(async token =>
         {
-            // Sanitize the query to prevent OData injection: strip single quotes.
-            var sanitizedQuery = query.Replace("'", string.Empty, StringComparison.Ordinal);
+            var sanitizedQuery = SanitizeSearchQuery(query);
 
             var page = await _graphClient.Groups.GetAsync(config =>
             {
-                config.QueryParameters.Filter =
-                    $"startswith(displayName,'{sanitizedQuery}')";
+                // Use $search with ConsistencyLevel: eventual for word-prefix matching.
+                // This finds "Sales Team" when searching "Team" (unlike startswith which
+                // only matches the beginning of the entire displayName).
+                config.Headers.Add("ConsistencyLevel", "eventual");
+                config.QueryParameters.Search = $"\"displayName:{sanitizedQuery}\"";
                 config.QueryParameters.Select = new[] { "id", "displayName" };
                 config.QueryParameters.Top = 25;
+                config.QueryParameters.Count = true;
+                config.QueryParameters.Orderby = new[] { "displayName" };
             }, token).ConfigureAwait(false);
 
             if (page?.Value is not null)
@@ -293,14 +297,20 @@ internal sealed class GraphService : IGraphService
 
         await _resilience.ExecuteAsync(async token =>
         {
-            var sanitizedQuery = query.Replace("'", string.Empty, StringComparison.Ordinal);
+            var sanitizedQuery = SanitizeSearchQuery(query);
 
             var page = await _graphClient.Groups.GetAsync(config =>
             {
+                // Combine $search (word-prefix on displayName) with $filter (teams only).
+                // ConsistencyLevel: eventual is required for $search + $filter + $count.
+                config.Headers.Add("ConsistencyLevel", "eventual");
+                config.QueryParameters.Search = $"\"displayName:{sanitizedQuery}\"";
                 config.QueryParameters.Filter =
-                    $"startswith(displayName,'{sanitizedQuery}') and resourceProvisioningOptions/Any(x:x eq 'Team')";
+                    "resourceProvisioningOptions/Any(x:x eq 'Team')";
                 config.QueryParameters.Select = new[] { "id", "displayName" };
                 config.QueryParameters.Top = 25;
+                config.QueryParameters.Count = true;
+                config.QueryParameters.Orderby = new[] { "displayName" };
             }, token).ConfigureAwait(false);
 
             if (page?.Value is not null)
@@ -553,6 +563,20 @@ internal sealed class GraphService : IGraphService
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Sanitizes a user-provided search query for use in Graph $search.
+    /// Strips characters that would break the OData $search syntax (double
+    /// quotes, backslashes) to prevent injection.
+    /// </summary>
+    private static string SanitizeSearchQuery(string query)
+    {
+        return query
+            .Replace("\\", string.Empty, StringComparison.Ordinal)
+            .Replace("\"", string.Empty, StringComparison.Ordinal)
+            .Replace("'", string.Empty, StringComparison.Ordinal)
+            .Trim();
+    }
 
     /// <summary>
     /// Pages through a <see cref="DeltaGetResponse"/>, collecting users and
