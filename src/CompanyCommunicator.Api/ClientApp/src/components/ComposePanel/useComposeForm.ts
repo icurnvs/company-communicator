@@ -7,6 +7,7 @@ import {
   type ComposeFormValues,
   formValuesToCreateRequest,
   formValuesToUpdateRequest,
+  parseTemplateMetadata,
 } from '@/lib/validators';
 import {
   useNotification,
@@ -14,6 +15,7 @@ import {
   useUpdateNotification,
 } from '@/api/notifications';
 import type { AdvancedBlock, CardPreference, KeyDetailPair, CustomVariable } from '@/types';
+import { DEFAULT_THEME_ID } from '@/lib/builtinThemes';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -133,8 +135,11 @@ export function useComposeForm({
       buttonLink: initialValues?.buttonLink ?? '',
       secondaryText: initialValues?.secondaryText ?? '',
       customVariables: initialValues?.customVariables ?? null,
-      cardPreference: initialValues?.cardPreference ?? 'Standard',
+      cardPreference: initialValues?.cardPreference ?? 'Template',
       advancedBlocks: initialValues?.advancedBlocks ?? null,
+      templateId: initialValues?.templateId ?? null,
+      themeId: initialValues?.themeId ?? DEFAULT_THEME_ID,
+      slotVisibility: initialValues?.slotVisibility ?? {},
       allUsers: false,
       audiences: [],
     },
@@ -158,6 +163,9 @@ export function useComposeForm({
     if (lastResetIdRef.current === existingNotification.id) return;
     lastResetIdRef.current = existingNotification.id;
 
+    // Parse template metadata from cardPreference JSON (if Template mode)
+    const templateMeta = parseTemplateMetadata(existingNotification.cardPreference);
+
     form.reset({
       headline: existingNotification.title,
       body: existingNotification.summary ?? '',
@@ -167,8 +175,11 @@ export function useComposeForm({
       buttonLink: existingNotification.buttonLink ?? '',
       secondaryText: existingNotification.secondaryText ?? '',
       customVariables: parseCustomVariables(existingNotification.customVariables),
-      cardPreference: parseCardPreference(existingNotification.cardPreference),
+      cardPreference: templateMeta ? 'Template' : parseCardPreference(existingNotification.cardPreference),
       advancedBlocks: parseAdvancedBlocks(existingNotification.advancedBlocks),
+      templateId: templateMeta?.templateId ?? null,
+      themeId: templateMeta?.themeId ?? DEFAULT_THEME_ID,
+      slotVisibility: templateMeta?.slotVisibility ?? {},
       allUsers: existingNotification.allUsers,
       audiences: existingNotification.audiences ?? [],
     });

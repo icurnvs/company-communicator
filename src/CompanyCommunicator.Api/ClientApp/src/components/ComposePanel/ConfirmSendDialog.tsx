@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   makeStyles,
   tokens,
@@ -16,11 +16,15 @@ import {
   CheckmarkCircle16Regular,
 } from '@fluentui/react-icons';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { AdaptiveCardPreview } from '@/components/AdaptiveCardPreview/AdaptiveCardPreview';
-import type { CardData } from '@/lib/adaptiveCard';
 import type { ComposeFormValues } from '@/lib/validators';
 import { estimateReach } from '@/lib/audienceUtils';
 import type { AudienceDto } from '@/types';
+import { getTemplateById } from '@/lib/templateDefinitions';
+import { BUILTIN_TEMPLATE_DEFINITIONS } from '@/lib/templateDefinitions';
+import { getThemeById, DEFAULT_THEME_ID } from '@/lib/builtinThemes';
+import { formValuesToCardDocument } from '@/lib/formBridge';
+import { buildCardFromDocument } from '@/lib/cardPipeline';
+import { CardPreviewPanel } from './CardPreviewPanel';
 import { DeliveryTracker } from './DeliveryTracker';
 
 // ---------------------------------------------------------------------------
@@ -171,18 +175,31 @@ export function ConfirmSendDialog({
   const { channelPosts, individuals } = categorizeAudiences(formValues.audiences);
   const reach = estimateReach(formValues.allUsers, formValues.audiences);
 
-  // Build card preview data
-  const cardData: CardData = {
-    title: formValues.headline ?? '',
-    summary: formValues.body,
-    imageLink: formValues.imageLink,
-    keyDetails: formValues.keyDetails,
-    buttonTitle: formValues.buttonTitle,
-    buttonLink: formValues.buttonLink,
-    secondaryText: formValues.secondaryText,
-    customVariables: formValues.customVariables,
-    advancedBlocks: formValues.advancedBlocks,
-  };
+  // Build card preview via the new pipeline
+  const template = useMemo(
+    () => getTemplateById(formValues.templateId ?? '') ?? BUILTIN_TEMPLATE_DEFINITIONS[0]!,
+    [formValues.templateId],
+  );
+  const cardTheme = useMemo(
+    () => getThemeById(formValues.themeId ?? DEFAULT_THEME_ID),
+    [formValues.themeId],
+  );
+  const previewResult = useMemo(() => {
+    const doc = formValuesToCardDocument(
+      formValues,
+      template,
+      formValues.themeId,
+      formValues.slotVisibility,
+    );
+    const customVars = formValues.customVariables
+      ?.filter((v) => v.name)
+      .map((v) => ({ name: v.name, value: v.value || `{{${v.name}}}` }));
+    try {
+      return buildCardFromDocument(doc, customVars);
+    } catch {
+      return null;
+    }
+  }, [formValues, template]);
 
   const handleConfirmSend = useCallback(async () => {
     setIsSending(true);
@@ -251,7 +268,10 @@ export function ConfirmSendDialog({
             <>
               {/* Card Preview */}
               <div className={styles.previewContainer}>
-                <AdaptiveCardPreview data={cardData} />
+                <CardPreviewPanel
+                  cardPayload={previewResult?.cardPayload ?? null}
+                  cardTheme={cardTheme}
+                />
               </div>
 
               {/* Audience summary */}
