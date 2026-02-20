@@ -13,7 +13,7 @@ export interface CustomVariable {
   value: string;
 }
 
-export type CardPreference = 'Standard' | 'Advanced';
+export type CardPreference = 'Standard' | 'Advanced' | 'Template';
 
 export type AdvancedBlockType =
   | 'ColumnLayout'

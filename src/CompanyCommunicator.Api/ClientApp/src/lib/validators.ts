@@ -69,8 +69,13 @@ export const composeFormSchema = z
     // Content tab — Dynamic variables
     customVariables: z.array(customVariableSchema).optional().nullable(),
 
-    // Content tab — Advanced mode
-    cardPreference: z.enum(['Standard', 'Advanced']).optional().nullable(),
+    // Content tab — Template mode
+    templateId: z.string().nullable().optional(),
+    themeId: z.string().optional(),
+    slotVisibility: z.record(z.boolean()).optional(),
+
+    // Content tab — Card preference mode
+    cardPreference: z.enum(['Standard', 'Advanced', 'Template']).optional().nullable(),
     advancedBlocks: z
       .array(
         z.object({
@@ -138,6 +143,17 @@ export type ScheduleFormValues = z.infer<typeof scheduleFormSchema>;
 // Helpers — convert form values to API request shapes
 // ---------------------------------------------------------------------------
 function formToApiFields(values: ComposeFormValues) {
+  // When in Template mode, pack template metadata into cardPreference as JSON
+  let cardPreference: string | null = values.cardPreference || null;
+  if (values.cardPreference === 'Template' && values.templateId) {
+    cardPreference = JSON.stringify({
+      mode: 'Template' as const,
+      templateId: values.templateId,
+      themeId: values.themeId ?? 'theme-default',
+      slotVisibility: values.slotVisibility ?? {},
+    });
+  }
+
   return {
     title: values.headline,
     summary: values.body || null,
@@ -161,7 +177,7 @@ function formToApiFields(values: ComposeFormValues) {
     advancedBlocks: values.advancedBlocks?.length
       ? JSON.stringify(values.advancedBlocks)
       : null,
-    cardPreference: values.cardPreference || null,
+    cardPreference,
   };
 }
 
@@ -175,4 +191,37 @@ export function formValuesToUpdateRequest(
   values: ComposeFormValues,
 ): UpdateNotificationRequest {
   return formToApiFields(values);
+}
+
+// ---------------------------------------------------------------------------
+// Template metadata parsing — extract templateId/themeId/slotVisibility from
+// the serialized cardPreference field when loading an existing notification.
+// ---------------------------------------------------------------------------
+
+export interface TemplateMetadata {
+  mode: 'Template';
+  templateId: string;
+  themeId: string;
+  slotVisibility: Record<string, boolean>;
+}
+
+/** Parse template metadata from the cardPreference API field. */
+export function parseTemplateMetadata(raw: string | null): TemplateMetadata | null {
+  if (!raw) return null;
+  // Legacy values are plain strings like "Standard" or "Advanced"
+  if (raw === 'Standard' || raw === 'Advanced') return null;
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (parsed.mode === 'Template' && typeof parsed.templateId === 'string') {
+      return {
+        mode: 'Template',
+        templateId: parsed.templateId as string,
+        themeId: (parsed.themeId as string) ?? 'theme-default',
+        slotVisibility: (parsed.slotVisibility as Record<string, boolean>) ?? {},
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
