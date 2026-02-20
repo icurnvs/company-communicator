@@ -25,4 +25,9 @@ public sealed record NotificationDto(
     int CanceledCount,
     int UnknownCount,
     string? ErrorMessage,
-    IReadOnlyList<AudienceDto> Audiences);
+    IReadOnlyList<AudienceDto> Audiences,
+    string? KeyDetails,
+    string? SecondaryText,
+    string? CustomVariables,
+    string? AdvancedBlocks,
+    string? CardPreference);

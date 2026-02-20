@@ -42,7 +42,12 @@ internal static class NotificationMappingExtensions
             CanceledCount: entity.CanceledCount,
             UnknownCount: entity.UnknownCount,
             ErrorMessage: entity.ErrorMessage,
-            Audiences: audiences);
+            Audiences: audiences,
+            KeyDetails: entity.KeyDetails,
+            SecondaryText: entity.SecondaryText,
+            CustomVariables: entity.CustomVariables,
+            AdvancedBlocks: entity.AdvancedBlocks,
+            CardPreference: entity.CardPreference);
     }
 
     /// <summary>
@@ -60,7 +65,10 @@ internal static class NotificationMappingExtensions
             Status: entity.Status,
             TotalRecipientCount: entity.TotalRecipientCount,
             SucceededCount: entity.SucceededCount,
-            FailedCount: entity.FailedCount);
+            FailedCount: entity.FailedCount,
+            Summary: entity.Summary is null ? null
+                : entity.Summary.Length <= 100 ? entity.Summary
+                : entity.Summary[..100]);
 
     /// <summary>
     /// Maps a <see cref="Notification"/> entity to a <see cref="DeliveryStatusDto"/>

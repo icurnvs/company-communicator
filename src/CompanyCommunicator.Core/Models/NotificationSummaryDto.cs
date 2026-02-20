@@ -13,4 +13,5 @@ public sealed record NotificationSummaryDto(
     string Status,
     int TotalRecipientCount,
     int SucceededCount,
-    int FailedCount);
+    int FailedCount,
+    string? Summary);

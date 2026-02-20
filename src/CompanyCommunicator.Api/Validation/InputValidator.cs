@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CompanyCommunicator.Core.Data.Entities;
 using CompanyCommunicator.Core.Models;
 
@@ -62,7 +63,12 @@ internal static class InputValidator
             request.ImageLink,
             request.ButtonTitle,
             request.ButtonLink,
-            request.Audiences);
+            request.Audiences,
+            request.KeyDetails,
+            request.SecondaryText,
+            request.CustomVariables,
+            request.AdvancedBlocks,
+            request.CardPreference);
     }
 
     /// <summary>
@@ -82,7 +88,12 @@ internal static class InputValidator
             request.ImageLink,
             request.ButtonTitle,
             request.ButtonLink,
-            request.Audiences);
+            request.Audiences,
+            request.KeyDetails,
+            request.SecondaryText,
+            request.CustomVariables,
+            request.AdvancedBlocks,
+            request.CardPreference);
     }
 
     // -------------------------------------------------------------------------
@@ -95,7 +106,12 @@ internal static class InputValidator
         string? imageLink,
         string? buttonTitle,
         string? buttonLink,
-        IReadOnlyList<AudienceDto>? audiences)
+        IReadOnlyList<AudienceDto>? audiences,
+        string? keyDetails,
+        string? secondaryText,
+        string? customVariables,
+        string? advancedBlocks,
+        string? cardPreference)
     {
         // Title: required, max 200
         if (string.IsNullOrWhiteSpace(title))
@@ -156,6 +172,71 @@ internal static class InputValidator
                     return (false, $"AudienceId '{audience.AudienceId}' must be a valid GUID for audience type {audience.AudienceType}.");
                 }
             }
+        }
+
+        // KeyDetails: optional, must be a valid JSON array if provided
+        if (keyDetails is not null)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(keyDetails);
+                if (doc.RootElement.ValueKind != JsonValueKind.Array)
+                {
+                    return (false, "KeyDetails must be a JSON array.");
+                }
+            }
+            catch (JsonException)
+            {
+                return (false, "KeyDetails must be valid JSON.");
+            }
+        }
+
+        // SecondaryText: optional, max 2000
+        if (secondaryText is not null && secondaryText.Length > 2000)
+        {
+            return (false, "SecondaryText must not exceed 2000 characters.");
+        }
+
+        // CustomVariables: optional, must be a valid JSON object if provided
+        if (customVariables is not null)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(customVariables);
+                if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                {
+                    return (false, "CustomVariables must be a JSON object.");
+                }
+            }
+            catch (JsonException)
+            {
+                return (false, "CustomVariables must be valid JSON.");
+            }
+        }
+
+        // AdvancedBlocks: optional, must be a valid JSON array if provided
+        if (advancedBlocks is not null)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(advancedBlocks);
+                if (doc.RootElement.ValueKind != JsonValueKind.Array)
+                {
+                    return (false, "AdvancedBlocks must be a JSON array.");
+                }
+            }
+            catch (JsonException)
+            {
+                return (false, "AdvancedBlocks must be valid JSON.");
+            }
+        }
+
+        // CardPreference: optional, must be "Standard" or "Advanced" if provided
+        if (cardPreference is not null &&
+            !string.Equals(cardPreference, "Standard", StringComparison.Ordinal) &&
+            !string.Equals(cardPreference, "Advanced", StringComparison.Ordinal))
+        {
+            return (false, "CardPreference must be 'Standard' or 'Advanced'.");
         }
 
         return (true, null);

@@ -174,6 +174,11 @@ public sealed class NotificationsController : ControllerBase
             CreatedDate = DateTime.UtcNow,
             CreatedBy = userIdentifier,
             Author = userIdentifier,
+            KeyDetails = request.KeyDetails,
+            SecondaryText = request.SecondaryText,
+            CustomVariables = request.CustomVariables,
+            AdvancedBlocks = request.AdvancedBlocks,
+            CardPreference = request.CardPreference,
         };
 
         if (request.Audiences is not null)
@@ -256,6 +261,11 @@ public sealed class NotificationsController : ControllerBase
         notification.ButtonTitle = request.ButtonTitle;
         notification.ButtonLink = request.ButtonLink;
         notification.AllUsers = request.AllUsers;
+        notification.KeyDetails = request.KeyDetails;
+        notification.SecondaryText = request.SecondaryText;
+        notification.CustomVariables = request.CustomVariables;
+        notification.AdvancedBlocks = request.AdvancedBlocks;
+        notification.CardPreference = request.CardPreference;
 
         // Replace audiences: remove old, insert new
         _db.NotificationAudiences.RemoveRange(notification.Audiences);

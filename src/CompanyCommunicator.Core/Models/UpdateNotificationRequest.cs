@@ -10,4 +10,9 @@ public sealed record UpdateNotificationRequest(
     string? ButtonTitle,
     string? ButtonLink,
     bool AllUsers,
-    IReadOnlyList<AudienceDto>? Audiences);
+    IReadOnlyList<AudienceDto>? Audiences,
+    string? KeyDetails,
+    string? SecondaryText,
+    string? CustomVariables,
+    string? AdvancedBlocks,
+    string? CardPreference);
