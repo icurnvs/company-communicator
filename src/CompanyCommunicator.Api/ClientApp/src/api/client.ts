@@ -6,30 +6,57 @@ let cachedToken: string | null = null;
 let tokenExpiry: number = 0;
 const TOKEN_BUFFER_MS = 60_000; // Refresh 1 minute before expiry
 
+const DEV_TOKEN_KEY = 'CC_DEV_TOKEN';
+
+function tryDevToken(): string | null {
+  if (!import.meta.env.DEV) return null;
+  const token = localStorage.getItem(DEV_TOKEN_KEY);
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1])) as { exp?: number };
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      localStorage.removeItem(DEV_TOKEN_KEY);
+      return null;
+    }
+    return token;
+  } catch {
+    return null;
+  }
+}
+
+function cacheToken(token: string, now: number): void {
+  cachedToken = token;
+  try {
+    const payloadBase64 = token.split('.')[1];
+    if (payloadBase64) {
+      const payload = JSON.parse(atob(payloadBase64)) as { exp?: number };
+      if (payload.exp) {
+        tokenExpiry = payload.exp * 1000 - TOKEN_BUFFER_MS;
+        return;
+      }
+    }
+  } catch {
+    // fall through to default
+  }
+  tokenExpiry = now + 50 * 60 * 1000; // default 50 min
+}
+
 async function getTeamsToken(): Promise<string> {
   const now = Date.now();
   if (cachedToken && now < tokenExpiry) {
     return cachedToken;
   }
 
+  // In dev mode, prefer a manually-provided token — Teams SSO hangs outside the iframe
+  const devToken = tryDevToken();
+  if (devToken) {
+    cacheToken(devToken, now);
+    return devToken;
+  }
+
   try {
     const token = await authentication.getAuthToken();
-    // Teams SSO tokens are typically valid for ~1 hour; decode expiry
-    // without external jwt libs by parsing the payload portion
-    try {
-      const payloadBase64 = token.split('.')[1];
-      if (payloadBase64) {
-        const payload = JSON.parse(atob(payloadBase64)) as { exp?: number };
-        if (payload.exp) {
-          tokenExpiry = payload.exp * 1000 - TOKEN_BUFFER_MS;
-        } else {
-          tokenExpiry = now + 50 * 60 * 1000; // default 50 min
-        }
-      }
-    } catch {
-      tokenExpiry = now + 50 * 60 * 1000;
-    }
-    cachedToken = token;
+    cacheToken(token, now);
     return token;
   } catch (err) {
     throw new Error(`Teams SSO failed: ${String(err)}`);

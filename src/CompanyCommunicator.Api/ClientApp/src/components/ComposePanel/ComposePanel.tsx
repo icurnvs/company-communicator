@@ -30,45 +30,45 @@ import { ConfirmSendDialog } from './ConfirmSendDialog';
 // Styles
 // ---------------------------------------------------------------------------
 
-const SIDEBAR_WIDTH = 200; // px — matches the sidebar defined in CommunicationCenter
-const MAX_PANEL_WIDTH = 1200; // px — prevent over-stretching on ultra-wide monitors
-
 const useStyles = makeStyles({
-  // Semi-transparent backdrop that sits behind the panel
+  // Full-screen backdrop with blur — centers the dialog via flexbox
   overlay: {
-    position: 'absolute',
+    position: 'fixed',
     inset: 0,
-    backgroundColor: tokens.colorBackgroundOverlay,
     zIndex: 100,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: tokens.colorBackgroundOverlay,
+    backdropFilter: 'blur(4px)',
     animationName: {
       from: { opacity: 0 },
       to: { opacity: 1 },
     },
-    animationDuration: '250ms',
+    animationDuration: '200ms',
     animationTimingFunction: 'ease-out',
     animationFillMode: 'both',
   },
 
-  // The slide-over panel itself
+  // Centered dialog — materializes with a subtle scale-up + fade
   panel: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    width: `calc(100% - ${SIDEBAR_WIDTH}px)`,
-    maxWidth: `${MAX_PANEL_WIDTH}px`,
-    zIndex: 101,
+    position: 'relative',
+    width: 'calc(100% - 48px)',
+    maxWidth: '900px',
+    height: 'calc(100vh - 80px)',
+    maxHeight: '85vh',
     display: 'flex',
     flexDirection: 'column',
     backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusXLarge,
     boxShadow: tokens.shadow64,
     overflow: 'hidden',
     animationName: {
-      from: { transform: 'translateX(100%)' },
-      to: { transform: 'translateX(0)' },
+      from: { opacity: 0, transform: 'scale(0.97)' },
+      to: { opacity: 1, transform: 'scale(1)' },
     },
-    animationDuration: '250ms',
-    animationTimingFunction: 'ease-out',
+    animationDuration: '220ms',
+    animationTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
     animationFillMode: 'both',
   },
 
@@ -251,22 +251,20 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
 
   return (
     <>
-      {/* Overlay */}
+      {/* Backdrop — click outside the panel to close */}
       <div
         className={styles.overlay}
-        onClick={requestClose}
-        aria-hidden="true"
-      />
-
-      {/* Panel */}
-      <div
-        ref={panelRef}
-        className={styles.panel}
-        role="dialog"
-        aria-modal="true"
-        aria-label={panelTitle}
-        tabIndex={-1}
+        onClick={(e) => { if (e.target === e.currentTarget) requestClose(); }}
       >
+        {/* Panel */}
+        <div
+          ref={panelRef}
+          className={styles.panel}
+          role="dialog"
+          aria-modal="true"
+          aria-label={panelTitle}
+          tabIndex={-1}
+        >
         {/* Header */}
         <div className={styles.header}>
           <Text className={styles.headerTitle} title={panelTitle}>
@@ -355,6 +353,7 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
             onDeliveryDone={handleDeliveryDone}
           />
         )}
+        </div>
       </div>
 
       {/* Discard changes dialog (replaces window.confirm which is blocked in Teams iframes) */}

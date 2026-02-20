@@ -8,17 +8,71 @@ This guide explains how to run Company Communicator v2 locally for development. 
 
 ## Table of Contents
 
-1. [Prerequisites](#prerequisites)
-2. [Clone and Build](#clone-and-build)
-3. [Local Database Setup](#local-database-setup)
-4. [User Secrets Configuration](#user-secrets-configuration)
-5. [Azure Resources for Local Dev](#azure-resources-for-local-dev)
-6. [Running the API](#running-the-api)
-7. [Running the Frontend](#running-the-frontend)
-8. [Running Azure Functions Locally](#running-azure-functions-locally)
-9. [Testing with Teams Emulator](#testing-with-teams-emulator)
-10. [Running Tests](#running-tests)
-11. [Troubleshooting](#troubleshooting)
+1. [Frontend-Only Development (Recommended for UI Work)](#frontend-only-development-recommended-for-ui-work)
+2. [Prerequisites](#prerequisites)
+3. [Clone and Build](#clone-and-build)
+4. [Local Database Setup](#local-database-setup)
+5. [User Secrets Configuration](#user-secrets-configuration)
+6. [Azure Resources for Local Dev](#azure-resources-for-local-dev)
+7. [Running the API](#running-the-api)
+8. [Running the Frontend](#running-the-frontend)
+9. [Running Azure Functions Locally](#running-azure-functions-locally)
+10. [Testing with Teams Emulator](#testing-with-teams-emulator)
+11. [Running Tests](#running-tests)
+12. [Troubleshooting](#troubleshooting)
+
+---
+
+## Frontend-Only Development (Recommended for UI Work)
+
+If you're only working on the React frontend, you can skip the entire .NET/SQL/Functions setup. The Vite dev server proxies API calls to your **live Azure backend**, giving you instant HMR with zero local backend dependencies.
+
+### 1. Install frontend dependencies
+
+```bash
+cd src/CompanyCommunicator.Api/ClientApp
+npm ci
+```
+
+### 2. Configure the proxy target
+
+```bash
+cp .env.local.example .env.local
+```
+
+Edit `.env.local` and set `VITE_API_URL` to your deployed Azure API:
+
+```env
+VITE_API_URL=https://cc-api-XXXXX.azurewebsites.net
+```
+
+Find your URL in the Azure Portal under App Service → Overview → Default domain.
+
+### 3. Start the dev server
+
+```bash
+npm run dev
+```
+
+### 4. Open the app and provide a token
+
+Open `http://localhost:5173/clientapp/` in your browser. Since you're running outside Teams, the app will show a **Dev Token Prompt**.
+
+To get a token:
+
+1. Open the **live app** inside Teams (desktop or web client)
+2. Open DevTools (F12) → **Network** tab
+3. Find any request to `/api/...`
+4. Copy the `Authorization` header value — just the token part after `Bearer `
+5. Paste it into the prompt and click **Save & Reload**
+
+The token is stored in `localStorage` and lasts ~1 hour. When it expires, the prompt will reappear — just paste a fresh one.
+
+### 5. Develop with HMR
+
+Edit any `.tsx` file and see changes instantly. API calls are proxied to Azure so real data flows through.
+
+> **Note**: This workflow is for UI development only. If you need to change backend code (.NET API, Azure Functions), follow the full setup below.
 
 ---
 

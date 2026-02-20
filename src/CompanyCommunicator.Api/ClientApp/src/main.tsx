@@ -15,6 +15,7 @@ import {
   type Theme,
 } from '@fluentui/react-components';
 import { App } from './App';
+import { DevTokenPrompt, hasValidDevToken } from './components/DevTokenPrompt';
 
 // Configure TanStack Query client
 const queryClient = new QueryClient({
@@ -44,6 +45,7 @@ function mapTheme(themeName?: string): Theme {
 function Root() {
   const [theme, setTheme] = useState<Theme>(teamsLightTheme);
   const [teamsReady, setTeamsReady] = useState(false);
+  const [outsideTeams, setOutsideTeams] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -70,6 +72,7 @@ function Root() {
       } catch {
         // Running outside Teams (dev mode); use default theme
         console.info('Running outside Teams - using default light theme');
+        if (mounted) setOutsideTeams(true);
       } finally {
         if (mounted) setTeamsReady(true);
       }
@@ -84,6 +87,17 @@ function Root() {
   // Don't render until Teams SDK init attempt is complete
   if (!teamsReady) {
     return null;
+  }
+
+  // In dev mode outside Teams, show the token prompt if no valid token is stored
+  if (import.meta.env.DEV && outsideTeams && !hasValidDevToken()) {
+    return (
+      <StrictMode>
+        <FluentProvider theme={theme}>
+          <DevTokenPrompt />
+        </FluentProvider>
+      </StrictMode>
+    );
   }
 
   return (
