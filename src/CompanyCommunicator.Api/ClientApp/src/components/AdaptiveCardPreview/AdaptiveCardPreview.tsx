@@ -1,4 +1,4 @@
-import { useRef, useEffect, useDeferredValue, memo } from 'react';
+import { useRef, useEffect, memo } from 'react';
 import { makeStyles, tokens, Text } from '@fluentui/react-components';
 import { useTranslation } from 'react-i18next';
 import { buildCardPayload, renderCard } from '@/lib/adaptiveCard';
@@ -58,24 +58,20 @@ export const AdaptiveCardPreview = memo(function AdaptiveCardPreview({
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Defer expensive card rendering to avoid blocking the form inputs
-  const deferredData = useDeferredValue(data);
-  const deferredTheme = useDeferredValue(theme);
-
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    if (!deferredData.title) {
+    if (!data.title) {
       container.innerHTML = '';
       return;
     }
 
-    const payload = buildCardPayload(deferredData);
-    const cleanup = renderCard(container, payload, deferredTheme);
+    const payload = buildCardPayload(data);
+    const cleanup = renderCard(container, payload, theme);
 
     return cleanup;
-  }, [deferredData, deferredTheme]);
+  }, [data, theme]);
 
   const hasTitle = Boolean(data.title);
 
