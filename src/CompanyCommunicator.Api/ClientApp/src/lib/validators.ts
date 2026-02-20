@@ -136,9 +136,7 @@ export type ScheduleFormValues = z.infer<typeof scheduleFormSchema>;
 // ---------------------------------------------------------------------------
 // Helpers — convert form values to API request shapes
 // ---------------------------------------------------------------------------
-export function formValuesToCreateRequest(
-  values: ComposeFormValues,
-): CreateNotificationRequest {
+function formToApiFields(values: ComposeFormValues) {
   return {
     title: values.headline,
     summary: values.body || null,
@@ -166,32 +164,14 @@ export function formValuesToCreateRequest(
   };
 }
 
+export function formValuesToCreateRequest(
+  values: ComposeFormValues,
+): CreateNotificationRequest {
+  return formToApiFields(values);
+}
+
 export function formValuesToUpdateRequest(
   values: ComposeFormValues,
 ): UpdateNotificationRequest {
-  return {
-    title: values.headline,
-    summary: values.body || null,
-    imageLink: values.imageLink || null,
-    buttonTitle: values.buttonTitle || null,
-    buttonLink: values.buttonLink || null,
-    allUsers: values.allUsers,
-    audiences: values.allUsers ? null : (values.audiences ?? null),
-    keyDetails: values.keyDetails?.length
-      ? JSON.stringify(values.keyDetails)
-      : null,
-    secondaryText: values.secondaryText || null,
-    customVariables:
-      values.customVariables?.length
-        ? JSON.stringify(
-            Object.fromEntries(
-              values.customVariables.map((v) => [v.name, v.value]),
-            ),
-          )
-        : null,
-    advancedBlocks: values.advancedBlocks?.length
-      ? JSON.stringify(values.advancedBlocks)
-      : null,
-    cardPreference: values.cardPreference || null,
-  };
+  return formToApiFields(values);
 }

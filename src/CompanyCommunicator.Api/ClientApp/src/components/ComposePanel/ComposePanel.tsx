@@ -122,6 +122,8 @@ type ComposePanelTab = 'content' | 'audience';
 
 export interface ComposePanelProps {
   editId?: string | null;
+  /** Pre-fill the form with cloned content (used for "Use as template"). */
+  initialValues?: Partial<import('@/lib/validators').ComposeFormValues> | null;
   onClose: () => void;
   /** Called after delivery is done — close compose and navigate to Sent tab. */
   onDeliveryDone?: () => void;
@@ -131,7 +133,7 @@ export interface ComposePanelProps {
 // ComposePanel
 // ---------------------------------------------------------------------------
 
-export function ComposePanel({ editId, onClose, onDeliveryDone }: ComposePanelProps) {
+export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }: ComposePanelProps) {
   const styles = useStyles();
 
   // Mount-animation state: starts false, flips to true after the first
@@ -156,11 +158,11 @@ export function ComposePanel({ editId, onClose, onDeliveryDone }: ComposePanelPr
   // ---------------------------------------------------------------------------
 
   const { form, isLoading, isSaving, saveDraft, isDirty, isEdit, notificationId, lastAutoSaved } =
-    useComposeForm({ editId, onSaved: undefined });
+    useComposeForm({ editId, onSaved: undefined, initialValues });
 
-  // Watch form values for the action bar (audience summary, headline-based enablement)
-  const formValues = form.watch();
-  const headline = formValues.headline;
+  // Only watch headline for the panel title — ActionBar watches everything it
+  // needs internally, so ComposePanel doesn't re-render on every keystroke (M4).
+  const headline = form.watch('headline');
 
   // Send mutation
   const sendMutation = useSendNotification();
@@ -306,7 +308,7 @@ export function ComposePanel({ editId, onClose, onDeliveryDone }: ComposePanelPr
 
         {/* Action bar */}
         <ActionBar
-          formValues={formValues}
+          form={form}
           isSaving={isSaving}
           isEdit={isEdit}
           notificationId={notificationId}
@@ -315,10 +317,10 @@ export function ComposePanel({ editId, onClose, onDeliveryDone }: ComposePanelPr
           onReview={handleReview}
         />
 
-        {/* Confirm Send Dialog */}
+        {/* Confirm Send Dialog — snapshot form values at render time */}
         {showConfirmDialog && (
           <ConfirmSendDialog
-            formValues={formValues}
+            formValues={form.getValues()}
             notificationId={notificationId}
             onSaveDraft={saveDraft}
             onConfirmSend={handleConfirmSend}

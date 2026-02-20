@@ -22,6 +22,8 @@ import type { AdvancedBlock, CardPreference, KeyDetailPair, CustomVariable } fro
 export interface UseComposeFormOptions {
   editId?: string | null;
   onSaved?: (id: string) => void;
+  /** Pre-fill the form with these values (used for "clone" / "use as template"). */
+  initialValues?: Partial<ComposeFormValues> | null;
 }
 
 export interface UseComposeFormReturn {
@@ -93,6 +95,7 @@ function parseCardPreference(raw: string | null): CardPreference | null {
 export function useComposeForm({
   editId,
   onSaved,
+  initialValues,
 }: UseComposeFormOptions): UseComposeFormReturn {
   const isEdit = Boolean(editId);
 
@@ -109,6 +112,7 @@ export function useComposeForm({
   // re-opens the panel on a different notification).
   useEffect(() => {
     setNotificationId(editId ?? null);
+    setLastAutoSaved(null);
   }, [editId]);
 
   // ---------------------------------------------------------------------------
@@ -118,16 +122,16 @@ export function useComposeForm({
   const form = useForm<ComposeFormValues>({
     resolver: zodResolver(composeFormSchema),
     defaultValues: {
-      headline: '',
-      body: '',
-      imageLink: '',
-      keyDetails: null,
-      buttonTitle: '',
-      buttonLink: '',
-      secondaryText: '',
-      customVariables: null,
-      cardPreference: 'Standard',
-      advancedBlocks: null,
+      headline: initialValues?.headline ?? '',
+      body: initialValues?.body ?? '',
+      imageLink: initialValues?.imageLink ?? '',
+      keyDetails: initialValues?.keyDetails ?? null,
+      buttonTitle: initialValues?.buttonTitle ?? '',
+      buttonLink: initialValues?.buttonLink ?? '',
+      secondaryText: initialValues?.secondaryText ?? '',
+      customVariables: initialValues?.customVariables ?? null,
+      cardPreference: initialValues?.cardPreference ?? 'Standard',
+      advancedBlocks: initialValues?.advancedBlocks ?? null,
       allUsers: false,
       audiences: [],
     },
@@ -230,6 +234,11 @@ export function useComposeForm({
   // Track whether a save is currently in progress to avoid concurrent saves.
   const isSavingRef = useRef(false);
 
+  // Use a ref so the interval always calls the latest saveDraft without
+  // needing to restart when mutation state changes (fixes M1).
+  const saveDraftRef = useRef(saveDraft);
+  useEffect(() => { saveDraftRef.current = saveDraft; }, [saveDraft]);
+
   useEffect(() => {
     const interval = setInterval(() => {
       const { isDirty } = form.formState;
@@ -239,7 +248,7 @@ export function useComposeForm({
       if (!isDirty || !hasTitle || isSavingRef.current) return;
 
       isSavingRef.current = true;
-      void saveDraft().then((savedId) => {
+      void saveDraftRef.current().then((savedId) => {
         isSavingRef.current = false;
         if (savedId !== undefined) {
           setLastAutoSaved(new Date());
@@ -248,7 +257,7 @@ export function useComposeForm({
     }, 30_000);
 
     return () => { clearInterval(interval); };
-  }, [form, saveDraft]);
+  }, [form]); // Only depends on form, which is stable
 
   // ---------------------------------------------------------------------------
   // Return

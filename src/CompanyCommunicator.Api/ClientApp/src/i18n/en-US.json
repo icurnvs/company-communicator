@@ -17,36 +17,136 @@
     "no": "No"
   },
   "nav": {
-    "notifications": "Notifications",
-    "newNotification": "New Notification"
+    "notifications": "Notifications"
   },
-  "notificationList": {
-    "title": "Notifications",
-    "newButton": "New Message",
-    "tabs": {
-      "draft": "Drafts",
-      "sent": "Sent",
-      "scheduled": "Scheduled"
+  "sidebar": {
+    "compose": "Compose",
+    "sent": "Sent",
+    "drafts": "Drafts",
+    "scheduled": "Scheduled"
+  },
+  "compose": {
+    "newMessage": "New Message",
+    "editMessage": "Edit Message",
+    "content": "Content",
+    "audience": "Audience",
+    "unsavedChanges": "You have unsaved changes. Discard them and close?"
+  },
+  "content": {
+    "headline": "Headline",
+    "headlinePlaceholder": "Enter message headline",
+    "body": "Body",
+    "bodyPlaceholder": "Enter message body (supports Markdown)",
+    "heroImage": "Hero Image URL",
+    "heroImagePlaceholder": "https://example.com/image.jpg",
+    "keyDetails": "Key Details",
+    "keyDetailsHint": "Add label-value pairs shown as a fact set",
+    "label": "Label",
+    "value": "Value",
+    "addKeyDetail": "Add detail",
+    "buttonLabel": "Button Title",
+    "buttonLabelPlaceholder": "Learn More",
+    "buttonUrl": "Button URL",
+    "buttonUrlPlaceholder": "https://example.com",
+    "footnote": "Footnote",
+    "footnotePlaceholder": "Optional footnote text",
+    "charCount": "{{count}}/{{max}}",
+    "preview": "Card Preview"
+  },
+  "templates": {
+    "picker": "Start from a template",
+    "blank": "Blank",
+    "custom": "My Templates",
+    "builtIn": {
+      "announcement": "Announcement",
+      "announcementDesc": "General company announcement",
+      "eventInvite": "Event Invite",
+      "eventInviteDesc": "Event or meeting invitation",
+      "urgentAlert": "Urgent Alert",
+      "urgentAlertDesc": "Time-sensitive alert",
+      "linkShare": "Link Share",
+      "linkShareDesc": "Share a link with context",
+      "survey": "Survey",
+      "surveyDesc": "Request feedback or responses"
     },
-    "columns": {
-      "title": "Title",
-      "author": "Author",
-      "date": "Date",
-      "status": "Status",
-      "recipients": "Recipients",
-      "succeeded": "Succeeded",
-      "failed": "Failed"
+    "saveAs": "Save as Template",
+    "name": "Template Name",
+    "namePlaceholder": "Enter template name",
+    "description": "Description",
+    "descriptionPlaceholder": "Optional description",
+    "confirmOverwrite": "This will overwrite the current form content. Continue?",
+    "deleteConfirm": "Delete this template?"
+  },
+  "audience": {
+    "sendToEveryone": "Send to everyone",
+    "channelPosts": "Channel Posts",
+    "channelPostsHint": "Post to team channels",
+    "individualMessages": "Individual Messages",
+    "individualMessagesHint": "Send as personal chat messages",
+    "teams": "Teams",
+    "teamsPlaceholder": "Search for teams...",
+    "groups": "Groups",
+    "groupsPlaceholder": "Search for groups...",
+    "sendToMembers": "Send to members instead",
+    "sendToChannel": "Send to channel instead",
+    "recentlyUsed": "Recently Used",
+    "summary": "Audience Summary",
+    "estimatedReach": "Estimated reach: {{count}} recipients",
+    "noAudienceSelected": "No audience selected"
+  },
+  "variables": {
+    "insert": "Insert Variable",
+    "recipient": {
+      "firstName": "First Name",
+      "displayName": "Display Name",
+      "department": "Department",
+      "jobTitle": "Job Title",
+      "officeLocation": "Office Location"
     },
-    "empty": {
-      "draft": "No draft messages. Create a new message to get started.",
-      "sent": "No sent messages yet.",
-      "scheduled": "No scheduled messages."
-    },
-    "pagination": {
-      "showing": "Showing {{from}}-{{to}} of {{total}}",
-      "previous": "Previous",
-      "next": "Next"
-    }
+    "custom": "Custom Variables",
+    "addCustom": "Add custom variable",
+    "name": "Variable Name",
+    "value": "Default Value",
+    "channelOnlyHint": "Recipient variables are not available for channel-only audiences"
+  },
+  "advanced": {
+    "toggle": "Advanced Mode",
+    "blocks": "Content Blocks",
+    "addBlock": "Add Block",
+    "columnLayout": "Column Layout",
+    "imageSet": "Image Set",
+    "textBlock": "Text Block",
+    "table": "Table",
+    "actionButton": "Action Button",
+    "divider": "Divider",
+    "dragToReorder": "Drag to reorder"
+  },
+  "confirm": {
+    "title": "Review & Send",
+    "audience": "Audience",
+    "reach": "Estimated reach: {{count}} recipients",
+    "send": "Confirm & Send",
+    "cancel": "Cancel"
+  },
+  "delivery": {
+    "sending": "Sending",
+    "queued": "Queued",
+    "syncing": "Syncing Recipients",
+    "installing": "Installing App",
+    "delivered": "Delivered",
+    "failed": "Failed",
+    "remaining": "Remaining",
+    "done": "Done"
+  },
+  "actions": {
+    "saveDraft": "Save Draft",
+    "saveAsTemplate": "Save as Template",
+    "sendPreview": "Send Preview",
+    "schedule": "Schedule",
+    "review": "Review & Send",
+    "saving": "Saving...",
+    "sending": "Sending...",
+    "autoSaved": "Auto-saved"
   },
   "status": {
     "Draft": "Draft",
@@ -59,90 +159,38 @@
     "Canceled": "Canceled",
     "Failed": "Failed"
   },
-  "notificationForm": {
-    "title": "Compose Message",
-    "editTitle": "Edit Message",
-    "steps": {
-      "content": "Content",
-      "audience": "Audience"
+  "messageList": {
+    "title": "Messages",
+    "newButton": "New Message",
+    "empty": {
+      "draft": "No draft messages. Create a new message to get started.",
+      "sent": "No sent messages yet.",
+      "scheduled": "No scheduled messages."
     },
-    "fields": {
-      "title": {
-        "label": "Title",
-        "placeholder": "Enter message title",
-        "required": "Title is required",
-        "maxLength": "Title cannot exceed 200 characters"
-      },
-      "summary": {
-        "label": "Summary",
-        "placeholder": "Enter message summary (supports Markdown)"
-      },
-      "imageLink": {
-        "label": "Image URL",
-        "placeholder": "https://example.com/image.jpg",
-        "invalid": "Image URL must start with https://"
-      },
-      "buttonTitle": {
-        "label": "Button Title",
-        "placeholder": "Learn More"
-      },
-      "buttonLink": {
-        "label": "Button URL",
-        "placeholder": "https://example.com",
-        "invalid": "Button URL must start with https://",
-        "bothRequired": "Both button title and button URL are required when either is set"
-      }
-    },
-    "actions": {
-      "saveDraft": "Save as Draft",
-      "sendNow": "Send Now",
-      "schedule": "Schedule",
-      "preview": "Send Preview",
-      "saving": "Saving...",
-      "sending": "Sending...",
-      "scheduling": "Scheduling..."
-    },
-    "schedule": {
-      "title": "Schedule Message",
-      "dateLabel": "Scheduled Date and Time",
-      "dateRequired": "Scheduled date is required",
-      "dateFuture": "Scheduled date must be in the future",
-      "confirm": "Schedule"
-    },
-    "preview": {
-      "title": "Card Preview",
-      "sending": "Sending preview...",
-      "sent": "Preview sent to your Teams client",
-      "error": "Failed to send preview"
-    },
-    "validation": {
-      "audienceRequired": "At least one audience is required. Select 'All Users' or choose specific teams, groups, or rosters."
+    "pagination": {
+      "showing": "Showing {{from}}-{{to}} of {{total}}",
+      "previous": "Previous",
+      "next": "Next"
     }
   },
-  "audiencePicker": {
-    "title": "Select Audience",
-    "allUsers": {
-      "label": "All Users",
-      "description": "Send to all users in your organization"
+  "detailPanel": {
+    "stats": {
+      "delivered": "Delivered",
+      "failed": "Failed",
+      "pending": "Pending",
+      "total": "Total"
     },
-    "teams": {
-      "label": "Teams",
-      "placeholder": "Search for teams...",
-      "searching": "Searching...",
-      "noTeams": "No teams found"
+    "actions": {
+      "cancel": "Cancel Notification",
+      "export": "Export Results",
+      "edit": "Edit",
+      "useAsTemplate": "Use as Template"
     },
-    "groups": {
-      "label": "Groups",
-      "placeholder": "Search for groups...",
-      "searching": "Searching...",
-      "noGroups": "No groups found"
-    },
-    "roster": {
-      "label": "Include Roster",
-      "description": "Send to all members of selected teams as individual chats"
-    },
-    "selected": "{{count}} selected",
-    "removeItem": "Remove {{name}}"
+    "confirmCancel": {
+      "title": "Cancel Notification",
+      "message": "Are you sure you want to cancel this notification? This action cannot be undone.",
+      "confirm": "Yes, Cancel It"
+    }
   },
   "statusView": {
     "title": "Delivery Status",

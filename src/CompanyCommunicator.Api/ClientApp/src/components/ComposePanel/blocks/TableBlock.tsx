@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { Fragment, useCallback } from 'react';
 import {
   makeStyles,
   tokens,
@@ -52,7 +52,8 @@ export function TableBlock({ block, onChange }: TableBlockProps) {
   const updateCell = useCallback(
     (rowIndex: number, colIndex: number, value: string) => {
       const updated = rows.map((r) => [...r]);
-      updated[rowIndex][colIndex] = value;
+      const row = updated[rowIndex];
+      if (row) row[colIndex] = value;
       onChange({ ...block.data, rows: updated });
     },
     [rows, block.data, onChange],
@@ -118,7 +119,7 @@ export function TableBlock({ block, onChange }: TableBlockProps) {
 
         {/* Data rows */}
         {rows.map((row, ri) => (
-          <>
+          <Fragment key={`row-${ri}`}>
             {row.map((cell, ci) => (
               <div key={`r${ri}-c${ci}`}>
                 <Input
@@ -140,7 +141,7 @@ export function TableBlock({ block, onChange }: TableBlockProps) {
                 />
               )}
             </div>
-          </>
+          </Fragment>
         ))}
       </div>
 

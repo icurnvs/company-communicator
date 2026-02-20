@@ -6,7 +6,6 @@ import {
   Text,
   Badge,
   Caption1,
-  Divider,
   MessageBar,
   MessageBarBody,
   Spinner,
@@ -17,9 +16,9 @@ import {
   CheckmarkCircle16Regular,
 } from '@fluentui/react-icons';
 import { AdaptiveCardPreview } from '@/components/AdaptiveCardPreview/AdaptiveCardPreview';
-import { buildCardPayload } from '@/lib/adaptiveCard';
 import type { CardData } from '@/lib/adaptiveCard';
 import type { ComposeFormValues } from '@/lib/validators';
+import { estimateReach } from '@/lib/audienceUtils';
 import type { AudienceDto } from '@/types';
 import { DeliveryTracker } from './DeliveryTracker';
 
@@ -125,17 +124,6 @@ function categorizeAudiences(audiences: AudienceDto[] | null | undefined) {
   const channelPosts = list.filter((a) => a.audienceType === 'Team');
   const individuals = list.filter((a) => a.audienceType !== 'Team');
   return { channelPosts, individuals };
-}
-
-function estimateReach(allUsers: boolean, audiences: AudienceDto[] | null | undefined): number | null {
-  if (allUsers) return null;
-  const list = audiences ?? [];
-  if (list.length === 0) return null;
-  return list.reduce((sum, a) => {
-    if (a.audienceType === 'Team') return sum + 50;
-    if (a.audienceType === 'Group') return sum + 30;
-    return sum + 20;
-  }, 0);
 }
 
 // ---------------------------------------------------------------------------

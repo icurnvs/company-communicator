@@ -108,19 +108,19 @@ interface NavItemDef {
 const NAV_ITEMS: NavItemDef[] = [
   {
     tab: 'Sent',
-    labelKey: 'notificationList.tabs.sent',
+    labelKey: 'sidebar.sent',
     IconRegular: Send24Regular,
     IconFilled: Send24Filled,
   },
   {
     tab: 'Draft',
-    labelKey: 'notificationList.tabs.draft',
+    labelKey: 'sidebar.drafts',
     IconRegular: Edit24Regular,
     IconFilled: Edit24Filled,
   },
   {
     tab: 'Scheduled',
-    labelKey: 'notificationList.tabs.scheduled',
+    labelKey: 'sidebar.scheduled',
     IconRegular: Clock24Regular,
     IconFilled: Clock24Filled,
   },
@@ -189,9 +189,9 @@ export function Sidebar({ activeTab, onTabChange, onComposeClick }: SidebarProps
           icon={<Add24Regular />}
           className={styles.composeButton}
           onClick={onComposeClick}
-          aria-label={t('notificationList.newButton')}
+          aria-label={t('sidebar.compose')}
         >
-          {t('notificationList.newButton')}
+          {t('sidebar.compose')}
         </Button>
       </div>
 

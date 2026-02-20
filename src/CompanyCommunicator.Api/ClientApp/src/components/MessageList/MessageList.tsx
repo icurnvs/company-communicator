@@ -52,13 +52,13 @@ function getAvatarColor(title: string): string {
     hash |= 0; // Convert to 32-bit integer
   }
   const index = Math.abs(hash) % AVATAR_PALETTE.length;
-  return AVATAR_PALETTE[index];
+  return AVATAR_PALETTE[index] ?? AVATAR_PALETTE[0]!;
 }
 
 function getAvatarInitials(title: string): string {
   const words = title.trim().split(/\s+/);
-  if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase();
+  if (words.length >= 2 && words[0] && words[1]) {
+    return ((words[0][0] ?? '') + (words[1][0] ?? '')).toUpperCase();
   }
   return title.slice(0, 2).toUpperCase();
 }
@@ -207,7 +207,7 @@ const useStyles = makeStyles({
     height: '40px',
     borderRadius: tokens.borderRadiusCircular,
     flexShrink: 0,
-    color: tokens.colorNeutralForeground1InvertedAccessible,
+    color: tokens.colorNeutralForegroundInverted,
     fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
     userSelect: 'none',
@@ -515,9 +515,9 @@ export function MessageList({
   );
 
   const emptyMessages: Record<NotificationTab, string> = {
-    Draft: t('notificationList.empty.draft'),
-    Sent: t('notificationList.empty.sent'),
-    Scheduled: t('notificationList.empty.scheduled'),
+    Draft: t('messageList.empty.draft'),
+    Sent: t('messageList.empty.sent'),
+    Scheduled: t('messageList.empty.scheduled'),
   };
 
   // Determine body content
@@ -582,7 +582,7 @@ export function MessageList({
       </div>
 
       {/* Scrollable list */}
-      <div className={styles.listArea} role="list" aria-label={t('notificationList.title')}>
+      <div className={styles.listArea} role="list" aria-label={t('messageList.title')}>
         {bodyContent}
       </div>
 
@@ -590,7 +590,7 @@ export function MessageList({
       {totalPages > 1 && !isLoading && !isError && (
         <div className={styles.pagination}>
           <Text className={styles.paginationInfo}>
-            {t('notificationList.pagination.showing', { from, to, total: totalCount })}
+            {t('messageList.pagination.showing', { from, to, total: totalCount })}
           </Text>
           <div className={styles.paginationButtons}>
             <Button
@@ -598,18 +598,18 @@ export function MessageList({
               appearance="subtle"
               disabled={page === 1}
               onClick={() => { setPage((p) => p - 1); }}
-              aria-label={t('notificationList.pagination.previous')}
+              aria-label={t('messageList.pagination.previous')}
             >
-              {t('notificationList.pagination.previous')}
+              {t('messageList.pagination.previous')}
             </Button>
             <Button
               size="small"
               appearance="subtle"
               disabled={page >= totalPages}
               onClick={() => { setPage((p) => p + 1); }}
-              aria-label={t('notificationList.pagination.next')}
+              aria-label={t('messageList.pagination.next')}
             >
-              {t('notificationList.pagination.next')}
+              {t('messageList.pagination.next')}
             </Button>
           </div>
         </div>

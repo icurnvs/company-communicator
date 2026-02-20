@@ -34,10 +34,12 @@ import {
   DocumentCopyRegular,
 } from '@fluentui/react-icons';
 import { DatePicker } from '@fluentui/react-datepicker-compat';
+import type { UseFormReturn } from 'react-hook-form';
 import { useScheduleNotification, usePreviewNotification } from '@/api/notifications';
 import { useCreateTemplate } from '@/api/templates';
-import type { AudienceDto, CardSchema } from '@/types';
+import type { CardSchema } from '@/types';
 import type { ComposeFormValues } from '@/lib/validators';
+import { buildAudienceSummary, estimateReach } from '@/lib/audienceUtils';
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -127,48 +129,6 @@ const useStyles = makeStyles({
     gap: tokens.spacingVerticalS,
   },
 });
-
-// ---------------------------------------------------------------------------
-// Audience summary helpers
-// ---------------------------------------------------------------------------
-
-function buildAudienceSummary(
-  allUsers: boolean,
-  audiences: AudienceDto[] | null | undefined,
-): { label: string; chipTypes: string[] } {
-  if (allUsers) {
-    return { label: 'All Users', chipTypes: ['All Users'] };
-  }
-
-  const list = audiences ?? [];
-  if (list.length === 0) {
-    return { label: '', chipTypes: [] };
-  }
-
-  const typeCounts: Record<string, number> = {};
-  for (const a of list) {
-    typeCounts[a.audienceType] = (typeCounts[a.audienceType] ?? 0) + 1;
-  }
-
-  const chips: string[] = [];
-  if (typeCounts['Team']) chips.push(`${typeCounts['Team']} team${typeCounts['Team'] > 1 ? 's' : ''}`);
-  if (typeCounts['Roster']) chips.push(`${typeCounts['Roster']} roster${typeCounts['Roster'] > 1 ? 's' : ''}`);
-  if (typeCounts['Group']) chips.push(`${typeCounts['Group']} group${typeCounts['Group'] > 1 ? 's' : ''}`);
-
-  return { label: chips.join(', '), chipTypes: chips };
-}
-
-// Rough reach estimate: teams ~50, groups ~30, rosters ~20 members each
-function estimateReach(allUsers: boolean, audiences: AudienceDto[] | null | undefined): number | null {
-  if (allUsers) return null; // Can't estimate for all users
-  const list = audiences ?? [];
-  if (list.length === 0) return null;
-  return list.reduce((sum, a) => {
-    if (a.audienceType === 'Team') return sum + 50;
-    if (a.audienceType === 'Group') return sum + 30;
-    return sum + 20; // Roster
-  }, 0);
-}
 
 // ---------------------------------------------------------------------------
 // Auto-saved indicator sub-component
@@ -391,8 +351,8 @@ function SaveTemplateDialog({ open, onClose, formValues }: SaveTemplateDialogPro
 // ---------------------------------------------------------------------------
 
 export interface ActionBarProps {
-  /** Current form values (watched from the parent so this stays reactive). */
-  formValues: ComposeFormValues;
+  /** The form instance — ActionBar watches values internally to avoid re-rendering the parent. */
+  form: UseFormReturn<ComposeFormValues>;
   /** Whether a save is currently in progress. */
   isSaving: boolean;
   /** Whether the form is in edit mode (has an existing notification). */
@@ -412,7 +372,7 @@ export interface ActionBarProps {
 // ---------------------------------------------------------------------------
 
 export function ActionBar({
-  formValues,
+  form,
   isSaving,
   isEdit,
   notificationId,
@@ -423,6 +383,9 @@ export function ActionBar({
   const styles = useStyles();
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const previewMutation = usePreviewNotification();
+
+  // Watch form values locally so only ActionBar re-renders on field changes.
+  const formValues = form.watch();
 
   // Audience summary
   const { chipTypes } = buildAudienceSummary(formValues.allUsers, formValues.audiences);
