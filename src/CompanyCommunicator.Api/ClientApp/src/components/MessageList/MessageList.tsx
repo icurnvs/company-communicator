@@ -25,7 +25,6 @@ export interface MessageListProps {
   activeTab: NotificationTab;
   selectedMessageId: string | null;
   onSelectMessage: (id: string | null) => void;
-  onOpenCompose: (editId?: string | null) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -458,7 +457,6 @@ export function MessageList({
   activeTab,
   selectedMessageId,
   onSelectMessage,
-  onOpenCompose,
 }: MessageListProps) {
   const styles = useStyles();
   const { t } = useTranslation();

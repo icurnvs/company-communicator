@@ -7,6 +7,7 @@ import type { CreateNotificationRequest, UpdateNotificationRequest } from '@/typ
 export const audienceDtoSchema = z.object({
   audienceType: z.enum(['Team', 'Roster', 'Group']),
   audienceId: z.string().min(1),
+  displayName: z.string().optional(),
 });
 
 // ---------------------------------------------------------------------------

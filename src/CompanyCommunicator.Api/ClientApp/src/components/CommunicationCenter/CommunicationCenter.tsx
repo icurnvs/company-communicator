@@ -160,7 +160,6 @@ export function CommunicationCenter() {
             activeTab={selectedTab}
             selectedMessageId={selectedMessageId}
             onSelectMessage={handleSelectMessage}
-            onOpenCompose={handleOpenCompose}
           />
 
           {/* Detail panel — overlays message list from the right */}
