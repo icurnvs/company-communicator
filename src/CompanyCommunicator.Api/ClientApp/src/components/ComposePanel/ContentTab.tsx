@@ -1,4 +1,4 @@
-import { useDeferredValue, useState } from 'react';
+import { useCallback, useDeferredValue, useRef, useState } from 'react';
 import { Controller, useFieldArray } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import {
@@ -10,12 +10,23 @@ import {
   Button,
   Text,
   Caption1,
+  Switch,
+  Divider,
 } from '@fluentui/react-components';
 import { Add16Regular, Delete16Regular } from '@fluentui/react-icons';
 import { AdaptiveCardPreview } from '@/components/AdaptiveCardPreview/AdaptiveCardPreview';
 import type { CardData } from '@/lib/adaptiveCard';
 import type { ComposeFormValues } from '@/lib/validators';
+import type { CardPreference } from '@/types';
 import { TemplatePicker } from './TemplatePicker';
+import { VariableInsert } from './VariableInsert';
+import { CustomVariablesPanel } from './CustomVariablesPanel';
+import { BlockEditor } from './BlockEditor';
+
+// ---------------------------------------------------------------------------
+// localStorage key for Advanced mode preference
+// ---------------------------------------------------------------------------
+const CARD_PREF_KEY = 'cc-card-preference';
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -132,6 +143,27 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: tokens.spacingVerticalXS,
   },
+
+  // Body field toolbar (variable insert button)
+  bodyToolbar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+
+  bodyToolbarLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalXS,
+  },
+
+  // Advanced mode toggle
+  modeToggle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+  },
 });
 
 // ---------------------------------------------------------------------------
@@ -153,8 +185,6 @@ function ImageThumbnail({ url }: { url: string | null | undefined }) {
 
   if (!url || !url.startsWith('https://')) return null;
 
-  // Very lightweight URL validity check — the zod schema provides the
-  // authoritative validation; here we just want a quick guard before rendering.
   try {
     new URL(url);
   } catch {
@@ -167,7 +197,6 @@ function ImageThumbnail({ url }: { url: string | null | undefined }) {
       alt="Hero image preview"
       className={styles.imageThumbnail}
       onError={(e) => {
-        // Hide broken image silently
         (e.currentTarget as HTMLImageElement).style.display = 'none';
       }}
     />
@@ -182,7 +211,7 @@ function CharCount({ value, max }: { value: string | null | undefined; max: numb
   const styles = useStyles();
   const length = (value ?? '').length;
   const remaining = max - length;
-  const nearLimit = remaining < max * 0.1; // within 10% of limit
+  const nearLimit = remaining < max * 0.1;
 
   return (
     <Caption1
@@ -204,11 +233,15 @@ export function ContentTab({ form, isEdit = false }: ContentTabProps) {
   const {
     control,
     watch,
+    setValue,
     formState: { errors },
   } = form;
 
   const [showKeyDetails, setShowKeyDetails] = useState(false);
   const [showSecondaryText, setShowSecondaryText] = useState(false);
+
+  // Ref for Body textarea (used by VariableInsert to insert at cursor)
+  const bodyTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // useFieldArray for the key details fact list
   const {
@@ -221,6 +254,33 @@ export function ContentTab({ form, isEdit = false }: ContentTabProps) {
   // Adaptive Card re-rendering does not block the form input response.
   const watchedValues = watch();
   const deferredValues = useDeferredValue(watchedValues);
+
+  // Advanced mode state — synced with form and localStorage
+  const cardPreference = watchedValues.cardPreference ?? 'Standard';
+  const isAdvanced = cardPreference === 'Advanced';
+
+  const handleToggleAdvanced = useCallback(
+    (_e: unknown, data: { checked: boolean }) => {
+      const pref: CardPreference = data.checked ? 'Advanced' : 'Standard';
+      setValue('cardPreference', pref, { shouldDirty: true });
+      try {
+        localStorage.setItem(CARD_PREF_KEY, pref);
+      } catch {
+        // Ignore localStorage errors
+      }
+    },
+    [setValue],
+  );
+
+  // Add custom variable callback (from VariableInsert menu)
+  const handleAddCustomVariable = useCallback(
+    (name: string) => {
+      const current = watchedValues.customVariables ?? [];
+      if (current.some((v) => v.name === name)) return;
+      setValue('customVariables', [...current, { name, value: '' }], { shouldDirty: true });
+    },
+    [watchedValues.customVariables, setValue],
+  );
 
   const cardData: CardData = {
     title: deferredValues.headline ?? '',
@@ -252,6 +312,15 @@ export function ContentTab({ form, isEdit = false }: ContentTabProps) {
         {/* Template picker — expanded for new messages, collapsed when editing */}
         <TemplatePicker form={form} defaultCollapsed={isEdit} />
 
+        {/* Standard / Advanced toggle */}
+        <div className={styles.modeToggle}>
+          <Switch
+            checked={isAdvanced}
+            onChange={handleToggleAdvanced}
+            label="Advanced mode"
+          />
+        </div>
+
         {/* Headline */}
         <Controller
           name="headline"
@@ -273,25 +342,39 @@ export function ContentTab({ form, isEdit = false }: ContentTabProps) {
           )}
         />
 
-        {/* Body */}
+        {/* Body with variable insert toolbar */}
         <Controller
           name="body"
           control={control}
           render={({ field }) => (
             <Field
               label={
-                <span style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                  <span>Body</span>
+                <div className={styles.bodyToolbar}>
+                  <div className={styles.bodyToolbarLeft}>
+                    <span>Body</span>
+                    <VariableInsert
+                      textareaRef={bodyTextareaRef}
+                      allUsers={watchedValues.allUsers}
+                      audiences={watchedValues.audiences}
+                      customVariables={watchedValues.customVariables}
+                      onAddCustomVariable={handleAddCustomVariable}
+                    />
+                  </div>
                   <CharCount value={field.value} max={4000} />
-                </span>
+                </div>
               }
               validationMessage={errors.body?.message}
               validationState={errors.body ? 'error' : 'none'}
             >
               <Textarea
                 {...field}
+                ref={(el) => {
+                  // Store ref for VariableInsert and pass to react-hook-form
+                  bodyTextareaRef.current = el;
+                  if (typeof field.ref === 'function') field.ref(el);
+                }}
                 value={field.value ?? ''}
-                placeholder="Write your message..."
+                placeholder="Write your message... Use {{variableName}} for dynamic content"
                 rows={6}
                 resize="vertical"
                 maxLength={4000}
@@ -507,6 +590,17 @@ export function ContentTab({ form, isEdit = false }: ContentTabProps) {
               </button>
             </Text>
           </div>
+        )}
+
+        {/* Custom Variables Panel */}
+        <CustomVariablesPanel form={form} />
+
+        {/* Advanced Mode — Block Editor */}
+        {isAdvanced && (
+          <>
+            <Divider>Advanced Blocks</Divider>
+            <BlockEditor form={form} />
+          </>
         )}
       </div>
 
