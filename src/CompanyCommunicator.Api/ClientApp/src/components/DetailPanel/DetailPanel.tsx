@@ -480,7 +480,7 @@ export function DetailPanel({
         {/* Delivery stats — 2x2 grid                                         */}
         {/* ---------------------------------------------------------------- */}
         {showStats && (
-          <div className={styles.section}>
+          <div className={styles.section} aria-live="polite" aria-atomic="true">
             <Text size={100} className={styles.sectionLabel}>
               Delivery
             </Text>
@@ -545,7 +545,7 @@ export function DetailPanel({
         {/* Progress bar                                                       */}
         {/* ---------------------------------------------------------------- */}
         {showProgress && totalCount > 0 && (
-          <div className={styles.section}>
+          <div className={styles.section} aria-live="polite">
             <div className={styles.progressHeader}>
               <Text size={200} style={{ color: tokens.colorNeutralForeground3 }}>
                 {succeededCount.toLocaleString()} / {totalCount.toLocaleString()} delivered
