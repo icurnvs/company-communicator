@@ -22,10 +22,11 @@ import {
 } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import type { UseFormReturn } from 'react-hook-form';
-import type { TemplateDefinition, ExtendedSlotType, SlotType } from '@/types';
+import type { TemplateDefinition, ExtendedSlotType, AdvancedBlockType, AnyBlockType, SlotType } from '@/types';
 import type { ComposeFormValues } from '@/lib/validators';
 import { SlotEditor } from './SlotEditors';
 import { ExtendedSlotEditor } from './ExtendedSlotEditors';
+import { AdvancedBlockEditor } from './AdvancedBlockEditors';
 import { PropertyPanel } from './PropertyPanel';
 import { SortableSlotSection } from './SortableSlotSection';
 import { AddSectionPalette } from './AddSectionPalette';
@@ -73,13 +74,36 @@ const EXTENDED_SLOT_LABELS: Record<ExtendedSlotType, string> = {
   iconTextRow: 'Icon + Text Row',
 };
 
+const ADVANCED_BLOCK_LABELS: Record<AdvancedBlockType, string> = {
+  richText: 'Rich Text',
+  icon: 'Icon',
+  badge: 'Badge',
+  codeBlock: 'Code Block',
+  ratingDisplay: 'Rating Display',
+  compoundButton: 'Compound Button',
+  flowLayout: 'Flow Layout',
+  gridLayout: 'Grid Layout',
+  donutChart: 'Donut Chart',
+  verticalBar: 'Vertical Bar Chart',
+  groupedBar: 'Grouped Bar Chart',
+  horizontalBar: 'Horizontal Bar Chart',
+  stackedBar: 'Stacked Bar Chart',
+  lineChart: 'Line Chart',
+  gauge: 'Gauge',
+};
+
+const ALL_BLOCK_LABELS: Record<string, string> = {
+  ...EXTENDED_SLOT_LABELS,
+  ...ADVANCED_BLOCK_LABELS,
+};
+
 // ---------------------------------------------------------------------------
 // Unified slot item (template + additional merged for ordering)
 // ---------------------------------------------------------------------------
 
 interface UnifiedSlot {
   id: string;
-  type: SlotType;
+  type: AnyBlockType;
   label: string;
   helpText?: string;
   isRequired: boolean;
@@ -96,6 +120,16 @@ const generateId = () =>
   typeof crypto?.randomUUID === 'function'
     ? crypto.randomUUID()
     : `slot-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+const ADVANCED_BLOCK_TYPES: Set<string> = new Set<string>([
+  'richText', 'icon', 'badge', 'codeBlock', 'ratingDisplay', 'compoundButton',
+  'flowLayout', 'gridLayout',
+  'donutChart', 'verticalBar', 'groupedBar', 'horizontalBar', 'stackedBar', 'lineChart', 'gauge',
+]);
+
+function isAdvancedBlockType(type: string): type is AdvancedBlockType {
+  return ADVANCED_BLOCK_TYPES.has(type);
+}
 
 // ---------------------------------------------------------------------------
 // Props
@@ -182,8 +216,8 @@ export function SlotList({
 
     const addSlots: UnifiedSlot[] = safeAdditionalSlots.map((s) => ({
       id: s.id,
-      type: s.type as SlotType,
-      label: EXTENDED_SLOT_LABELS[s.type as ExtendedSlotType] ?? s.type,
+      type: s.type as AnyBlockType,
+      label: ALL_BLOCK_LABELS[s.type] ?? s.type,
       isRequired: false,
       isAdditional: true,
       order: s.order,
@@ -227,8 +261,8 @@ export function SlotList({
         })),
         ...currentAdditional.map((s) => ({
           id: s.id,
-          type: s.type as SlotType,
-          label: EXTENDED_SLOT_LABELS[s.type as ExtendedSlotType] ?? s.type,
+          type: s.type as AnyBlockType,
+          label: ALL_BLOCK_LABELS[s.type] ?? s.type,
           isRequired: false,
           isAdditional: true,
           order: s.order,
@@ -265,7 +299,7 @@ export function SlotList({
   );
 
   const handleAddSection = useCallback(
-    (type: ExtendedSlotType, defaultData: Record<string, unknown>) => {
+    (type: ExtendedSlotType | AdvancedBlockType, defaultData: Record<string, unknown>) => {
       const currentAdditional = form.getValues('additionalSlots') ?? [];
       const currentSlotOrder = form.getValues('slotOrder') ?? {};
       const allOrders = [
@@ -362,11 +396,19 @@ export function SlotList({
         }
       >
         {slot.isAdditional ? (
-          <ExtendedSlotEditor
-            type={slot.type as ExtendedSlotType}
-            data={safeAdditionalSlots.find((a) => a.id === slot.id)?.data ?? {}}
-            onChange={(newData) => { handleAdditionalDataChange(slot.id, newData); }}
-          />
+          isAdvancedBlockType(slot.type) ? (
+            <AdvancedBlockEditor
+              type={slot.type as AdvancedBlockType}
+              data={safeAdditionalSlots.find((a) => a.id === slot.id)?.data ?? {}}
+              onChange={(newData) => { handleAdditionalDataChange(slot.id, newData); }}
+            />
+          ) : (
+            <ExtendedSlotEditor
+              type={slot.type as ExtendedSlotType}
+              data={safeAdditionalSlots.find((a) => a.id === slot.id)?.data ?? {}}
+              onChange={(newData) => { handleAdditionalDataChange(slot.id, newData); }}
+            />
+          )
         ) : (
           <SlotEditor
             slot={templateSlotDef!}
