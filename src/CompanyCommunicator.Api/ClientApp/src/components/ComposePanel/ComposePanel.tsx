@@ -330,13 +330,13 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
             </DialogContent>
             <DialogActions>
               <Button
-                appearance="secondary"
+                appearance="primary"
                 onClick={() => { setShowDiscardDialog(false); }}
               >
                 Keep editing
               </Button>
               <Button
-                appearance="primary"
+                appearance="secondary"
                 onClick={() => {
                   setShowDiscardDialog(false);
                   onClose();
