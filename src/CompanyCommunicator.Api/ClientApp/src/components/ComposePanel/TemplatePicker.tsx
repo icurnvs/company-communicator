@@ -425,7 +425,7 @@ export function TemplatePicker({
   // Custom template selection (legacy CardSchema)
   // ---------------------------------------------------------------------------
 
-  const handleSelectCustom = (schema: CardSchema, templateId: string) => {
+  const handleSelectCustom = (schema: CardSchema) => {
     const values = form.getValues();
     const hasContent = formHasContent(values);
 
@@ -525,7 +525,7 @@ export function TemplatePicker({
                     description={t.description ?? ''}
                     icon={DocumentOnePage20Regular}
                     accentColor="#8a8886"
-                    onSelect={() => { handleSelectCustom(schema, t.id); }}
+                    onSelect={() => { handleSelectCustom(schema); }}
                     onDelete={() => { handleDelete(t.id); }}
                     isDeleting={deletingId === t.id}
                   />

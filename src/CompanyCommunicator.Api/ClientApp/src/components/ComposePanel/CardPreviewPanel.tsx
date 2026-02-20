@@ -147,7 +147,7 @@ export function CardPreviewPanel({ cardPayload, cardTheme }: CardPreviewPanelPro
 
   return (
     <div className={styles.root}>
-      <div className={styles.toolbar}>
+      <div className={styles.toolbar} role="toolbar" aria-label="Preview theme">
         <ToggleButton
           size="small"
           icon={<WeatherSunny20Regular />}

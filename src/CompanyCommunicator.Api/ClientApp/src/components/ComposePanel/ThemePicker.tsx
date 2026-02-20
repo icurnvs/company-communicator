@@ -58,7 +58,6 @@ const useStyles = makeStyles({
   },
 
   checkmark: {
-    color: '#FFFFFF',
     filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.4))',
   },
 
@@ -111,7 +110,7 @@ export function ThemePicker({ selectedThemeId, onSelectTheme }: ThemePickerProps
               className={mergeClasses(styles.circle, isSelected && styles.circleSelected)}
               style={{ backgroundColor: theme.accentColor }}
             >
-              {isSelected && <Checkmark12Filled className={styles.checkmark} />}
+              {isSelected && <Checkmark12Filled className={styles.checkmark} style={{ color: theme.accentForeground }} />}
             </div>
             <Caption1 className={mergeClasses(styles.label, isSelected && styles.labelSelected)}>
               {theme.name}

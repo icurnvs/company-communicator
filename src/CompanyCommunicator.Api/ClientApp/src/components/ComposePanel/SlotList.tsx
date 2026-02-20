@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   makeStyles,
   tokens,
@@ -94,7 +95,10 @@ export function SlotList({
 }: SlotListProps) {
   const styles = useStyles();
 
-  const sortedSlots = [...template.slots].sort((a, b) => a.order - b.order);
+  const sortedSlots = useMemo(
+    () => [...template.slots].sort((a, b) => a.order - b.order),
+    [template.slots],
+  );
 
   return (
     <div className={styles.root}>
