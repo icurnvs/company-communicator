@@ -35,6 +35,7 @@ export interface UseComposeFormReturn {
   isEdit: boolean;
   notificationId: string | null;
   lastAutoSaved: Date | null;
+  autoSaveError: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -107,6 +108,8 @@ export function useComposeForm({
 
   // Timestamp of the last successful auto-save (null until first auto-save).
   const [lastAutoSaved, setLastAutoSaved] = useState<Date | null>(null);
+
+  const [autoSaveError, setAutoSaveError] = useState<string | null>(null);
 
   // Keep notificationId in sync when editId changes from outside (e.g. parent
   // re-opens the panel on a different notification).
@@ -252,6 +255,9 @@ export function useComposeForm({
         isSavingRef.current = false;
         if (savedId !== undefined) {
           setLastAutoSaved(new Date());
+          setAutoSaveError(null);
+        } else {
+          setAutoSaveError('Auto-save failed. Check your connection.');
         }
       });
     }, 30_000);
@@ -272,5 +278,6 @@ export function useComposeForm({
     isEdit,
     notificationId,
     lastAutoSaved,
+    autoSaveError,
   };
 }

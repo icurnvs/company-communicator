@@ -13,6 +13,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  MessageBar,
+  MessageBarBody,
 } from '@fluentui/react-components';
 import { Dismiss24Regular } from '@fluentui/react-icons';
 import { useSendNotification } from '@/api/notifications';
@@ -140,7 +142,7 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
   // Form hook
   // ---------------------------------------------------------------------------
 
-  const { form, isLoading, isSaving, saveDraft, isDirty, isEdit, notificationId, lastAutoSaved } =
+  const { form, isLoading, isSaving, saveDraft, isDirty, isEdit, notificationId, lastAutoSaved, autoSaveError } =
     useComposeForm({ editId, onSaved: undefined, initialValues });
 
   // Only watch headline for the panel title — ActionBar watches everything it
@@ -284,6 +286,12 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
             </>
           )}
         </div>
+
+        {autoSaveError && (
+          <MessageBar intent="warning" style={{ flexShrink: 0 }}>
+            <MessageBarBody>{autoSaveError}</MessageBarBody>
+          </MessageBar>
+        )}
 
         {/* Action bar */}
         <ActionBar
