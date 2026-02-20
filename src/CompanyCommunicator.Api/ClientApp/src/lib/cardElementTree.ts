@@ -238,7 +238,7 @@ function buildKeyDetails(
   overrides?: Record<string, unknown>,
 ): CardElementNode | null {
   const v = value as KeyDetailsSlotValue | undefined;
-  const pairs = v?.pairs?.filter((p) => p.label && p.value);
+  const pairs = v?.pairs?.filter((p) => p.label || p.value);
   if (!pairs?.length) return null;
 
   return {
@@ -427,8 +427,7 @@ function buildQuoteCallout(
     acType: 'Container',
     properties: {
       style,
-      showBorder: true,
-      roundedCorners: true,
+      separator: true,
       spacing: 'Medium',
       ...overrides,
     },

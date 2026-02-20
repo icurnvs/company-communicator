@@ -60,7 +60,7 @@ export function buildCardFromDocument(
     ? getTemplateById(document.templateId) ?? null
     : null;
 
-  const theme = getThemeById(document.themeId ?? DEFAULT_THEME_ID);
+  const theme = getThemeById(document.themeId);
 
   return buildCard(
     { document, template, theme, customVariables },

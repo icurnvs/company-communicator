@@ -5,6 +5,11 @@ import type { CardElementNode, ThemeDefinition } from '@/types';
  * Resolve theme tokens on all nodes in the element tree.
  * Mutates nodes in-place for performance (called on every preview render).
  * Returns the same array for chaining.
+ *
+ * WARNING: The tree is single-use after this call. Theme tokens are replaced
+ * with resolved color values, so calling applyTheme again with a different
+ * theme will layer on top of the previous resolution instead of re-resolving
+ * from the original tokens. Always start from a fresh resolveTemplate() tree.
  */
 export function applyTheme(
   nodes: CardElementNode[],
@@ -147,7 +152,9 @@ export function buildThemedHostConfig(
 
 /** Simple hex color darkening for dark theme accent backgrounds. */
 function darkenHex(hex: string, amount: number): string {
-  const num = parseInt(hex.replace('#', ''), 16);
+  const cleaned = hex.replace('#', '');
+  const num = parseInt(cleaned, 16);
+  if (isNaN(num) || cleaned.length !== 6) return hex;
   const r = Math.max(0, ((num >> 16) & 0xFF) - Math.round(255 * amount));
   const g = Math.max(0, ((num >> 8) & 0xFF) - Math.round(255 * amount));
   const b = Math.max(0, (num & 0xFF) - Math.round(255 * amount));

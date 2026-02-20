@@ -12,6 +12,11 @@ interface VariableContext {
 /**
  * Replace {{variable}} tokens in all text properties of the element tree.
  * Mutates in-place for performance. Returns the same array.
+ *
+ * WARNING: The tree is single-use after this call. Token placeholders are
+ * replaced with resolved values, so calling resolveVariables again would
+ * attempt to resolve already-resolved text. Always start from a fresh
+ * resolveTemplate() tree.
  */
 export function resolveVariables(
   nodes: CardElementNode[],
@@ -50,6 +55,16 @@ function resolveNodeVariables(node: CardElementNode, ctx: VariableContext): void
     for (const fact of facts) {
       fact.title = resolveText(fact.title, ctx);
       fact.value = resolveText(fact.value, ctx);
+    }
+  }
+
+  // Resolve images array (ImageSet) — altText lives in properties, not children
+  const images = node.properties['images'] as { altText?: string }[] | undefined;
+  if (images) {
+    for (const img of images) {
+      if (typeof img.altText === 'string') {
+        img.altText = resolveText(img.altText, ctx);
+      }
     }
   }
 
