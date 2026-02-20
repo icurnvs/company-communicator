@@ -10,7 +10,7 @@ import {
   Tooltip,
 } from '@fluentui/react-components';
 import { LockClosed16Regular } from '@fluentui/react-icons';
-import type { SlotType } from '@/types';
+import type { AnyBlockType } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -59,7 +59,7 @@ interface PropertyDef {
   fullWidth?: boolean;
 }
 
-const PROPERTY_DEFS: Partial<Record<SlotType, PropertyDef[]>> = {
+const PROPERTY_DEFS: Partial<Record<AnyBlockType, PropertyDef[]>> = {
   heading: [
     { key: 'horizontalAlignment', label: 'Alignment', type: 'enum', options: ['left', 'center', 'right'], defaultValue: 'left' },
     { key: 'size', label: 'Size', type: 'enum', options: ['Small', 'Medium', 'Large', 'ExtraLarge'], defaultValue: 'Large' },
@@ -121,6 +121,56 @@ const PROPERTY_DEFS: Partial<Record<SlotType, PropertyDef[]>> = {
   iconTextRow: [
     { key: 'separator', label: 'Separator', type: 'boolean', defaultValue: false },
   ],
+  // Phase C2 — Content blocks
+  richText: [
+    { key: 'spacing', label: 'Spacing', type: 'enum', options: ['None', 'Small', 'Medium', 'Large'], defaultValue: 'Medium' },
+  ],
+  icon: [
+    { key: 'horizontalAlignment', label: 'Alignment', type: 'enum', options: ['left', 'center', 'right'], defaultValue: 'left' },
+    { key: 'separator', label: 'Separator', type: 'boolean', defaultValue: false },
+  ],
+  badge: [
+    { key: 'separator', label: 'Separator', type: 'boolean', defaultValue: false },
+  ],
+  codeBlock: [
+    { key: 'separator', label: 'Separator', type: 'boolean', defaultValue: false },
+  ],
+  ratingDisplay: [
+    { key: 'horizontalAlignment', label: 'Alignment', type: 'enum', options: ['left', 'center', 'right'], defaultValue: 'left' },
+    { key: 'separator', label: 'Separator', type: 'boolean', defaultValue: false },
+  ],
+  compoundButton: [
+    { key: 'separator', label: 'Separator', type: 'boolean', defaultValue: false },
+  ],
+  // Phase C2 — Layout blocks
+  flowLayout: [
+    { key: 'separator', label: 'Separator', type: 'boolean', defaultValue: false },
+  ],
+  gridLayout: [
+    { key: 'separator', label: 'Separator', type: 'boolean', defaultValue: false },
+  ],
+  // Phase C2 — Chart blocks
+  donutChart: [
+    { key: 'separator', label: 'Separator', type: 'boolean', defaultValue: false },
+  ],
+  verticalBar: [
+    { key: 'separator', label: 'Separator', type: 'boolean', defaultValue: false },
+  ],
+  groupedBar: [
+    { key: 'separator', label: 'Separator', type: 'boolean', defaultValue: false },
+  ],
+  horizontalBar: [
+    { key: 'separator', label: 'Separator', type: 'boolean', defaultValue: false },
+  ],
+  stackedBar: [
+    { key: 'separator', label: 'Separator', type: 'boolean', defaultValue: false },
+  ],
+  lineChart: [
+    { key: 'separator', label: 'Separator', type: 'boolean', defaultValue: false },
+  ],
+  gauge: [
+    { key: 'separator', label: 'Separator', type: 'boolean', defaultValue: false },
+  ],
 };
 
 // ---------------------------------------------------------------------------
@@ -128,7 +178,7 @@ const PROPERTY_DEFS: Partial<Record<SlotType, PropertyDef[]>> = {
 // ---------------------------------------------------------------------------
 
 export interface PropertyPanelProps {
-  slotType: SlotType;
+  slotType: AnyBlockType;
   slotId: string;
   overrides: Record<string, unknown>;
   lockedProperties?: Record<string, unknown>;
