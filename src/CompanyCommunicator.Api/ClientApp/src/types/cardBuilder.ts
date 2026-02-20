@@ -135,7 +135,7 @@ export interface CardDocument {
 
 export interface AdditionalSlot {
   id: string;
-  type: SlotType;
+  type: AnyBlockType;  // was: SlotType
   order: number;
   data: Record<string, unknown>;
 }
@@ -213,6 +213,138 @@ export interface IconTextRowSlotValue {
   text: string;
 }
 
+// ---------------------------------------------------------------------------
+// Content block value shapes (Phase C2)
+// ---------------------------------------------------------------------------
+
+export interface RichTextSegment {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  strikethrough?: boolean;
+  underline?: boolean;
+  highlight?: boolean;
+  color?: string;
+}
+
+export interface RichTextSlotValue {
+  segments: RichTextSegment[];
+}
+
+export interface IconSlotValue {
+  name: string;
+  size?: 'xxSmall' | 'xSmall' | 'Small' | 'Standard' | 'Medium' | 'Large' | 'xLarge' | 'xxLarge';
+  color?: 'Default' | 'Dark' | 'Light' | 'Accent' | 'Good' | 'Warning' | 'Attention';
+  style?: 'Regular' | 'Filled';
+}
+
+export interface BadgeSlotValue {
+  text: string;
+  icon?: string;
+  appearance?: string;
+}
+
+export interface CodeBlockSlotValue {
+  code: string;
+  language: string;
+  startLineNumber?: number;
+}
+
+export interface RatingDisplaySlotValue {
+  value: number;
+  max?: number;
+  color?: 'Neutral' | 'Marigold';
+  style?: 'Default' | 'Compact';
+  count?: number;
+}
+
+export interface CompoundButtonSlotValue {
+  title: string;
+  description?: string;
+  icon?: string;
+  badge?: string;
+  url?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Layout block value shapes (Phase C2)
+// ---------------------------------------------------------------------------
+
+export interface FlowLayoutSlotValue {
+  items: { text: string; icon?: string }[];
+  itemWidth?: string;
+  columnSpacing?: string;
+}
+
+export interface GridLayoutSlotValue {
+  columns: number[];
+  areas: { name: string; content: string; imageUrl?: string }[];
+}
+
+// ---------------------------------------------------------------------------
+// Chart block value shapes (Phase C2)
+// ---------------------------------------------------------------------------
+
+export interface ChartDataPoint {
+  label: string;
+  value: number;
+  color?: string;
+}
+
+export interface ChartSeriesData {
+  legend: string;
+  color?: string;
+  values: { x: string; y: number }[];
+}
+
+export interface DonutChartSlotValue {
+  title?: string;
+  data: ChartDataPoint[];
+  colorSet?: 'categorical' | 'sequential' | 'diverging';
+}
+
+export interface VerticalBarSlotValue {
+  title?: string;
+  data: ChartDataPoint[];
+  showBarValues?: boolean;
+}
+
+export interface GroupedBarSlotValue {
+  title?: string;
+  series: ChartSeriesData[];
+  stacked?: boolean;
+  showBarValues?: boolean;
+  xAxisTitle?: string;
+  yAxisTitle?: string;
+}
+
+export interface HorizontalBarSlotValue {
+  title?: string;
+  data: ChartDataPoint[];
+  displayMode?: 'AbsoluteWithAxis' | 'AbsoluteNoAxis' | 'PartToWhole';
+}
+
+export interface StackedBarSlotValue {
+  title?: string;
+  series: { title: string; data: ChartDataPoint[] }[];
+}
+
+export interface LineChartSlotValue {
+  title?: string;
+  series: ChartSeriesData[];
+  xAxisTitle?: string;
+  yAxisTitle?: string;
+}
+
+export interface GaugeSlotValue {
+  value: number;
+  min?: number;
+  max?: number;
+  valueFormat?: 'Percentage' | 'Fraction';
+  segments?: { legend: string; size: number; color?: string }[];
+  subLabel?: string;
+}
+
 // Map from slot type to its value shape
 export interface SlotValueMap {
   heading: HeadingSlotValue;
@@ -230,6 +362,24 @@ export interface SlotValueMap {
   table: TableSlotValue;
   expandableSection: ExpandableSectionSlotValue;
   iconTextRow: IconTextRowSlotValue;
+  // Phase C2 — Content blocks
+  richText: RichTextSlotValue;
+  icon: IconSlotValue;
+  badge: BadgeSlotValue;
+  codeBlock: CodeBlockSlotValue;
+  ratingDisplay: RatingDisplaySlotValue;
+  compoundButton: CompoundButtonSlotValue;
+  // Phase C2 — Layout blocks
+  flowLayout: FlowLayoutSlotValue;
+  gridLayout: GridLayoutSlotValue;
+  // Phase C2 — Chart blocks
+  donutChart: DonutChartSlotValue;
+  verticalBar: VerticalBarSlotValue;
+  groupedBar: GroupedBarSlotValue;
+  horizontalBar: HorizontalBarSlotValue;
+  stackedBar: StackedBarSlotValue;
+  lineChart: LineChartSlotValue;
+  gauge: GaugeSlotValue;
 }
 
 // ---------------------------------------------------------------------------
