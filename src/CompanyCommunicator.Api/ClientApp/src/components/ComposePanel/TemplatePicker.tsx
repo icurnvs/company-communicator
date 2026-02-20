@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ComponentType } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import {
   makeStyles,
@@ -14,16 +15,49 @@ import {
   DialogActions,
   Badge,
 } from '@fluentui/react-components';
-import { ChevronDownRegular, ChevronUpRegular, Dismiss16Regular } from '@fluentui/react-icons';
+import type { FluentIconsProps } from '@fluentui/react-icons';
+import {
+  ChevronDownRegular,
+  ChevronUpRegular,
+  Dismiss16Regular,
+  MegaphoneRegular,
+  CalendarRegular,
+  AlertUrgentRegular,
+  LinkRegular,
+  ClipboardTaskRegular,
+  DocumentOnePage20Regular,
+  PeopleRegular,
+  ShieldCheckmarkRegular,
+  StarRegular,
+} from '@fluentui/react-icons';
 import { useTemplates, useDeleteTemplate } from '@/api/templates';
 import {
-  BLANK_TEMPLATE,
+  BUILTIN_TEMPLATE_DEFINITIONS,
   BLANK_TEMPLATE_ID,
-  BUILTIN_TEMPLATES,
-  type BuiltinTemplate,
-} from '@/lib/builtinTemplates';
-import type { CardSchema } from '@/types';
+} from '@/lib/templateDefinitions';
+import { templateToFormDefaults } from '@/lib/formBridge';
+import type { TemplateDefinition, CardSchema } from '@/types';
 import type { ComposeFormValues } from '@/lib/validators';
+
+// ---------------------------------------------------------------------------
+// Icon lookup — maps TemplateDefinition.iconName to Fluent icon components
+// ---------------------------------------------------------------------------
+
+const ICON_MAP: Record<string, ComponentType<FluentIconsProps>> = {
+  DocumentOnePage: DocumentOnePage20Regular,
+  Megaphone: MegaphoneRegular,
+  Calendar: CalendarRegular,
+  AlertUrgent: AlertUrgentRegular,
+  Link: LinkRegular,
+  ClipboardTask: ClipboardTaskRegular,
+  People: PeopleRegular,
+  ShieldCheckmark: ShieldCheckmarkRegular,
+  Star: StarRegular,
+};
+
+function resolveIcon(iconName: string): ComponentType<FluentIconsProps> {
+  return ICON_MAP[iconName] ?? DocumentOnePage20Regular;
+}
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -36,7 +70,6 @@ const useStyles = makeStyles({
     gap: tokens.spacingVerticalXS,
   },
 
-  // Collapsible header row
   toggleRow: {
     display: 'flex',
     alignItems: 'center',
@@ -69,7 +102,6 @@ const useStyles = makeStyles({
     flexShrink: 0,
   },
 
-  // Grid of template cards
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
@@ -77,7 +109,6 @@ const useStyles = makeStyles({
     paddingBottom: tokens.spacingVerticalS,
   },
 
-  // Divider between built-in and custom templates
   divider: {
     gridColumn: '1 / -1',
     display: 'flex',
@@ -93,7 +124,6 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralStroke2,
   },
 
-  // Individual template card — redesigned with accent header
   card: {
     position: 'relative',
     display: 'flex',
@@ -120,13 +150,11 @@ const useStyles = makeStyles({
     },
   },
 
-  // Colored accent strip at the top
   cardAccent: {
     height: '4px',
     flexShrink: 0,
   },
 
-  // Card body content
   cardBody: {
     display: 'flex',
     flexDirection: 'column',
@@ -135,7 +163,6 @@ const useStyles = makeStyles({
     flex: 1,
   },
 
-  // Icon + name row
   cardHeader: {
     display: 'flex',
     alignItems: 'center',
@@ -158,14 +185,12 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground3,
     lineHeight: tokens.lineHeightBase200,
-    // Clamp to 2 lines
     display: '-webkit-box',
     WebkitBoxOrient: 'vertical',
     WebkitLineClamp: 2,
     overflow: 'hidden',
   },
 
-  // Feature tags row
   cardFeatures: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -173,7 +198,6 @@ const useStyles = makeStyles({
     marginTop: '4px',
   },
 
-  // Delete button overlay on custom template cards
   deleteBtn: {
     position: 'absolute',
     top: '8px',
@@ -184,7 +208,6 @@ const useStyles = makeStyles({
     },
   },
 
-  // Wrapper makes delete button visible on card hover
   cardWrapper: {
     position: 'relative',
     ':hover button[data-delete]': {
@@ -206,7 +229,6 @@ const useStyles = makeStyles({
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Determine whether the form has any user-entered content. */
 function formHasContent(values: ComposeFormValues): boolean {
   return (
     Boolean(values.headline?.trim()) ||
@@ -219,7 +241,7 @@ function formHasContent(values: ComposeFormValues): boolean {
   );
 }
 
-/** Apply a CardSchema to the RHF form. */
+/** Apply a legacy CardSchema to the RHF form (for custom API templates). */
 function applySchema(form: UseFormReturn<ComposeFormValues>, schema: CardSchema) {
   form.setValue('headline', schema.headline ?? '', { shouldDirty: true, shouldTouch: true });
   form.setValue('body', schema.body ?? null, { shouldDirty: true });
@@ -236,14 +258,40 @@ function applySchema(form: UseFormReturn<ComposeFormValues>, schema: CardSchema)
   }
 }
 
+/** Apply new TemplateDefinition defaults to the form. */
+function applyTemplateDefaults(
+  form: UseFormReturn<ComposeFormValues>,
+  template: TemplateDefinition,
+) {
+  const defaults = templateToFormDefaults(template);
+  for (const [key, value] of Object.entries(defaults)) {
+    form.setValue(
+      key as keyof ComposeFormValues,
+      value as ComposeFormValues[keyof ComposeFormValues],
+      { shouldDirty: true },
+    );
+  }
+}
+
+/** Derive feature tags from a template's slots. */
+function getSlotFeatures(template: TemplateDefinition): string[] {
+  const tags: string[] = [];
+  const types = new Set(template.slots.map((s) => s.type));
+  if (types.has('heroImage')) tags.push('Image');
+  if (types.has('keyDetails')) tags.push('Facts');
+  if (types.has('linkButton')) tags.push('Button');
+  if (types.has('footer')) tags.push('Footnote');
+  return tags;
+}
+
 // ---------------------------------------------------------------------------
-// TemplateCard — individual card in the grid
+// TemplateCard
 // ---------------------------------------------------------------------------
 
 interface TemplateCardProps {
   name: string;
   description: string;
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  icon: ComponentType<FluentIconsProps>;
   accentColor: string;
   features?: string[];
   onSelect: () => void;
@@ -271,31 +319,19 @@ function TemplateCard({
         onClick={onSelect}
         aria-label={`Use ${name} template`}
       >
-        {/* Colored accent strip */}
         <div className={styles.cardAccent} style={{ backgroundColor: accentColor }} />
-
         <div className={styles.cardBody}>
-          {/* Icon + name row */}
           <div className={styles.cardHeader}>
             <span className={styles.cardIcon} style={{ color: accentColor }}>
               <Icon aria-hidden="true" />
             </span>
             <span className={styles.cardName}>{name}</span>
           </div>
-
-          {/* Description */}
           <span className={styles.cardDescription}>{description}</span>
-
-          {/* Feature tags */}
           {features && features.length > 0 && (
             <div className={styles.cardFeatures}>
               {features.map((f) => (
-                <Badge
-                  key={f}
-                  appearance="outline"
-                  size="small"
-                  color="informative"
-                >
+                <Badge key={f} appearance="outline" size="small" color="informative">
                   {f}
                 </Badge>
               ))}
@@ -332,13 +368,19 @@ export interface TemplatePickerProps {
   form: UseFormReturn<ComposeFormValues>;
   /** When true (edit mode), the picker starts collapsed. */
   defaultCollapsed?: boolean;
+  /** Called after a built-in template is applied to the form. */
+  onTemplateSelect?: (template: TemplateDefinition) => void;
 }
 
 // ---------------------------------------------------------------------------
 // TemplatePicker
 // ---------------------------------------------------------------------------
 
-export function TemplatePicker({ form, defaultCollapsed = false }: TemplatePickerProps) {
+export function TemplatePicker({
+  form,
+  defaultCollapsed = false,
+  onTemplateSelect,
+}: TemplatePickerProps) {
   const styles = useStyles();
   const [expanded, setExpanded] = useState(!defaultCollapsed);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -351,35 +393,53 @@ export function TemplatePicker({ form, defaultCollapsed = false }: TemplatePicke
   const deleteTemplateMutation = useDeleteTemplate();
 
   // ---------------------------------------------------------------------------
-  // Template selection
+  // Built-in template selection
   // ---------------------------------------------------------------------------
 
-  const handleSelect = (schema: CardSchema, templateId: string) => {
+  const handleSelectBuiltin = (template: TemplateDefinition) => {
+    const values = form.getValues();
+    const hasContent = formHasContent(values);
+    const isBlank = template.id === BLANK_TEMPLATE_ID;
+
+    const doApply = () => {
+      applyTemplateDefaults(form, template);
+      onTemplateSelect?.(template);
+    };
+
+    if (isBlank && !hasContent) return; // no-op
+
+    if (hasContent) {
+      setPendingAction({
+        message: isBlank
+          ? 'Clear current content and start with a blank card?'
+          : 'Replace current content with this template?',
+        onConfirm: doApply,
+      });
+      return;
+    }
+
+    doApply();
+  };
+
+  // ---------------------------------------------------------------------------
+  // Custom template selection (legacy CardSchema)
+  // ---------------------------------------------------------------------------
+
+  const handleSelectCustom = (schema: CardSchema, templateId: string) => {
     const values = form.getValues();
     const hasContent = formHasContent(values);
 
-    // If the user selects blank and form is already empty, no-op
-    if (templateId === BLANK_TEMPLATE_ID && !hasContent) {
-      return;
-    }
+    const doApply = () => { applySchema(form, schema); };
 
-    if (hasContent && templateId !== BLANK_TEMPLATE_ID) {
+    if (hasContent) {
       setPendingAction({
         message: 'Replace current content with this template?',
-        onConfirm: () => { applySchema(form, schema); },
+        onConfirm: doApply,
       });
       return;
     }
 
-    if (hasContent && templateId === BLANK_TEMPLATE_ID) {
-      setPendingAction({
-        message: 'Clear current content and start with a blank card?',
-        onConfirm: () => { applySchema(form, schema); },
-      });
-      return;
-    }
-
-    applySchema(form, schema);
+    doApply();
   };
 
   // ---------------------------------------------------------------------------
@@ -398,10 +458,6 @@ export function TemplatePicker({ form, defaultCollapsed = false }: TemplatePicke
     });
   };
 
-  // ---------------------------------------------------------------------------
-  // Parse custom template schema safely
-  // ---------------------------------------------------------------------------
-
   const parseCustomSchema = (raw: string): CardSchema | null => {
     try {
       return JSON.parse(raw) as CardSchema;
@@ -416,7 +472,6 @@ export function TemplatePicker({ form, defaultCollapsed = false }: TemplatePicke
 
   return (
     <div className={styles.root}>
-      {/* Toggle header */}
       <button
         type="button"
         className={styles.toggleRow}
@@ -430,28 +485,17 @@ export function TemplatePicker({ form, defaultCollapsed = false }: TemplatePicke
         </span>
       </button>
 
-      {/* Collapsible grid */}
       {expanded && (
         <div id="template-picker-grid" className={styles.grid}>
-          {/* Blank card — always first */}
-          <TemplateCard
-            name={BLANK_TEMPLATE.name}
-            description={BLANK_TEMPLATE.description}
-            icon={BLANK_TEMPLATE.icon}
-            accentColor={BLANK_TEMPLATE.accentColor}
-            onSelect={() => { handleSelect(BLANK_TEMPLATE.schema, BLANK_TEMPLATE.id); }}
-          />
-
-          {/* Built-in templates */}
-          {BUILTIN_TEMPLATES.map((t) => (
+          {BUILTIN_TEMPLATE_DEFINITIONS.map((t) => (
             <TemplateCard
               key={t.id}
               name={t.name}
               description={t.description}
-              icon={t.icon}
+              icon={resolveIcon(t.iconName)}
               accentColor={t.accentColor}
-              features={t.features}
-              onSelect={() => { handleSelect(t.schema, t.id); }}
+              features={getSlotFeatures(t)}
+              onSelect={() => { handleSelectBuiltin(t); }}
             />
           ))}
 
@@ -479,9 +523,9 @@ export function TemplatePicker({ form, defaultCollapsed = false }: TemplatePicke
                     key={t.id}
                     name={t.name}
                     description={t.description ?? ''}
-                    icon={BLANK_TEMPLATE.icon}
-                    accentColor={BLANK_TEMPLATE.accentColor}
-                    onSelect={() => { handleSelect(schema, t.id); }}
+                    icon={DocumentOnePage20Regular}
+                    accentColor="#8a8886"
+                    onSelect={() => { handleSelectCustom(schema, t.id); }}
                     onDelete={() => { handleDelete(t.id); }}
                     isDeleting={deletingId === t.id}
                   />
