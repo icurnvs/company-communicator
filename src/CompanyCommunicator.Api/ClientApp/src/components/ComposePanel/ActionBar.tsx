@@ -23,6 +23,7 @@ import {
   MenuList,
   MenuItem,
   MenuButton,
+  Tooltip,
   mergeClasses,
 } from '@fluentui/react-components';
 import {
@@ -507,16 +508,28 @@ export function ActionBar({
         />
 
         {/* Review → opens pre-send confirmation dialog */}
-        <Button
-          appearance="primary"
-          size="small"
-          icon={<ChevronRightRegular />}
-          iconPosition="after"
-          disabled={!hasAudience || !headline?.trim()}
-          onClick={onReview}
+        <Tooltip
+          content={
+            !headline?.trim()
+              ? 'Add a headline to continue'
+              : !hasAudience
+                ? 'Select an audience to continue'
+                : ''
+          }
+          relationship="description"
+          visible={(!headline?.trim() || !hasAudience) ? undefined : false}
         >
-          Review
-        </Button>
+          <Button
+            appearance="primary"
+            size="small"
+            icon={<ChevronRightRegular />}
+            iconPosition="after"
+            disabled={!hasAudience || !headline?.trim()}
+            onClick={onReview}
+          >
+            Review
+          </Button>
+        </Tooltip>
       </div>
 
       {/* Save as Template dialog */}
