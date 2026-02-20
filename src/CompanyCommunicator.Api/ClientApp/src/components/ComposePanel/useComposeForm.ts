@@ -32,6 +32,7 @@ export interface UseComposeFormReturn {
   isDirty: boolean;
   isEdit: boolean;
   notificationId: string | null;
+  lastAutoSaved: Date | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -100,6 +101,9 @@ export function useComposeForm({
   const [notificationId, setNotificationId] = useState<string | null>(
     editId ?? null,
   );
+
+  // Timestamp of the last successful auto-save (null until first auto-save).
+  const [lastAutoSaved, setLastAutoSaved] = useState<Date | null>(null);
 
   // Keep notificationId in sync when editId changes from outside (e.g. parent
   // re-opens the panel on a different notification).
@@ -176,6 +180,13 @@ export function useComposeForm({
   // saveDraft — validates then creates or updates
   // ---------------------------------------------------------------------------
 
+  // Use a ref so the auto-save interval can always see the latest notificationId
+  // without stale closure issues.
+  const notificationIdRef = useRef<string | null>(notificationId);
+  useEffect(() => {
+    notificationIdRef.current = notificationId;
+  }, [notificationId]);
+
   const saveDraft = useCallback(async (): Promise<string | undefined> => {
     const valid = await form.trigger();
     if (!valid) return undefined;
@@ -184,11 +195,12 @@ export function useComposeForm({
 
     try {
       let savedId: string;
+      const currentId = notificationIdRef.current;
 
-      if (notificationId) {
+      if (currentId) {
         // Update existing
         const updated = await updateMutation.mutateAsync({
-          id: notificationId,
+          id: currentId,
           body: formValuesToUpdateRequest(values),
         });
         savedId = updated.id;
@@ -199,6 +211,7 @@ export function useComposeForm({
         );
         savedId = created.id;
         setNotificationId(savedId);
+        notificationIdRef.current = savedId;
       }
 
       onSaved?.(savedId);
@@ -208,7 +221,34 @@ export function useComposeForm({
       // inspect mutation.error if it needs to display a specific message.
       return undefined;
     }
-  }, [form, notificationId, createMutation, updateMutation, onSaved]);
+  }, [form, createMutation, updateMutation, onSaved]);
+
+  // ---------------------------------------------------------------------------
+  // Auto-save — every 30 seconds when dirty and headline is present
+  // ---------------------------------------------------------------------------
+
+  // Track whether a save is currently in progress to avoid concurrent saves.
+  const isSavingRef = useRef(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const { isDirty } = form.formState;
+      const headline = form.getValues('headline');
+      const hasTitle = Boolean(headline?.trim());
+
+      if (!isDirty || !hasTitle || isSavingRef.current) return;
+
+      isSavingRef.current = true;
+      void saveDraft().then((savedId) => {
+        isSavingRef.current = false;
+        if (savedId !== undefined) {
+          setLastAutoSaved(new Date());
+        }
+      });
+    }, 30_000);
+
+    return () => { clearInterval(interval); };
+  }, [form, saveDraft]);
 
   // ---------------------------------------------------------------------------
   // Return
@@ -222,5 +262,6 @@ export function useComposeForm({
     isDirty: form.formState.isDirty,
     isEdit,
     notificationId,
+    lastAutoSaved,
   };
 }

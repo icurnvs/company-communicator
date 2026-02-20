@@ -10,6 +10,7 @@ import {
 } from '@fluentui/react-components';
 import { Dismiss24Regular } from '@fluentui/react-icons';
 import { useComposeForm } from './useComposeForm';
+import { ActionBar } from './ActionBar';
 import { ContentTab } from './ContentTab';
 import { AudienceTab } from './AudienceTab';
 
@@ -105,19 +106,6 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     minHeight: 0,
   },
-
-  // Action bar area at the bottom of the panel
-  actionBar: {
-    padding: `${tokens.spacingVerticalM} ${tokens.spacingHorizontalL}`,
-    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
-    flexShrink: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: tokens.spacingHorizontalS,
-    minHeight: '56px',
-    color: tokens.colorNeutralForeground3,
-  },
 });
 
 // ---------------------------------------------------------------------------
@@ -160,11 +148,12 @@ export function ComposePanel({ editId, onClose }: ComposePanelProps) {
   // Form hook
   // ---------------------------------------------------------------------------
 
-  const { form, isLoading, isSaving, saveDraft, isDirty, isEdit } =
+  const { form, isLoading, isSaving, saveDraft, isDirty, isEdit, notificationId, lastAutoSaved } =
     useComposeForm({ editId, onSaved: undefined });
 
-  // Watched headline for the panel title
-  const headline = form.watch('headline');
+  // Watch form values for the action bar (audience summary, headline-based enablement)
+  const formValues = form.watch();
+  const headline = formValues.headline;
 
   // ---------------------------------------------------------------------------
   // Close with dirty-check
@@ -286,18 +275,14 @@ export function ComposePanel({ editId, onClose }: ComposePanelProps) {
         </div>
 
         {/* Action bar */}
-        <div className={styles.actionBar}>
-          <Text size={200}>Action bar — Task 12</Text>
-          {/* Temporary save affordance so the hook is exercised during dev */}
-          <Button
-            appearance="secondary"
-            size="small"
-            disabled={isSaving}
-            onClick={() => { void saveDraft(); }}
-          >
-            Save Draft
-          </Button>
-        </div>
+        <ActionBar
+          formValues={formValues}
+          isSaving={isSaving}
+          isEdit={isEdit}
+          notificationId={notificationId}
+          lastAutoSaved={lastAutoSaved}
+          onSaveDraft={saveDraft}
+        />
       </div>
     </>
   );
