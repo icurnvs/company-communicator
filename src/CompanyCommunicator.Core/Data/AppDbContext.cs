@@ -49,6 +49,9 @@ public sealed class AppDbContext : DbContext
     /// <summary>Gets or sets the runtime application configuration table.</summary>
     public DbSet<AppConfiguration> AppConfiguration => Set<AppConfiguration>();
 
+    /// <summary>Gets or sets the card templates table.</summary>
+    public DbSet<Template> Templates => Set<Template>();
+
     // -----------------------------------------------------------------
     // Model configuration
     // -----------------------------------------------------------------

@@ -91,6 +91,26 @@ public sealed class Notification
     [MaxLength(1000)]
     public string? TrackingUrl { get; set; }
 
+    /// <summary>Gets or sets a JSON array of {Label, Value} pairs for the FactSet section.</summary>
+    [Column(TypeName = "nvarchar(max)")]
+    public string? KeyDetails { get; set; }
+
+    /// <summary>Gets or sets optional fine-print / footnote text.</summary>
+    [MaxLength(2000)]
+    public string? SecondaryText { get; set; }
+
+    /// <summary>Gets or sets a JSON dictionary of custom variable name to value (e.g. {"deadline":"March 15"}).</summary>
+    [Column(TypeName = "nvarchar(max)")]
+    public string? CustomVariables { get; set; }
+
+    /// <summary>Gets or sets a JSON array of advanced block definitions for Advanced mode.</summary>
+    [Column(TypeName = "nvarchar(max)")]
+    public string? AdvancedBlocks { get; set; }
+
+    /// <summary>Gets or sets the user's card builder mode preference: "Standard" or "Advanced".</summary>
+    [MaxLength(20)]
+    public string? CardPreference { get; set; }
+
     /// <summary>Gets the audience definitions for this notification.</summary>
     public ICollection<NotificationAudience> Audiences { get; init; } = new List<NotificationAudience>();
 
