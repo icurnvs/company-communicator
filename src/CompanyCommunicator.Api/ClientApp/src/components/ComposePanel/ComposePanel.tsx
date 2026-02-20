@@ -9,10 +9,12 @@ import {
   Spinner,
 } from '@fluentui/react-components';
 import { Dismiss24Regular } from '@fluentui/react-icons';
+import { useSendNotification } from '@/api/notifications';
 import { useComposeForm } from './useComposeForm';
 import { ActionBar } from './ActionBar';
 import { ContentTab } from './ContentTab';
 import { AudienceTab } from './AudienceTab';
+import { ConfirmSendDialog } from './ConfirmSendDialog';
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -121,13 +123,15 @@ type ComposePanelTab = 'content' | 'audience';
 export interface ComposePanelProps {
   editId?: string | null;
   onClose: () => void;
+  /** Called after delivery is done — close compose and navigate to Sent tab. */
+  onDeliveryDone?: () => void;
 }
 
 // ---------------------------------------------------------------------------
 // ComposePanel
 // ---------------------------------------------------------------------------
 
-export function ComposePanel({ editId, onClose }: ComposePanelProps) {
+export function ComposePanel({ editId, onClose, onDeliveryDone }: ComposePanelProps) {
   const styles = useStyles();
 
   // Mount-animation state: starts false, flips to true after the first
@@ -144,6 +148,9 @@ export function ComposePanel({ editId, onClose }: ComposePanelProps) {
   // Active tab
   const [activeTab, setActiveTab] = useState<ComposePanelTab>('content');
 
+  // Confirm send dialog state
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
   // ---------------------------------------------------------------------------
   // Form hook
   // ---------------------------------------------------------------------------
@@ -154,6 +161,9 @@ export function ComposePanel({ editId, onClose }: ComposePanelProps) {
   // Watch form values for the action bar (audience summary, headline-based enablement)
   const formValues = form.watch();
   const headline = formValues.headline;
+
+  // Send mutation
+  const sendMutation = useSendNotification();
 
   // ---------------------------------------------------------------------------
   // Close with dirty-check
@@ -175,12 +185,14 @@ export function ComposePanel({ editId, onClose }: ComposePanelProps) {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        // Don't close if confirm dialog is open
+        if (showConfirmDialog) return;
         handleClose();
       }
     };
     document.addEventListener('keydown', onKeyDown);
     return () => { document.removeEventListener('keydown', onKeyDown); };
-  }, [handleClose]);
+  }, [handleClose, showConfirmDialog]);
 
   // Trap focus inside the panel on mount
   useEffect(() => {
@@ -188,6 +200,24 @@ export function ComposePanel({ editId, onClose }: ComposePanelProps) {
       panelRef.current?.focus();
     }
   }, [mounted]);
+
+  // ---------------------------------------------------------------------------
+  // Confirm & Send handlers
+  // ---------------------------------------------------------------------------
+
+  const handleReview = useCallback(() => {
+    setShowConfirmDialog(true);
+  }, []);
+
+  const handleConfirmSend = useCallback(async (id: string) => {
+    await sendMutation.mutateAsync(id);
+  }, [sendMutation]);
+
+  const handleDeliveryDone = useCallback(() => {
+    setShowConfirmDialog(false);
+    onDeliveryDone?.();
+    onClose();
+  }, [onDeliveryDone, onClose]);
 
   // ---------------------------------------------------------------------------
   // Derive title
@@ -282,7 +312,20 @@ export function ComposePanel({ editId, onClose }: ComposePanelProps) {
           notificationId={notificationId}
           lastAutoSaved={lastAutoSaved}
           onSaveDraft={saveDraft}
+          onReview={handleReview}
         />
+
+        {/* Confirm Send Dialog */}
+        {showConfirmDialog && (
+          <ConfirmSendDialog
+            formValues={formValues}
+            notificationId={notificationId}
+            onSaveDraft={saveDraft}
+            onConfirmSend={handleConfirmSend}
+            onClose={() => { setShowConfirmDialog(false); }}
+            onDeliveryDone={handleDeliveryDone}
+          />
+        )}
       </div>
     </>
   );

@@ -142,6 +142,10 @@ export function CommunicationCenter() {
         <ComposePanel
           editId={composeEditId}
           onClose={actions.onCloseCompose}
+          onDeliveryDone={() => {
+            actions.onCloseCompose();
+            setSelectedTab('Sent');
+          }}
         />
       )}
     </div>

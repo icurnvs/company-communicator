@@ -403,6 +403,8 @@ export interface ActionBarProps {
   lastAutoSaved: Date | null;
   /** Manually triggers a save-draft operation. */
   onSaveDraft: () => Promise<string | undefined>;
+  /** Opens the pre-send confirmation dialog. */
+  onReview: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -416,6 +418,7 @@ export function ActionBar({
   notificationId,
   lastAutoSaved,
   onSaveDraft,
+  onReview,
 }: ActionBarProps) {
   const styles = useStyles();
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
@@ -519,13 +522,14 @@ export function ActionBar({
           onSaveDraft={onSaveDraft}
         />
 
-        {/* Review — placeholder for Task 15 */}
+        {/* Review → opens pre-send confirmation dialog */}
         <Button
           appearance="primary"
           size="small"
           icon={<ChevronRightRegular />}
           iconPosition="after"
           disabled={!hasAudience || !formValues.headline?.trim()}
+          onClick={onReview}
         >
           Review
         </Button>
