@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components -- entry point, no exports */
+import './global.css'; // Global reset: box-sizing, body margin, height chain
 import './i18n'; // Initialize i18n before React renders
 import { StrictMode, useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';

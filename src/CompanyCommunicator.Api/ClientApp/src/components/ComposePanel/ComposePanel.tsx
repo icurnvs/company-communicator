@@ -7,6 +7,12 @@ import {
   Text,
   Button,
   Spinner,
+  Dialog,
+  DialogSurface,
+  DialogBody,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@fluentui/react-components';
 import { Dismiss24Regular } from '@fluentui/react-icons';
 import { useSendNotification } from '@/api/notifications';
@@ -21,6 +27,7 @@ import { ConfirmSendDialog } from './ConfirmSendDialog';
 // ---------------------------------------------------------------------------
 
 const SIDEBAR_WIDTH = 200; // px — matches the sidebar defined in CommunicationCenter
+const MAX_PANEL_WIDTH = 1200; // px — prevent over-stretching on ultra-wide monitors
 
 const useStyles = makeStyles({
   // Semi-transparent backdrop that sits behind the panel
@@ -29,15 +36,6 @@ const useStyles = makeStyles({
     inset: 0,
     backgroundColor: tokens.colorBackgroundOverlay,
     zIndex: 100,
-    transition: 'opacity 300ms ease-out',
-  },
-
-  overlayVisible: {
-    opacity: 1,
-  },
-
-  overlayHidden: {
-    opacity: 0,
   },
 
   // The slide-over panel itself
@@ -47,21 +45,13 @@ const useStyles = makeStyles({
     right: 0,
     bottom: 0,
     width: `calc(100% - ${SIDEBAR_WIDTH}px)`,
+    maxWidth: `${MAX_PANEL_WIDTH}px`,
     zIndex: 101,
     display: 'flex',
     flexDirection: 'column',
     backgroundColor: tokens.colorNeutralBackground1,
     boxShadow: tokens.shadow64,
-    transition: 'transform 300ms ease-out',
     overflow: 'hidden',
-  },
-
-  panelVisible: {
-    transform: 'translateX(0)',
-  },
-
-  panelHidden: {
-    transform: 'translateX(100%)',
   },
 
   // Panel header
@@ -136,22 +126,14 @@ export interface ComposePanelProps {
 export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }: ComposePanelProps) {
   const styles = useStyles();
 
-  // Mount-animation state: starts false, flips to true after the first
-  // paint so the CSS transition fires on entry.
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => {
-      setMounted(true);
-    });
-    return () => { cancelAnimationFrame(raf); };
-  }, []);
-
   // Active tab
   const [activeTab, setActiveTab] = useState<ComposePanelTab>('content');
 
   // Confirm send dialog state
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  // Discard-changes dialog state (replaces window.confirm which is blocked in Teams)
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
   // ---------------------------------------------------------------------------
   // Form hook
@@ -171,14 +153,12 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
   // Close with dirty-check
   // ---------------------------------------------------------------------------
 
-  const handleClose = useCallback(() => {
+  const requestClose = useCallback(() => {
     if (isDirty) {
-      const confirmed = window.confirm(
-        'You have unsaved changes. Discard them and close?',
-      );
-      if (!confirmed) return;
+      setShowDiscardDialog(true);
+    } else {
+      onClose();
     }
-    onClose();
   }, [isDirty, onClose]);
 
   // Escape key handler
@@ -187,21 +167,18 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        // Don't close if confirm dialog is open
-        if (showConfirmDialog) return;
-        handleClose();
+        if (showConfirmDialog || showDiscardDialog) return;
+        requestClose();
       }
     };
     document.addEventListener('keydown', onKeyDown);
     return () => { document.removeEventListener('keydown', onKeyDown); };
-  }, [handleClose, showConfirmDialog]);
+  }, [requestClose, showConfirmDialog, showDiscardDialog]);
 
-  // Trap focus inside the panel on mount
+  // Focus panel on mount
   useEffect(() => {
-    if (mounted) {
-      panelRef.current?.focus();
-    }
-  }, [mounted]);
+    panelRef.current?.focus();
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Confirm & Send handlers
@@ -239,15 +216,15 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
     <>
       {/* Overlay */}
       <div
-        className={`${styles.overlay} ${mounted ? styles.overlayVisible : styles.overlayHidden}`}
-        onClick={handleClose}
+        className={styles.overlay}
+        onClick={requestClose}
         aria-hidden="true"
       />
 
       {/* Panel */}
       <div
         ref={panelRef}
-        className={`${styles.panel} ${mounted ? styles.panelVisible : styles.panelHidden}`}
+        className={styles.panel}
         role="dialog"
         aria-modal="true"
         aria-label={panelTitle}
@@ -264,7 +241,7 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
             <Button
               appearance="subtle"
               icon={<Dismiss24Regular />}
-              onClick={handleClose}
+              onClick={requestClose}
               aria-label="Close compose panel"
             />
           </div>
@@ -329,6 +306,38 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
           />
         )}
       </div>
+
+      {/* Discard changes dialog (replaces window.confirm which is blocked in Teams iframes) */}
+      <Dialog
+        open={showDiscardDialog}
+        onOpenChange={(_e, data) => { setShowDiscardDialog(data.open); }}
+      >
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Unsaved changes</DialogTitle>
+            <DialogContent>
+              You have unsaved changes. Discard them and close?
+            </DialogContent>
+            <DialogActions>
+              <Button
+                appearance="secondary"
+                onClick={() => { setShowDiscardDialog(false); }}
+              >
+                Keep editing
+              </Button>
+              <Button
+                appearance="primary"
+                onClick={() => {
+                  setShowDiscardDialog(false);
+                  onClose();
+                }}
+              >
+                Discard
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </>
   );
 }

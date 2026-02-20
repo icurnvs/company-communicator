@@ -27,6 +27,7 @@ const useStyles = makeStyles({
     overflow: 'auto',
     backgroundColor: tokens.colorNeutralBackground2,
     minHeight: '200px',
+    maxWidth: '460px', // Adaptive Cards are designed for ~400px in Teams
     position: 'relative',
   },
   placeholder: {
@@ -80,7 +81,7 @@ export const AdaptiveCardPreview = memo(function AdaptiveCardPreview({
 
   return (
     <div className={styles.container}>
-      <Text className={styles.label}>{t('notificationForm.preview.title')}</Text>
+      <Text className={styles.label}>{t('content.preview')}</Text>
       <div className={styles.previewBox}>
         {!hasTitle ? (
           <div className={styles.placeholder}>

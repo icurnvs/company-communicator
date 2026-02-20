@@ -100,8 +100,8 @@ const useStyles = makeStyles({
   root: {
     display: 'flex',
     flex: 1,
-    overflow: 'hidden',
     minHeight: 0,
+    height: 0, // Force flex-allocated height; prevents content from inflating
   },
 
   // Left column: Search & Select (~50%)

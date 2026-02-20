@@ -17,22 +17,29 @@ const useStyles = makeStyles({
     display: 'grid',
     height: '100vh',
     overflow: 'hidden',
-    position: 'relative', // anchor for compose slide-over absolute positioning
+    position: 'relative', // anchor for overlay panels
     backgroundColor: tokens.colorNeutralBackground1,
-    // Default: sidebar + message list only; detail panel added dynamically via
-    // inline style when a message is selected.
+    // Fixed 2-column grid — detail panel is overlayed, not a third column
     gridTemplateColumns: '200px 1fr',
-  },
-  rootWithDetail: {
-    gridTemplateColumns: '200px 1fr 320px',
   },
   messageListArea: {
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
-    borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
+    position: 'relative', // anchor for the detail panel overlay
   },
-  detailPanelArea: {
+  // Detail panel slides in from the right, overlaying the message list
+  detailOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: '360px',
+    maxWidth: '100%',
+    zIndex: 50,
+    boxShadow: tokens.shadow16,
+    borderLeft: `1px solid ${tokens.colorNeutralStroke2}`,
+    backgroundColor: tokens.colorNeutralBackground1,
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
@@ -71,8 +78,6 @@ export function CommunicationCenter() {
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeEditId, setComposeEditId] = useState<string | null>(null);
   const [cloneValues, setCloneValues] = useState<Partial<ComposeFormValues> | null>(null);
-
-  const hasDetail = selectedMessageId !== null;
 
   // Actions passed down to child zones
   const actions: CommunicationCenterActions = {
@@ -134,10 +139,7 @@ export function CommunicationCenter() {
   }, []);
 
   return (
-    <div
-      className={hasDetail ? `${styles.root} ${styles.rootWithDetail}` : styles.root}
-      role="main"
-    >
+    <div className={styles.root} role="main">
       {/* Zone 1 — Sidebar */}
       <Sidebar
         activeTab={selectedTab}
@@ -145,7 +147,7 @@ export function CommunicationCenter() {
         onComposeClick={() => actions.onOpenCompose()}
       />
 
-      {/* Zone 2 — Message list */}
+      {/* Zone 2 — Message list + Detail panel overlay */}
       <ErrorBoundary>
         <div className={styles.messageListArea}>
           <MessageList
@@ -154,24 +156,22 @@ export function CommunicationCenter() {
             onSelectMessage={actions.onSelectMessage}
             onOpenCompose={actions.onOpenCompose}
           />
+
+          {/* Detail panel — overlays message list from the right */}
+          {selectedMessageId && (
+            <div className={styles.detailOverlay}>
+              <DetailPanel
+                notificationId={selectedMessageId}
+                onClose={() => actions.onSelectMessage(null)}
+                onEdit={(id) => actions.onOpenCompose(id)}
+                onCloneToCompose={handleCloneToCompose}
+              />
+            </div>
+          )}
         </div>
       </ErrorBoundary>
 
-      {/* Zone 3 — Detail panel (only rendered when a message is selected) */}
-      {hasDetail && selectedMessageId && (
-        <ErrorBoundary>
-          <div className={styles.detailPanelArea}>
-            <DetailPanel
-              notificationId={selectedMessageId}
-              onClose={() => actions.onSelectMessage(null)}
-              onEdit={(id) => actions.onOpenCompose(id)}
-              onCloneToCompose={handleCloneToCompose}
-            />
-          </div>
-        </ErrorBoundary>
-      )}
-
-      {/* Compose slide-over — covers Zones 2 + 3 when open */}
+      {/* Compose slide-over — covers the main area when open */}
       {composeOpen && (
         <ComposePanel
           editId={composeEditId}

@@ -203,12 +203,15 @@ export function ConfirmSendDialog({
     }
   }, [notificationId, onSaveDraft, onConfirmSend]);
 
-  // Prevent closing during send
   const handleOverlayClick = useCallback(() => {
     if (phase === 'review') {
       onClose();
     }
-  }, [phase, onClose]);
+    // During sending phase, allow closing — delivery continues in background
+    if (phase === 'sending') {
+      onDeliveryDone();
+    }
+  }, [phase, onClose, onDeliveryDone]);
 
   return (
     <div className={styles.overlay} onClick={handleOverlayClick}>
@@ -224,14 +227,12 @@ export function ConfirmSendDialog({
           <Text weight="semibold" size={400}>
             {phase === 'review' ? 'Review & Send' : 'Sending...'}
           </Text>
-          {phase === 'review' && (
-            <Button
-              appearance="subtle"
-              icon={<Dismiss24Regular />}
-              onClick={onClose}
-              aria-label="Close"
-            />
-          )}
+          <Button
+            appearance="subtle"
+            icon={<Dismiss24Regular />}
+            onClick={phase === 'review' ? onClose : onDeliveryDone}
+            aria-label="Close"
+          />
         </div>
 
         {/* Body */}
