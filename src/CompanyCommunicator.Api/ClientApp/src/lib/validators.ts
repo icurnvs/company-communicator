@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { CreateNotificationRequest, UpdateNotificationRequest } from '@/types';
+import type { CreateNotificationRequest, UpdateNotificationRequest, ExtendedSlotType, CardSettings } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Audience schema
@@ -94,6 +94,42 @@ export const composeFormSchema = z
       .optional()
       .nullable(),
 
+    // Phase C: Additional slots (extended block types)
+    additionalSlots: z
+      .array(
+        z.object({
+          id: z.string(),
+          type: z.enum([
+            'imageGallery',
+            'statsRow',
+            'quoteCallout',
+            'columns',
+            'table',
+            'expandableSection',
+            'iconTextRow',
+          ]),
+          data: z.record(z.unknown()),
+          order: z.number(),
+        }),
+      )
+      .optional()
+      .nullable(),
+
+    // Phase C: Per-slot AC property overrides
+    advancedOverrides: z.record(z.record(z.unknown())).optional().nullable(),
+
+    // Phase C: Card-level settings
+    cardSettings: z
+      .object({
+        fullWidth: z.boolean().optional(),
+        accentColorOverride: z.string().nullable().optional(),
+      })
+      .optional()
+      .nullable(),
+
+    // Phase C: Slot ordering (user-defined, maps slotId → order number)
+    slotOrder: z.record(z.number()).optional().nullable(),
+
     // Audience tab
     allUsers: z.boolean(),
     audiences: z.array(audienceDtoSchema).optional().nullable(),
@@ -151,6 +187,10 @@ function formToApiFields(values: ComposeFormValues) {
       templateId: values.templateId,
       themeId: values.themeId ?? 'theme-default',
       slotVisibility: values.slotVisibility ?? {},
+      slotOrder: values.slotOrder ?? null,
+      additionalSlots: values.additionalSlots ?? null,
+      advancedOverrides: values.advancedOverrides ?? null,
+      cardSettings: values.cardSettings ?? null,
     });
   }
 
@@ -203,6 +243,10 @@ export interface TemplateMetadata {
   templateId: string;
   themeId: string;
   slotVisibility: Record<string, boolean>;
+  slotOrder?: Record<string, number> | null;
+  additionalSlots?: Array<{ id: string; type: ExtendedSlotType; data: Record<string, unknown>; order: number }> | null;
+  advancedOverrides?: Record<string, Record<string, unknown>> | null;
+  cardSettings?: CardSettings | null;
 }
 
 /** Parse template metadata from the cardPreference API field. */
@@ -218,6 +262,10 @@ export function parseTemplateMetadata(raw: string | null): TemplateMetadata | nu
         templateId: parsed.templateId as string,
         themeId: (parsed.themeId as string) ?? 'theme-default',
         slotVisibility: (parsed.slotVisibility as Record<string, boolean>) ?? {},
+        slotOrder: (parsed.slotOrder as Record<string, number>) ?? null,
+        additionalSlots: (parsed.additionalSlots as TemplateMetadata['additionalSlots']) ?? null,
+        advancedOverrides: (parsed.advancedOverrides as Record<string, Record<string, unknown>>) ?? null,
+        cardSettings: (parsed.cardSettings as CardSettings) ?? null,
       };
     }
     return null;

@@ -15,7 +15,7 @@ export interface CustomVariable {
 
 export type CardPreference = 'Standard' | 'Advanced' | 'Template';
 
-export type AdvancedBlockType =
+export type LegacyBlockType =
   | 'ColumnLayout'
   | 'ImageSet'
   | 'TextBlock'
@@ -23,9 +23,9 @@ export type AdvancedBlockType =
   | 'ActionButton'
   | 'Divider';
 
-export interface AdvancedBlock {
+export interface LegacyBlock {
   id: string;
-  type: AdvancedBlockType;
+  type: LegacyBlockType;
   data: Record<string, unknown>;
 }
 
@@ -38,7 +38,7 @@ export interface CardSchema {
   buttonTitle?: string | null;
   buttonLink?: string | null;
   secondaryText?: string | null;
-  advancedBlocks?: AdvancedBlock[];
+  advancedBlocks?: LegacyBlock[];
   cardPreference?: CardPreference;
 }
 
@@ -237,8 +237,9 @@ export type {
   SlotType,
   CoreSlotType,
   ExtendedSlotType,
-  AdvancedBlockType as NewAdvancedBlockType,
+  AdvancedBlockType,
   AnyBlockType,
+  CardSettings,
   SlotVisibility,
   SlotDefinition,
   TemplateCategory,

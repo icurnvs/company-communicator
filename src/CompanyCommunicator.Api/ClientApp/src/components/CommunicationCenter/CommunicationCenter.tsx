@@ -6,7 +6,7 @@ import { MessageList } from '@/components/MessageList/MessageList';
 import { HomeDashboard } from '@/components/HomeDashboard/HomeDashboard';
 import { DetailPanel } from '@/components/DetailPanel/DetailPanel';
 import type { ComposeFormValues } from '@/lib/validators';
-import type { SidebarView, NotificationDto, KeyDetailPair, CustomVariable, AdvancedBlock, CardPreference } from '@/types';
+import type { SidebarView, NotificationDto, KeyDetailPair, CustomVariable, LegacyBlock, CardPreference } from '@/types';
 
 const ComposePanel = lazy(() =>
   import('@/components/ComposePanel/ComposePanel').then((m) => ({
@@ -160,7 +160,7 @@ export function CommunicationCenter() {
       secondaryText: notification.secondaryText ?? '',
       customVariables: parsedCustomVars as CustomVariable[] | null,
       cardPreference: (notification.cardPreference as CardPreference) ?? 'Standard',
-      advancedBlocks: parseJson<AdvancedBlock[] | null>(notification.advancedBlocks, null),
+      advancedBlocks: parseJson<LegacyBlock[] | null>(notification.advancedBlocks, null),
     };
 
     setCloneValues(values);

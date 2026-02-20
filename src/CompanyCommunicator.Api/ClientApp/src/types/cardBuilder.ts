@@ -109,6 +109,15 @@ export interface ThemeDefinition {
 }
 
 // ---------------------------------------------------------------------------
+// Card-level settings (Advanced mode)
+// ---------------------------------------------------------------------------
+
+export interface CardSettings {
+  fullWidth?: boolean;
+  accentColorOverride?: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Card document — what gets saved per notification
 // ---------------------------------------------------------------------------
 
@@ -117,8 +126,10 @@ export interface CardDocument {
   themeId: string;
   slotValues: Record<string, unknown>; // slotId → user content
   slotVisibility: Record<string, boolean>; // slotId → on/off toggle
+  slotOrder?: Record<string, number>; // slotId → user-defined order
   additionalSlots?: AdditionalSlot[]; // sections added beyond template
   advancedOverrides?: Record<string, Record<string, unknown>>; // slotId → prop overrides
+  cardSettings?: CardSettings; // card-level settings (Advanced mode)
   cardPreference: 'template' | 'advanced';
 }
 

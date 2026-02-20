@@ -1,5 +1,5 @@
 import * as AdaptiveCards from 'adaptivecards';
-import type { KeyDetailPair, AdvancedBlock, CustomVariable } from '@/types';
+import type { KeyDetailPair, LegacyBlock, CustomVariable } from '@/types';
 
 export interface CardData {
   title: string;
@@ -10,7 +10,7 @@ export interface CardData {
   buttonLink?: string | null;
   secondaryText?: string | null;
   author?: string | null;
-  advancedBlocks?: AdvancedBlock[] | null;
+  advancedBlocks?: LegacyBlock[] | null;
   customVariables?: CustomVariable[] | null;
 }
 
@@ -174,7 +174,7 @@ export function buildCardPayload(data: CardData): object {
   // -----------------------------------------------------------------------
   if (data.advancedBlocks?.length) {
     for (const block of data.advancedBlocks) {
-      const element = buildAdvancedBlockElement(block, resolve);
+      const element = buildLegacyBlockElement(block, resolve);
       if (element) {
         if (block.type === 'ActionButton') {
           actions.push(element);
@@ -229,8 +229,8 @@ export function buildCardPayload(data: CardData): object {
 // ---------------------------------------------------------------------------
 // Advanced block → Adaptive Card element
 // ---------------------------------------------------------------------------
-function buildAdvancedBlockElement(
-  block: AdvancedBlock,
+function buildLegacyBlockElement(
+  block: LegacyBlock,
   resolve: (text: string | null | undefined) => string,
 ): object | null {
   const d = block.data;

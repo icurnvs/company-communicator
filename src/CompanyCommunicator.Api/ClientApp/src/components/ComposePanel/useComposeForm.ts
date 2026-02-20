@@ -14,7 +14,7 @@ import {
   useCreateNotification,
   useUpdateNotification,
 } from '@/api/notifications';
-import type { AdvancedBlock, CardPreference, KeyDetailPair, CustomVariable } from '@/types';
+import type { LegacyBlock, CardPreference, KeyDetailPair, CustomVariable } from '@/types';
 import { DEFAULT_THEME_ID } from '@/lib/builtinThemes';
 
 // ---------------------------------------------------------------------------
@@ -73,12 +73,12 @@ function parseCustomVariables(raw: string | null): CustomVariable[] | null {
   }
 }
 
-function parseAdvancedBlocks(raw: string | null): AdvancedBlock[] | null {
+function parseLegacyBlocks(raw: string | null): LegacyBlock[] | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (Array.isArray(parsed)) {
-      return parsed as AdvancedBlock[];
+      return parsed as LegacyBlock[];
     }
     return null;
   } catch {
@@ -176,7 +176,7 @@ export function useComposeForm({
       secondaryText: existingNotification.secondaryText ?? '',
       customVariables: parseCustomVariables(existingNotification.customVariables),
       cardPreference: templateMeta ? 'Template' : parseCardPreference(existingNotification.cardPreference),
-      advancedBlocks: parseAdvancedBlocks(existingNotification.advancedBlocks),
+      advancedBlocks: parseLegacyBlocks(existingNotification.advancedBlocks),
       templateId: templateMeta?.templateId ?? null,
       themeId: templateMeta?.themeId ?? DEFAULT_THEME_ID,
       slotVisibility: templateMeta?.slotVisibility ?? {},
