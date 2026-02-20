@@ -50,7 +50,29 @@ export function resolvePreviewVariables(
 }
 
 // ---------------------------------------------------------------------------
-// Build Adaptive Card JSON payload (schema 1.4)
+// Build Adaptive Card JSON payload (schema 1.5)
+//
+// Layout structure:
+//   ┌──────────────────────────────────────┐
+//   │  ▓▓ Accent header container ▓▓▓▓▓▓  │  brand-colored background
+//   │  ▓▓  Title (Large, Bolder)  ▓▓▓▓▓▓  │
+//   │  ▓▓  Author (Small)         ▓▓▓▓▓▓  │
+//   │  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  │
+//   │                                      │
+//   │  [Hero image — full bleed]           │
+//   │                                      │
+//   │  Body text (wrapping)                │
+//   │                                      │
+//   │  ┌─ emphasis container ────────────┐ │  subtle background
+//   │  │  Label     Value                │ │
+//   │  │  Label     Value                │ │
+//   │  └─────────────────────────────────┘ │
+//   │                                      │
+//   │  ─── separator ───                   │
+//   │  Footnote (Small, subtle)            │
+//   │                                      │
+//   │  [ ████ Primary Button ████████████ ]│  style: "positive"
+//   └──────────────────────────────────────┘
 // ---------------------------------------------------------------------------
 export function buildCardPayload(data: CardData): object {
   const body: object[] = [];
@@ -59,38 +81,59 @@ export function buildCardPayload(data: CardData): object {
   const resolve = (text: string | null | undefined): string =>
     text ? resolvePreviewVariables(text, data.customVariables) : '';
 
-  // Title
-  body.push({
-    type: 'TextBlock',
-    text: resolve(data.title) || 'Message Title',
-    size: 'Large',
-    weight: 'Bolder',
-    wrap: true,
-  });
+  // -----------------------------------------------------------------------
+  // Header — accent-styled container with brand background
+  // -----------------------------------------------------------------------
+  const headerItems: object[] = [
+    {
+      type: 'TextBlock',
+      text: resolve(data.title) || 'Message Title',
+      size: 'Large',
+      weight: 'Bolder',
+      wrap: true,
+    },
+  ];
 
-  // Author (if provided)
   if (data.author) {
-    body.push({
+    headerItems.push({
       type: 'TextBlock',
       text: data.author,
       size: 'Small',
       isSubtle: true,
       wrap: true,
-      spacing: 'None',
+      spacing: 'Small',
     });
   }
 
-  // Image (if provided)
+  body.push({
+    type: 'Container',
+    style: 'accent',
+    bleed: true,
+    items: headerItems,
+  });
+
+  // -----------------------------------------------------------------------
+  // Hero image — bleed for full-width edge-to-edge
+  // -----------------------------------------------------------------------
   if (data.imageLink) {
     body.push({
-      type: 'Image',
-      url: data.imageLink,
-      size: 'Stretch',
-      altText: data.title,
+      type: 'Container',
+      bleed: true,
+      spacing: 'None',
+      items: [
+        {
+          type: 'Image',
+          url: data.imageLink,
+          size: 'Stretch',
+          altText: resolve(data.title),
+        },
+      ],
     });
   }
 
-  // Summary / Body
+  // -----------------------------------------------------------------------
+  // Body text
+  // -----------------------------------------------------------------------
   if (data.summary) {
     body.push({
       type: 'TextBlock',
@@ -100,7 +143,9 @@ export function buildCardPayload(data: CardData): object {
     });
   }
 
-  // Key Details → FactSet
+  // -----------------------------------------------------------------------
+  // Key details — emphasis container with subtle background
+  // -----------------------------------------------------------------------
   if (data.keyDetails?.length) {
     const facts = data.keyDetails
       .filter((kd) => kd.label && kd.value)
@@ -110,14 +155,23 @@ export function buildCardPayload(data: CardData): object {
       }));
     if (facts.length > 0) {
       body.push({
-        type: 'FactSet',
-        facts,
+        type: 'Container',
+        style: 'emphasis',
+        bleed: true,
         spacing: 'Medium',
+        items: [
+          {
+            type: 'FactSet',
+            facts,
+          },
+        ],
       });
     }
   }
 
+  // -----------------------------------------------------------------------
   // Advanced blocks (when in Advanced mode)
+  // -----------------------------------------------------------------------
   if (data.advancedBlocks?.length) {
     for (const block of data.advancedBlocks) {
       const element = buildAdvancedBlockElement(block, resolve);
@@ -131,16 +185,21 @@ export function buildCardPayload(data: CardData): object {
     }
   }
 
-  // Primary action button
+  // -----------------------------------------------------------------------
+  // Primary action button — positive style for brand-colored button
+  // -----------------------------------------------------------------------
   if (data.buttonTitle && data.buttonLink) {
     actions.unshift({
       type: 'Action.OpenUrl',
       title: resolve(data.buttonTitle),
       url: data.buttonLink,
+      style: 'positive',
     });
   }
 
-  // Secondary text (footnote)
+  // -----------------------------------------------------------------------
+  // Secondary text (footnote) — separated visually
+  // -----------------------------------------------------------------------
   if (data.secondaryText) {
     body.push({
       type: 'TextBlock',
@@ -149,13 +208,14 @@ export function buildCardPayload(data: CardData): object {
       isSubtle: true,
       wrap: true,
       spacing: 'Medium',
+      separator: true,
     });
   }
 
   const card: Record<string, unknown> = {
     $schema: 'http://adaptivecards.io/schemas/adaptive-card.json',
     type: 'AdaptiveCard',
-    version: '1.4',
+    version: '1.5',
     body,
   };
 
@@ -321,27 +381,38 @@ function buildHostConfig(theme: 'default' | 'dark' | 'contrast'): object {
   const isDark = theme === 'dark';
   const isContrast = theme === 'contrast';
 
-  const textColor = isContrast ? '#ffffff' : isDark ? '#d6d6d6' : '#252424';
-  const subtleColor = isContrast ? '#e0e0e0' : isDark ? '#8a8a8a' : '#605e5c';
+  const textColor = isContrast ? '#ffffff' : isDark ? '#d6d6d6' : '#242424';
+  const subtleColor = isContrast ? '#e0e0e0' : isDark ? '#8a8a8a' : '#616161';
   const backgroundColor = isContrast ? '#000000' : isDark ? '#1f1f1f' : '#ffffff';
-  const borderColor = isContrast ? '#ffffff' : isDark ? '#3d3d3d' : '#e1dfdd';
-  const accentColor = '#6264a7'; // Teams purple
+  const borderColor = isContrast ? '#ffffff' : isDark ? '#3d3d3d' : '#e0e0e0';
+  const accentColor = '#5b5fc7'; // Teams brand indigo
+  const accentDark = '#4f52b2';  // Slightly darker for dark theme
+  const emphasisBg = isDark ? '#292929' : '#f5f5f5';
 
   return {
     supportsInteractivity: true,
-    fontFamily: "'Segoe UI', system-ui, sans-serif",
+    fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
     fontSizes: {
       small: 12,
       default: 14,
-      medium: 16,
-      large: 20,
-      extraLarge: 24,
+      medium: 17,
+      large: 21,
+      extraLarge: 26,
+    },
+    fontWeights: {
+      lighter: 300,
+      default: 400,
+      bolder: 600,
     },
     containerStyles: {
       default: {
         foregroundColors: {
           default: { default: textColor, subtle: subtleColor },
           accent: { default: accentColor, subtle: accentColor },
+          attention: { default: '#c4314b', subtle: '#d13438' },
+          good: { default: '#13a10e', subtle: '#498205' },
+          warning: { default: '#986f0b', subtle: '#c19c00' },
+          light: { default: '#ffffff', subtle: '#d2d0ee' },
         },
         backgroundColor,
       },
@@ -350,28 +421,59 @@ function buildHostConfig(theme: 'default' | 'dark' | 'contrast'): object {
           default: { default: textColor, subtle: subtleColor },
           accent: { default: accentColor, subtle: accentColor },
         },
-        backgroundColor: isDark ? '#2d2c2c' : '#f3f2f1',
+        backgroundColor: emphasisBg,
+      },
+      accent: {
+        foregroundColors: {
+          default: { default: '#ffffff', subtle: 'rgba(255,255,255,0.7)' },
+          accent: { default: '#ffffff', subtle: 'rgba(255,255,255,0.7)' },
+          light: { default: '#ffffff', subtle: 'rgba(255,255,255,0.7)' },
+        },
+        backgroundColor: isDark ? accentDark : accentColor,
+      },
+      good: {
+        foregroundColors: {
+          default: { default: '#ffffff', subtle: 'rgba(255,255,255,0.7)' },
+        },
+        backgroundColor: '#13a10e',
+      },
+      attention: {
+        foregroundColors: {
+          default: { default: '#ffffff', subtle: 'rgba(255,255,255,0.7)' },
+        },
+        backgroundColor: '#c4314b',
+      },
+      warning: {
+        foregroundColors: {
+          default: { default: '#242424', subtle: '#616161' },
+        },
+        backgroundColor: '#fde300',
       },
     },
     actions: {
       maxActions: 5,
-      buttonSpacing: 8,
+      buttonSpacing: 10,
       showCard: { actionMode: 'inline', inlineTopMargin: 16 },
       actionsOrientation: 'horizontal',
-      actionAlignment: 'left',
+      actionAlignment: 'stretch',
     },
     adaptiveCard: {
       allowCustomStyle: false,
     },
     imageSet: { imageSize: 'medium', maxImageHeight: 100 },
+    factSet: {
+      title: { color: 'Default', size: 'Default', isSubtle: false, weight: 'Bolder' },
+      value: { color: 'Default', size: 'Default', isSubtle: true, weight: 'Default' },
+      spacing: 12,
+    },
     separator: { lineThickness: 1, lineColor: borderColor },
     spacing: {
       small: 4,
       default: 8,
       medium: 16,
-      large: 20,
-      extraLarge: 24,
-      padding: 16,
+      large: 24,
+      extraLarge: 32,
+      padding: 20,
     },
   };
 }

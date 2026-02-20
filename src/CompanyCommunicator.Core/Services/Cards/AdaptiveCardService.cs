@@ -8,7 +8,9 @@ namespace CompanyCommunicator.Core.Services.Cards;
 /// <summary>
 /// Builds Adaptive Card JSON payloads using <see cref="System.Text.Json"/>.
 /// No third-party Adaptive Cards NuGet package is required.
-/// Targets schema version 1.4.
+/// Uses accent-styled header containers, emphasis containers for fact sets,
+/// and styled action buttons for a modern Fluent 2 appearance.
+/// Targets schema version 1.5.
 /// </summary>
 internal sealed class AdaptiveCardService : IAdaptiveCardService
 {
@@ -36,13 +38,47 @@ internal sealed class AdaptiveCardService : IAdaptiveCardService
         var body = new JsonArray();
 
         // ----------------------------------------------------------------
-        // Header image (ImageLink takes priority over ImageBlobName)
+        // Accent header container — brand-colored background
+        // ----------------------------------------------------------------
+        var headerItems = new JsonArray
+        {
+            new JsonObject
+            {
+                ["type"] = "TextBlock",
+                ["text"] = notification.Title,
+                ["size"] = "Large",
+                ["weight"] = "Bolder",
+                ["wrap"] = true,
+            },
+        };
+
+        if (!string.IsNullOrEmpty(notification.Author))
+        {
+            headerItems.Add(new JsonObject
+            {
+                ["type"] = "TextBlock",
+                ["text"] = notification.Author,
+                ["size"] = "Small",
+                ["isSubtle"] = true,
+                ["wrap"] = true,
+                ["spacing"] = "Small",
+            });
+        }
+
+        body.Add(new JsonObject
+        {
+            ["type"] = "Container",
+            ["style"] = "accent",
+            ["bleed"] = true,
+            ["items"] = headerItems,
+        });
+
+        // ----------------------------------------------------------------
+        // Hero image — full-bleed edge-to-edge
         // ----------------------------------------------------------------
         var imageUrl = notification.ImageLink;
         if (string.IsNullOrEmpty(imageUrl) && !string.IsNullOrEmpty(notification.ImageBlobName))
         {
-            // ImageBlobName is a blob name; actual URL resolution happens at delivery time.
-            // For preview cards the blob name is used as a placeholder display value.
             imageUrl = notification.ImageBlobName;
         }
 
@@ -50,27 +86,24 @@ internal sealed class AdaptiveCardService : IAdaptiveCardService
         {
             body.Add(new JsonObject
             {
-                ["type"] = "Image",
-                ["url"] = imageUrl,
-                ["size"] = "stretch",
-                ["altText"] = notification.Title,
+                ["type"] = "Container",
+                ["bleed"] = true,
+                ["spacing"] = "None",
+                ["items"] = new JsonArray
+                {
+                    new JsonObject
+                    {
+                        ["type"] = "Image",
+                        ["url"] = imageUrl,
+                        ["size"] = "Stretch",
+                        ["altText"] = notification.Title,
+                    },
+                },
             });
         }
 
         // ----------------------------------------------------------------
-        // Title
-        // ----------------------------------------------------------------
-        body.Add(new JsonObject
-        {
-            ["type"] = "TextBlock",
-            ["text"] = notification.Title,
-            ["size"] = "Large",
-            ["weight"] = "Bolder",
-            ["wrap"] = true,
-        });
-
-        // ----------------------------------------------------------------
-        // Summary
+        // Summary / body text
         // ----------------------------------------------------------------
         if (!string.IsNullOrEmpty(notification.Summary))
         {
@@ -79,11 +112,12 @@ internal sealed class AdaptiveCardService : IAdaptiveCardService
                 ["type"] = "TextBlock",
                 ["text"] = notification.Summary,
                 ["wrap"] = true,
+                ["spacing"] = "Medium",
             });
         }
 
         // ----------------------------------------------------------------
-        // KeyDetails — FactSet of {Label, Value} pairs
+        // KeyDetails — FactSet in emphasis container
         // ----------------------------------------------------------------
         TryBuildFactSet(notification.KeyDetails, body);
 
@@ -94,22 +128,7 @@ internal sealed class AdaptiveCardService : IAdaptiveCardService
         TryBuildAdvancedBlocks(notification.AdvancedBlocks, body, advancedActions);
 
         // ----------------------------------------------------------------
-        // Author line
-        // ----------------------------------------------------------------
-        if (!string.IsNullOrEmpty(notification.Author))
-        {
-            body.Add(new JsonObject
-            {
-                ["type"] = "TextBlock",
-                ["text"] = notification.Author,
-                ["isSubtle"] = true,
-                ["size"] = "Small",
-                ["wrap"] = false,
-            });
-        }
-
-        // ----------------------------------------------------------------
-        // SecondaryText — fine-print / footnote
+        // SecondaryText — footnote with separator
         // ----------------------------------------------------------------
         if (!string.IsNullOrEmpty(notification.SecondaryText))
         {
@@ -120,11 +139,13 @@ internal sealed class AdaptiveCardService : IAdaptiveCardService
                 ["size"] = "Small",
                 ["isSubtle"] = true,
                 ["wrap"] = true,
+                ["spacing"] = "Medium",
+                ["separator"] = true,
             });
         }
 
         // ----------------------------------------------------------------
-        // Sent date line (use SentDate if available, otherwise CreatedDate)
+        // Sent date line
         // ----------------------------------------------------------------
         var displayDate = notification.SentDate ?? notification.CreatedDate;
         body.Add(new JsonObject
@@ -134,10 +155,11 @@ internal sealed class AdaptiveCardService : IAdaptiveCardService
             ["isSubtle"] = true,
             ["size"] = "Small",
             ["wrap"] = false,
+            ["spacing"] = "Small",
         });
 
         // ----------------------------------------------------------------
-        // Actions — standard CTA button + any ActionButton blocks
+        // Actions — styled CTA button + any ActionButton blocks
         // ----------------------------------------------------------------
         var actions = new JsonArray();
         if (!string.IsNullOrEmpty(notification.ButtonLink) &&
@@ -148,6 +170,7 @@ internal sealed class AdaptiveCardService : IAdaptiveCardService
                 ["type"] = "Action.OpenUrl",
                 ["title"] = notification.ButtonTitle,
                 ["url"] = notification.ButtonLink,
+                ["style"] = "positive",
             });
         }
 
@@ -164,7 +187,7 @@ internal sealed class AdaptiveCardService : IAdaptiveCardService
         {
             ["type"] = "AdaptiveCard",
             ["$schema"] = "http://adaptivecards.io/schemas/adaptive-card.json",
-            ["version"] = "1.4",
+            ["version"] = "1.5",
             ["body"] = body,
         };
 
@@ -287,8 +310,18 @@ internal sealed class AdaptiveCardService : IAdaptiveCardService
 
         body.Add(new JsonObject
         {
-            ["type"] = "FactSet",
-            ["facts"] = facts,
+            ["type"] = "Container",
+            ["style"] = "emphasis",
+            ["bleed"] = true,
+            ["spacing"] = "Medium",
+            ["items"] = new JsonArray
+            {
+                new JsonObject
+                {
+                    ["type"] = "FactSet",
+                    ["facts"] = facts,
+                },
+            },
         });
     }
 

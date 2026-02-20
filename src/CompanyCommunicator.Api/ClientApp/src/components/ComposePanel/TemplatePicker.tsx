@@ -12,10 +12,16 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Badge,
 } from '@fluentui/react-components';
 import { ChevronDownRegular, ChevronUpRegular, Dismiss16Regular } from '@fluentui/react-icons';
 import { useTemplates, useDeleteTemplate } from '@/api/templates';
-import { BLANK_TEMPLATE, BLANK_TEMPLATE_ID, BUILTIN_TEMPLATES } from '@/lib/builtinTemplates';
+import {
+  BLANK_TEMPLATE,
+  BLANK_TEMPLATE_ID,
+  BUILTIN_TEMPLATES,
+  type BuiltinTemplate,
+} from '@/lib/builtinTemplates';
 import type { CardSchema } from '@/types';
 import type { ComposeFormValues } from '@/lib/validators';
 
@@ -66,8 +72,8 @@ const useStyles = makeStyles({
   // Grid of template cards
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-    gap: tokens.spacingHorizontalS,
+    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+    gap: '12px',
     paddingBottom: tokens.spacingVerticalS,
   },
 
@@ -87,49 +93,71 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralStroke2,
   },
 
-  // Individual template card
+  // Individual template card — redesigned with accent header
   card: {
     position: 'relative',
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: tokens.spacingVerticalXS,
-    padding: tokens.spacingHorizontalM,
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderRadius: tokens.borderRadiusMedium,
     backgroundColor: tokens.colorNeutralBackground1,
     cursor: 'pointer',
     textAlign: 'left',
-    minHeight: '80px',
-    transition: 'border-color 80ms, background-color 80ms',
+    overflow: 'hidden',
+    transitionProperty: 'border-color, box-shadow, transform',
+    transitionDuration: '0.15s',
+    transitionTimingFunction: 'ease',
     ':hover': {
-      border: `1px solid ${tokens.colorBrandStroke1}`,
-      backgroundColor: tokens.colorNeutralBackground1Hover,
+      borderColor: tokens.colorBrandStroke1,
+      boxShadow: tokens.shadow4,
+      transform: 'translateY(-1px)',
     },
     ':focus-visible': {
-      outline: `2px solid ${tokens.colorBrandStroke1}`,
+      outlineWidth: '2px',
+      outlineStyle: 'solid',
+      outlineColor: tokens.colorBrandStroke1,
       outlineOffset: '2px',
     },
   },
 
+  // Colored accent strip at the top
+  cardAccent: {
+    height: '4px',
+    flexShrink: 0,
+  },
+
+  // Card body content
+  cardBody: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    padding: '12px',
+    flex: 1,
+  },
+
+  // Icon + name row
+  cardHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+
   cardIcon: {
-    fontSize: '20px',
-    color: tokens.colorBrandForeground1,
+    fontSize: '24px',
     flexShrink: 0,
   },
 
   cardName: {
-    fontSize: tokens.fontSizeBase200,
+    fontSize: tokens.fontSizeBase300,
     fontWeight: tokens.fontWeightSemibold,
     color: tokens.colorNeutralForeground1,
-    lineHeight: tokens.lineHeightBase200,
-    wordBreak: 'break-word',
+    lineHeight: tokens.lineHeightBase300,
   },
 
   cardDescription: {
-    fontSize: tokens.fontSizeBase100,
+    fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground3,
-    lineHeight: tokens.lineHeightBase100,
+    lineHeight: tokens.lineHeightBase200,
     // Clamp to 2 lines
     display: '-webkit-box',
     WebkitBoxOrient: 'vertical',
@@ -137,13 +165,20 @@ const useStyles = makeStyles({
     overflow: 'hidden',
   },
 
+  // Feature tags row
+  cardFeatures: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '4px',
+    marginTop: '4px',
+  },
+
   // Delete button overlay on custom template cards
   deleteBtn: {
     position: 'absolute',
-    top: tokens.spacingVerticalXS,
-    right: tokens.spacingHorizontalXS,
+    top: '8px',
+    right: '4px',
     opacity: 0,
-    // Show on card hover via sibling trick handled in the card wrapper
     ':focus-visible': {
       opacity: 1,
     },
@@ -209,12 +244,23 @@ interface TemplateCardProps {
   name: string;
   description: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  accentColor: string;
+  features?: string[];
   onSelect: () => void;
   onDelete?: () => void;
   isDeleting?: boolean;
 }
 
-function TemplateCard({ name, description, icon: Icon, onSelect, onDelete, isDeleting }: TemplateCardProps) {
+function TemplateCard({
+  name,
+  description,
+  icon: Icon,
+  accentColor,
+  features,
+  onSelect,
+  onDelete,
+  isDeleting,
+}: TemplateCardProps) {
   const styles = useStyles();
 
   return (
@@ -225,11 +271,37 @@ function TemplateCard({ name, description, icon: Icon, onSelect, onDelete, isDel
         onClick={onSelect}
         aria-label={`Use ${name} template`}
       >
-        <span className={styles.cardIcon}>
-          <Icon aria-hidden="true" />
-        </span>
-        <span className={styles.cardName}>{name}</span>
-        <span className={styles.cardDescription}>{description}</span>
+        {/* Colored accent strip */}
+        <div className={styles.cardAccent} style={{ backgroundColor: accentColor }} />
+
+        <div className={styles.cardBody}>
+          {/* Icon + name row */}
+          <div className={styles.cardHeader}>
+            <span className={styles.cardIcon} style={{ color: accentColor }}>
+              <Icon aria-hidden="true" />
+            </span>
+            <span className={styles.cardName}>{name}</span>
+          </div>
+
+          {/* Description */}
+          <span className={styles.cardDescription}>{description}</span>
+
+          {/* Feature tags */}
+          {features && features.length > 0 && (
+            <div className={styles.cardFeatures}>
+              {features.map((f) => (
+                <Badge
+                  key={f}
+                  appearance="outline"
+                  size="small"
+                  color="informative"
+                >
+                  {f}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
       </button>
 
       {onDelete && (
@@ -366,6 +438,7 @@ export function TemplatePicker({ form, defaultCollapsed = false }: TemplatePicke
             name={BLANK_TEMPLATE.name}
             description={BLANK_TEMPLATE.description}
             icon={BLANK_TEMPLATE.icon}
+            accentColor={BLANK_TEMPLATE.accentColor}
             onSelect={() => { handleSelect(BLANK_TEMPLATE.schema, BLANK_TEMPLATE.id); }}
           />
 
@@ -376,6 +449,8 @@ export function TemplatePicker({ form, defaultCollapsed = false }: TemplatePicke
               name={t.name}
               description={t.description}
               icon={t.icon}
+              accentColor={t.accentColor}
+              features={t.features}
               onSelect={() => { handleSelect(t.schema, t.id); }}
             />
           ))}
@@ -405,6 +480,7 @@ export function TemplatePicker({ form, defaultCollapsed = false }: TemplatePicke
                     name={t.name}
                     description={t.description ?? ''}
                     icon={BLANK_TEMPLATE.icon}
+                    accentColor={BLANK_TEMPLATE.accentColor}
                     onSelect={() => { handleSelect(schema, t.id); }}
                     onDelete={() => { handleDelete(t.id); }}
                     isDeleting={deletingId === t.id}
