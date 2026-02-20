@@ -57,15 +57,6 @@ export interface CommunicationCenterState {
   composeEditId: string | null;
 }
 
-// Callback props exposed so child components wired in Tasks 7–9 can drive
-// top-level state without prop-drilling through the layout.
-export interface CommunicationCenterActions {
-  onTabChange: (tab: NotificationTab) => void;
-  onSelectMessage: (id: string | null) => void;
-  onOpenCompose: (editId?: string | null) => void;
-  onCloseCompose: () => void;
-}
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -79,27 +70,37 @@ export function CommunicationCenter() {
   const [composeEditId, setComposeEditId] = useState<string | null>(null);
   const [cloneValues, setCloneValues] = useState<Partial<ComposeFormValues> | null>(null);
 
-  // Actions passed down to child zones
-  const actions: CommunicationCenterActions = {
-    onTabChange: (tab) => {
-      setSelectedTab(tab);
-      // Clear selection when switching tabs so the detail panel collapses.
-      setSelectedMessageId(null);
-    },
-    onSelectMessage: (id) => {
-      setSelectedMessageId(id);
-    },
-    onOpenCompose: (editId = null) => {
-      setComposeEditId(editId ?? null);
-      setCloneValues(null);
-      setComposeOpen(true);
-    },
-    onCloseCompose: () => {
-      setComposeOpen(false);
-      setComposeEditId(null);
-      setCloneValues(null);
-    },
-  };
+  const handleTabChange = useCallback((tab: NotificationTab) => {
+    setSelectedTab(tab);
+    setSelectedMessageId(null);
+  }, []);
+
+  const handleSelectMessage = useCallback((id: string | null) => {
+    setSelectedMessageId(id);
+  }, []);
+
+  const handleOpenCompose = useCallback((editId: string | null = null) => {
+    setComposeEditId(editId);
+    setCloneValues(null);
+    setComposeOpen(true);
+  }, []);
+
+  const handleCloseCompose = useCallback(() => {
+    setComposeOpen(false);
+    setComposeEditId(null);
+    setCloneValues(null);
+  }, []);
+
+  const handleCloseDetail = useCallback(() => {
+    setSelectedMessageId(null);
+  }, []);
+
+  const handleDeliveryDone = useCallback(() => {
+    setComposeOpen(false);
+    setComposeEditId(null);
+    setCloneValues(null);
+    setSelectedTab('Sent');
+  }, []);
 
   // "Use as template" — opens compose pre-filled with an existing notification's
   // content as a new draft (no editId so it creates a new notification on save).
@@ -143,8 +144,8 @@ export function CommunicationCenter() {
       {/* Zone 1 — Sidebar */}
       <Sidebar
         activeTab={selectedTab}
-        onTabChange={actions.onTabChange}
-        onComposeClick={() => actions.onOpenCompose()}
+        onTabChange={handleTabChange}
+        onComposeClick={handleOpenCompose}
       />
 
       {/* Zone 2 — Message list + Detail panel overlay */}
@@ -153,8 +154,8 @@ export function CommunicationCenter() {
           <MessageList
             activeTab={selectedTab}
             selectedMessageId={selectedMessageId}
-            onSelectMessage={actions.onSelectMessage}
-            onOpenCompose={actions.onOpenCompose}
+            onSelectMessage={handleSelectMessage}
+            onOpenCompose={handleOpenCompose}
           />
 
           {/* Detail panel — overlays message list from the right */}
@@ -162,8 +163,8 @@ export function CommunicationCenter() {
             <div className={styles.detailOverlay}>
               <DetailPanel
                 notificationId={selectedMessageId}
-                onClose={() => actions.onSelectMessage(null)}
-                onEdit={(id) => actions.onOpenCompose(id)}
+                onClose={handleCloseDetail}
+                onEdit={handleOpenCompose}
                 onCloneToCompose={handleCloneToCompose}
               />
             </div>
@@ -176,11 +177,8 @@ export function CommunicationCenter() {
         <ComposePanel
           editId={composeEditId}
           initialValues={cloneValues}
-          onClose={actions.onCloseCompose}
-          onDeliveryDone={() => {
-            actions.onCloseCompose();
-            setSelectedTab('Sent');
-          }}
+          onClose={handleCloseCompose}
+          onDeliveryDone={handleDeliveryDone}
         />
       )}
     </div>
