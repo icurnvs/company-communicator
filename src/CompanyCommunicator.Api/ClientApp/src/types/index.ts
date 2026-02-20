@@ -224,3 +224,5 @@ export interface UpdateTemplateRequest {
   description?: string | null;
   cardSchema: string;
 }
+
+export type TeamsTheme = 'default' | 'dark' | 'contrast';

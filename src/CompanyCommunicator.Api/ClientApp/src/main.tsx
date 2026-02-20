@@ -56,6 +56,14 @@ function Root() {
 
         setTheme(mapTheme(context.app.theme));
 
+        // Sync i18n locale with Teams context
+        const locale = context.app.locale;
+        if (locale) {
+          void import('./i18n').then((mod) => {
+            void mod.default.changeLanguage(locale);
+          });
+        }
+
         app.registerOnThemeChangeHandler((newTheme) => {
           if (mounted) setTheme(mapTheme(newTheme));
         });

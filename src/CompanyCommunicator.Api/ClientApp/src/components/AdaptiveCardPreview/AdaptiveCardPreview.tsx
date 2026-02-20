@@ -3,7 +3,7 @@ import { makeStyles, tokens, Text } from '@fluentui/react-components';
 import { useTranslation } from 'react-i18next';
 import { buildCardPayload, renderCard } from '@/lib/adaptiveCard';
 import type { CardData } from '@/lib/adaptiveCard';
-import type { TeamsTheme } from '@/hooks/useTeamsContext';
+import type { TeamsTheme } from '@/types';
 
 const useStyles = makeStyles({
   container: {
