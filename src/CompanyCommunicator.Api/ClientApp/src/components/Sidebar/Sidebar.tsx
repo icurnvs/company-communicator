@@ -1,4 +1,4 @@
-import { makeStyles, tokens, Button, CounterBadge, Text } from '@fluentui/react-components';
+import { makeStyles, mergeClasses, tokens, Button, CounterBadge, Text } from '@fluentui/react-components';
 import {
   Add24Regular,
   Send24Regular,
@@ -149,7 +149,7 @@ function NavItem({
   return (
     <button
       type="button"
-      className={isActive ? `${styles.navItem} ${styles.navItemActive}` : styles.navItem}
+      className={mergeClasses(styles.navItem, isActive ? styles.navItemActive : undefined)}
       onClick={onSelect}
       aria-current={isActive ? 'page' : undefined}
       aria-label={`${label}${count > 0 ? `, ${count} items` : ''}`}
@@ -157,7 +157,7 @@ function NavItem({
       <Icon />
       <Text
         size={300}
-        className={isActive ? `${styles.navItemLabel} ${styles.navItemLabelActive}` : styles.navItemLabel}
+        className={mergeClasses(styles.navItemLabel, isActive ? styles.navItemLabelActive : undefined)}
       >
         {label}
       </Text>

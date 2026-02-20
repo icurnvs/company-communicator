@@ -3,6 +3,7 @@ import { useFieldArray } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import {
   makeStyles,
+  mergeClasses,
   tokens,
   Button,
   Menu,
@@ -279,7 +280,11 @@ export function BlockEditor({ form }: BlockEditorProps) {
           return (
             <div
               key={field.id}
-              className={`${styles.blockCard}${isDragging ? ` ${styles.blockCardDragging}` : ''}${isDragOver ? ` ${styles.blockCardDragOver}` : ''}`}
+              className={mergeClasses(
+                styles.blockCard,
+                isDragging ? styles.blockCardDragging : undefined,
+                isDragOver ? styles.blockCardDragOver : undefined,
+              )}
               onDragOver={(e) => { handleDragOver(e, index); }}
               onDragEnter={(e) => { handleDragEnter(e, index); }}
               onDragLeave={handleDragLeave}
