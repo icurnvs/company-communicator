@@ -429,7 +429,6 @@ export function DetailPanel({
             size={400}
             weight="semibold"
             className={styles.headerTitle}
-            as="h2"
           >
             {notification.title}
           </Text>
