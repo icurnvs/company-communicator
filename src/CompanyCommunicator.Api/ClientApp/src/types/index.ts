@@ -112,6 +112,7 @@ export const IN_PROGRESS_STATUSES: NotificationStatus[] = [
 export interface AudienceDto {
   audienceType: 'Team' | 'Roster' | 'Group';
   audienceId: string;
+  displayName?: string;
 }
 
 export interface CreateNotificationRequest {

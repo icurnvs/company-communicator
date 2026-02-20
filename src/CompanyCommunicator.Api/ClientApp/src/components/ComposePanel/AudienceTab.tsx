@@ -58,13 +58,13 @@ interface RecentAudienceEntry {
 function toAudienceDtos(selected: SelectedAudience[]): AudienceDto[] {
   return selected.map((s) => {
     if (s.type === 'team' && s.deliveryMode === 'channel') {
-      return { audienceType: 'Team', audienceId: s.id };
+      return { audienceType: 'Team', audienceId: s.id, displayName: s.name };
     }
     if (s.type === 'team' && s.deliveryMode === 'individual') {
-      return { audienceType: 'Roster', audienceId: s.id };
+      return { audienceType: 'Roster', audienceId: s.id, displayName: s.name };
     }
     // group — always individual
-    return { audienceType: 'Group', audienceId: s.id };
+    return { audienceType: 'Group', audienceId: s.id, displayName: s.name };
   });
 }
 
@@ -571,7 +571,7 @@ export function AudienceTab({ form }: AudienceTabProps) {
     if (existing.length > 0) {
       const reconstructed: SelectedAudience[] = existing.map((a) => ({
         id: a.audienceId,
-        name: a.audienceId, // Name not stored in AudienceDto; use ID as fallback
+        name: a.displayName ?? a.audienceId,
         type: a.audienceType === 'Group' ? 'group' : 'team',
         deliveryMode: a.audienceType === 'Team' ? 'channel' : 'individual',
       }));

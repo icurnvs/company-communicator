@@ -262,7 +262,7 @@ export function ConfirmSendDialog({
                         <div className={styles.chipRow}>
                           {channelPosts.map((a) => (
                             <Badge key={a.audienceId} appearance="tint" color="brand" size="small">
-                              {a.audienceId}
+                              {a.displayName ?? a.audienceId}
                             </Badge>
                           ))}
                         </div>
@@ -275,7 +275,7 @@ export function ConfirmSendDialog({
                         <div className={styles.chipRow}>
                           {individuals.map((a) => (
                             <Badge key={a.audienceId} appearance="tint" color="subtle" size="small">
-                              {a.audienceId} ({a.audienceType})
+                              {a.displayName ?? a.audienceId} ({a.audienceType})
                             </Badge>
                           ))}
                         </div>

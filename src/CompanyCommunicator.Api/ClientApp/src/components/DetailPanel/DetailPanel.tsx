@@ -256,14 +256,14 @@ interface AudienceChipProps {
 function AudienceChip({ audience }: AudienceChipProps) {
   const isTeam = audience.audienceType === 'Team';
   const color = isTeam ? 'informative' : 'important';
-  const label = truncateId(audience.audienceId);
+  const label = audience.displayName ?? truncateId(audience.audienceId);
 
   return (
     <Badge
       appearance="tint"
       color={color}
-      title={audience.audienceId}
-      aria-label={`${audience.audienceType}: ${audience.audienceId}`}
+      title={audience.displayName ?? audience.audienceId}
+      aria-label={`${audience.audienceType}: ${audience.displayName ?? audience.audienceId}`}
     >
       {isTeam ? (
         <PeopleTeam20Regular style={{ fontSize: '12px', marginRight: '2px' }} />
