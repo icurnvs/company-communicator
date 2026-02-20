@@ -31,8 +31,12 @@ export function resolveTemplate(
 ): CardElementNode[] {
   const nodes: CardElementNode[] = [];
 
-  // Build nodes from template slots (in order)
-  const sortedSlots = [...template.slots].sort((a, b) => a.order - b.order);
+  // Build nodes from template slots (respecting user-defined order if present)
+  const sortedSlots = [...template.slots].sort((a, b) => {
+    const orderA = document.slotOrder?.[a.id] ?? a.order;
+    const orderB = document.slotOrder?.[b.id] ?? b.order;
+    return orderA - orderB;
+  });
 
   for (const slot of sortedSlots) {
     // Check visibility: required slots are always shown, optional respects toggle
@@ -61,7 +65,8 @@ export function resolveTemplate(
         visibility: 'required',
         order: additional.order,
       };
-      const element = buildSlotElement(fakeSlot, additional.data, undefined);
+      const overrides = document.advancedOverrides?.[additional.id];
+      const element = buildSlotElement(fakeSlot, additional.data, overrides);
       if (element) {
         nodes.push(...(Array.isArray(element) ? element : [element]));
       }

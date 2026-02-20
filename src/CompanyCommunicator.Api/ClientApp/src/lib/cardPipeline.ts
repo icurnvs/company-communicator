@@ -33,14 +33,19 @@ export function buildCard(
   const effectiveTemplate = template ?? getFallbackTemplate();
   const tree = resolveTemplate(effectiveTemplate, document);
 
-  // 2. Apply card theme colors
-  applyTheme(tree, theme);
+  // 2. Apply card theme colors (with optional accent override)
+  const effectiveTheme = document.cardSettings?.accentColorOverride
+    ? { ...theme, accentColor: document.cardSettings.accentColorOverride }
+    : theme;
+  applyTheme(tree, effectiveTheme);
 
   // 3. Resolve {{variable}} tokens
   resolveVariables(tree, customVariables);
 
   // 4. Serialize to AC JSON
-  const cardPayload = serializeToAdaptiveCard(tree);
+  const cardPayload = serializeToAdaptiveCard(tree, {
+    fullWidth: document.cardSettings?.fullWidth,
+  });
 
   // 5. Build themed host config for renderer
   const hostConfig = buildThemedHostConfig(recipientTheme, theme);

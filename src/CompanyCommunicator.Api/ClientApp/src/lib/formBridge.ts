@@ -3,6 +3,7 @@ import type {
   CardDocument,
   TemplateDefinition,
   SlotDefinition,
+  AdditionalSlot,
   HeadingSlotValue,
   BodyTextSlotValue,
   HeroImageSlotValue,
@@ -36,11 +37,23 @@ export function formValuesToCardDocument(
     }
   }
 
+  // Phase C: Convert form additionalSlots to CardDocument format
+  const additionalSlots: AdditionalSlot[] | undefined = values.additionalSlots?.map((entry) => ({
+    id: entry.id,
+    type: entry.type as AdditionalSlot['type'],
+    order: entry.order,
+    data: entry.data,
+  })) ?? undefined;
+
   return {
     templateId: template.id,
     themeId: themeId ?? values.themeId ?? DEFAULT_THEME_ID,
     slotValues,
     slotVisibility: slotVisibility ?? values.slotVisibility ?? {},
+    slotOrder: values.slotOrder ?? undefined,
+    additionalSlots: additionalSlots?.length ? additionalSlots : undefined,
+    advancedOverrides: values.advancedOverrides ?? undefined,
+    cardSettings: values.cardSettings ?? undefined,
     cardPreference: 'template',
   };
 }
