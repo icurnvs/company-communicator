@@ -6,12 +6,14 @@ using CompanyCommunicator.Core.Data.Entities;
 using CompanyCommunicator.Core.Models;
 using CompanyCommunicator.Core.Services.Blob;
 using CompanyCommunicator.Core.Services.Bot;
+using CompanyCommunicator.Core.Services.Cards;
 using CompanyCommunicator.Core.Services.Queue;
 using CompanyCommunicator.Functions.Send.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Graph;
 
 namespace CompanyCommunicator.Functions.Send;
 
@@ -37,6 +39,8 @@ public sealed class SendMessageFunction
     private readonly IBlobStorageService _blobService;
     private readonly ThrottleManager _throttleManager;
     private readonly ServiceBusSender _sendSender;
+    private readonly IAdaptiveCardService _cardService;
+    private readonly GraphServiceClient _graphClient;
 
     /// <summary>
     /// Initializes a new instance of <see cref="SendMessageFunction"/>.
@@ -46,13 +50,17 @@ public sealed class SendMessageFunction
         IMessageSender messageSender,
         IBlobStorageService blobService,
         ThrottleManager throttleManager,
-        IServiceBusSenderFactory senderFactory)
+        IServiceBusSenderFactory senderFactory,
+        IAdaptiveCardService cardService,
+        GraphServiceClient graphClient)
     {
         _db = db;
         _messageSender = messageSender;
         _blobService = blobService;
         _throttleManager = throttleManager;
         _sendSender = senderFactory.GetSender(QueueNames.Send);
+        _cardService = cardService;
+        _graphClient = graphClient;
     }
 
     /// <summary>
@@ -200,6 +208,52 @@ public sealed class SendMessageFunction
                 ct).ConfigureAwait(false);
 
             return;
+        }
+
+        // ------------------------------------------------------------------
+        // 6b. Resolve recipient variables (per-user personalization)
+        // ------------------------------------------------------------------
+        // Only fetch Graph profile and resolve when the card actually contains
+        // variable tokens AND the recipient is a user (not a team channel).
+        if (cardJson.Contains("{{", StringComparison.Ordinal)
+            && sentNotification.RecipientType == "User")
+        {
+            try
+            {
+                var profile = await _graphClient.Users[message.RecipientId]
+                    .GetAsync(cfg =>
+                    {
+                        cfg.QueryParameters.Select = new[]
+                        {
+                            "givenName", "displayName", "department",
+                            "jobTitle", "officeLocation",
+                        };
+                    }, ct)
+                    .ConfigureAwait(false);
+
+                if (profile is not null)
+                {
+                    var recipientData = new Dictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        ["firstName"] = profile.GivenName ?? string.Empty,
+                        ["displayName"] = profile.DisplayName ?? string.Empty,
+                        ["department"] = profile.Department ?? string.Empty,
+                        ["jobTitle"] = profile.JobTitle ?? string.Empty,
+                        ["officeLocation"] = profile.OfficeLocation ?? string.Empty,
+                    };
+
+                    cardJson = _cardService.ResolveRecipientVariables(cardJson, recipientData);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Graph call failure should not prevent message delivery.
+                // The card will be sent with unresolved {{variable}} tokens.
+                logger.LogWarning(ex,
+                    "Failed to fetch Graph profile for recipient {RecipientId}. " +
+                    "Recipient variables will not be resolved.",
+                    message.RecipientId);
+            }
         }
 
         // ------------------------------------------------------------------

@@ -61,6 +61,9 @@ public sealed class StoreCardActivity
         // Build the Adaptive Card JSON payload.
         var cardJson = _cardService.BuildNotificationCard(notification);
 
+        // Resolve custom variables (same value for all recipients, so done once here).
+        cardJson = _cardService.ResolveCustomVariables(cardJson, notification.CustomVariables);
+
         // Upload to blob storage. Returns the blob name.
         var blobName = await _blobService
             .UploadAdaptiveCardAsync(notificationId, cardJson, ct)
