@@ -150,7 +150,7 @@ export function CommunicationCenter() {
       <Sidebar
         activeTab={selectedTab}
         onTabChange={handleTabChange}
-        onComposeClick={handleOpenCompose}
+        onComposeClick={() => { handleOpenCompose(); }}
       />
 
       {/* Zone 2 — Message list + Detail panel overlay */}
