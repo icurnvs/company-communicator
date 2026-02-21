@@ -20,15 +20,7 @@ import {
   ChevronDownRegular,
   ChevronUpRegular,
   Dismiss16Regular,
-  MegaphoneRegular,
-  CalendarRegular,
-  AlertUrgentRegular,
-  LinkRegular,
-  ClipboardTaskRegular,
   DocumentOnePage20Regular,
-  PeopleRegular,
-  ShieldCheckmarkRegular,
-  StarRegular,
 } from '@fluentui/react-icons';
 import { useTemplates, useDeleteTemplate } from '@/api/templates';
 import {
@@ -41,26 +33,6 @@ import { resolveTemplateIcon } from '@/components/TemplateEditor/IconPicker';
 import { templateToFormDefaults } from '@/lib/formBridge';
 import type { TemplateDefinition, CardSchema } from '@/types';
 import type { ComposeFormValues } from '@/lib/validators';
-
-// ---------------------------------------------------------------------------
-// Icon lookup — maps TemplateDefinition.iconName to Fluent icon components
-// ---------------------------------------------------------------------------
-
-const ICON_MAP: Record<string, ComponentType<FluentIconsProps>> = {
-  DocumentOnePage: DocumentOnePage20Regular,
-  Megaphone: MegaphoneRegular,
-  Calendar: CalendarRegular,
-  AlertUrgent: AlertUrgentRegular,
-  Link: LinkRegular,
-  ClipboardTask: ClipboardTaskRegular,
-  People: PeopleRegular,
-  ShieldCheckmark: ShieldCheckmarkRegular,
-  Star: StarRegular,
-};
-
-function resolveIcon(iconName: string): ComponentType<FluentIconsProps> {
-  return ICON_MAP[iconName] ?? DocumentOnePage20Regular;
-}
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -429,7 +401,7 @@ export function TemplatePicker({
       setExpanded(false);
     };
 
-    if (isBlank && !isDirty) return; // no-op
+    if (isBlank && !isDirty) { setExpanded(false); return; } // no-op, but collapse picker
 
     if (isDirty) {
       setPendingAction({
@@ -532,7 +504,7 @@ export function TemplatePicker({
               key={t.id}
               name={t.name}
               description={t.description}
-              icon={resolveIcon(t.iconName)}
+              icon={resolveTemplateIcon(t.iconName)}
               accentColor={t.accentColor}
               features={getSlotFeatures(t)}
               onSelect={() => { handleSelectBuiltin(t); }}
