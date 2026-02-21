@@ -176,3 +176,96 @@ export const BLANK_TEMPLATE_ID = 'builtin-blank';
 export function getTemplateById(id: string): TemplateDefinition | undefined {
   return BUILTIN_TEMPLATE_DEFINITIONS.find((t) => t.id === id);
 }
+
+// ---------------------------------------------------------------------------
+// Serialization helpers (Phase D — Template Editor)
+// ---------------------------------------------------------------------------
+
+/** Schema version for TemplateDefinition format (distinguishes from legacy CardSchema). */
+export const TEMPLATE_SCHEMA_VERSION = 2;
+
+/**
+ * Detect whether a JSON string represents a TemplateDefinition (schemaVersion === 2)
+ * vs. a legacy CardSchema.
+ */
+export function isTemplateDefinitionJson(json: string): boolean {
+  try {
+    const parsed = JSON.parse(json);
+    return parsed?.schemaVersion === TEMPLATE_SCHEMA_VERSION;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Parse a JSON string into a TemplateDefinition. Returns null if invalid.
+ * Performs structural validation on slots to guard against malformed API data.
+ */
+export function parseTemplateDefinition(json: string): TemplateDefinition | null {
+  try {
+    const parsed = JSON.parse(json);
+    if (
+      parsed?.schemaVersion !== TEMPLATE_SCHEMA_VERSION ||
+      !Array.isArray(parsed?.slots) ||
+      typeof parsed?.name !== 'string'
+    ) {
+      return null;
+    }
+    // Validate each slot has required fields
+    for (const slot of parsed.slots) {
+      if (
+        typeof slot?.id !== 'string' ||
+        typeof slot?.type !== 'string' ||
+        typeof slot?.label !== 'string' ||
+        typeof slot?.visibility !== 'string' ||
+        typeof slot?.order !== 'number'
+      ) {
+        return null;
+      }
+    }
+    return parsed as TemplateDefinition;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Serialize a TemplateDefinition to a JSON string for storage.
+ * Always stamps schemaVersion so the format can be detected on read.
+ */
+export function serializeTemplateDefinition(def: TemplateDefinition): string {
+  return JSON.stringify({ ...def, schemaVersion: TEMPLATE_SCHEMA_VERSION });
+}
+
+/**
+ * Create a blank TemplateDefinition as starting point for the editor.
+ */
+export function createBlankTemplateDef(): TemplateDefinition {
+  return {
+    id: '',               // Set by backend on save
+    name: '',
+    description: '',
+    iconName: 'DocumentOnePage',
+    category: 'general',
+    accentColor: '#5B5FC7',
+    isBuiltIn: false,
+    slots: [
+      {
+        id: 'heading',
+        type: 'heading',
+        label: 'Heading',
+        helpText: 'Enter a title',
+        visibility: 'required',
+        order: 0,
+      },
+      {
+        id: 'body',
+        type: 'bodyText',
+        label: 'Body Text',
+        helpText: 'Enter the message content',
+        visibility: 'optionalOn',
+        order: 1,
+      },
+    ],
+  };
+}
