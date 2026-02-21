@@ -5,6 +5,7 @@ import {
   Edit24Regular,
   Clock24Regular,
   ArrowRight16Regular,
+  DesignIdeas24Regular,
 } from '@fluentui/react-icons';
 import { useTranslation } from 'react-i18next';
 import { formatDistanceToNow } from 'date-fns';
@@ -348,13 +349,14 @@ const RecentCard = memo(function RecentCard({
 
 interface HomeDashboardProps {
   onNavigate: (view: SidebarView) => void;
+  onManageTemplates?: () => void;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function HomeDashboard({ onNavigate }: HomeDashboardProps) {
+export function HomeDashboard({ onNavigate, onManageTemplates }: HomeDashboardProps) {
   const styles = useStyles();
   const { t } = useTranslation();
 
@@ -384,6 +386,29 @@ export function HomeDashboard({ onNavigate }: HomeDashboardProps) {
         {TABS.map((tab) => (
           <StatCard key={tab} tab={tab} onNavigate={onNavigate} />
         ))}
+        {onManageTemplates && (
+          <div
+            role="button"
+            tabIndex={0}
+            className={styles.statCard}
+            onClick={onManageTemplates}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onManageTemplates();
+              }
+            }}
+            aria-label="Manage Templates"
+          >
+            <div className={styles.statCardHeader}>
+              <DesignIdeas24Regular className={styles.statCardIcon} />
+              <span className={styles.statCardLabel}>Templates</span>
+            </div>
+            <span className={styles.statCardLink}>
+              Manage <ArrowRight16Regular />
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Recent messages */}

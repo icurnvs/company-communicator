@@ -14,6 +14,12 @@ const ComposePanel = lazy(() =>
   })),
 );
 
+const TemplateEditorModal = lazy(() =>
+  import('@/components/TemplateEditor/TemplateEditorModal').then((m) => ({
+    default: m.TemplateEditorModal,
+  })),
+);
+
 // ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
@@ -88,6 +94,7 @@ export function CommunicationCenter() {
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeEditId, setComposeEditId] = useState<string | null>(null);
   const [cloneValues, setCloneValues] = useState<Partial<ComposeFormValues> | null>(null);
+  const [templateEditorOpen, setTemplateEditorOpen] = useState(false);
 
   const handleViewChange = useCallback((view: SidebarView) => {
     setActiveView(view);
@@ -112,6 +119,14 @@ export function CommunicationCenter() {
 
   const handleCloseDetail = useCallback(() => {
     setSelectedMessageId(null);
+  }, []);
+
+  const handleOpenTemplateEditor = useCallback(() => {
+    setTemplateEditorOpen(true);
+  }, []);
+
+  const handleCloseTemplateEditor = useCallback(() => {
+    setTemplateEditorOpen(false);
   }, []);
 
   // Escape key closes the detail dialog (skip when compose is open — it has its own handler)
@@ -184,7 +199,7 @@ export function CommunicationCenter() {
       <ErrorBoundary>
         <div className={styles.contentArea}>
           {isHome ? (
-            <HomeDashboard onNavigate={handleViewChange} />
+            <HomeDashboard onNavigate={handleViewChange} onManageTemplates={handleOpenTemplateEditor} />
           ) : (
             <MessageList
               activeTab={activeView}
@@ -221,7 +236,15 @@ export function CommunicationCenter() {
             initialValues={cloneValues}
             onClose={handleCloseCompose}
             onDeliveryDone={handleDeliveryDone}
+            onManageTemplates={handleOpenTemplateEditor}
           />
+        </Suspense>
+      )}
+
+      {/* Template editor modal */}
+      {templateEditorOpen && (
+        <Suspense fallback={null}>
+          <TemplateEditorModal onClose={handleCloseTemplateEditor} />
         </Suspense>
       )}
     </div>
