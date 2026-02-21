@@ -1,7 +1,12 @@
 // components/TemplateEditor/useTemplateEditor.ts
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TemplateDefinition, SlotDefinition, SlotType, TemplateCategory } from '@/types';
-import { createBlankTemplateDef, serializeTemplateDefinition, parseTemplateDefinition } from '@/lib/templateDefinitions';
+import {
+  createBlankTemplateDef,
+  serializeTemplateDefinition,
+  parseTemplateDefinition,
+  getTemplateById,
+} from '@/lib/templateDefinitions';
 import { useCreateTemplate, useUpdateTemplate, useTemplates } from '@/api/templates';
 
 // ---------------------------------------------------------------------------
@@ -70,32 +75,51 @@ export function useTemplateEditor({
   editId,
   onSaved,
 }: UseTemplateEditorOptions = {}): UseTemplateEditorReturn {
-  // Load existing template data if editing
+  // Detect if this is a built-in clone (not an API template)
+  const isBuiltinClone = !!editId && editId.startsWith('builtin-');
+
+  // Load existing template data if editing a custom (API) template
   const { data: allTemplates, isLoading: isQueryLoading } = useTemplates();
   const existingTemplate = useMemo(() => {
-    if (!editId || !allTemplates) return null;
+    if (!editId) return null;
+    // Built-in: look up from in-memory definitions (synchronous)
+    if (isBuiltinClone) {
+      const def = getTemplateById(editId);
+      return def ?? null;
+    }
+    // Custom: find in API-fetched templates
+    if (!allTemplates) return null;
     const dto = allTemplates.find((t) => t.id === editId);
     if (!dto) return null;
     return parseTemplateDefinition(dto.cardSchema);
-  }, [editId, allTemplates]);
+  }, [editId, isBuiltinClone, allTemplates]);
 
-  // isLoading = we have an editId but the data hasn't arrived yet.
+  // isLoading = we have a custom editId but the data hasn't arrived yet.
+  // Built-ins are in-memory so they are never "loading".
   // The caller should show a spinner and NOT render the editor form.
-  const isLoading = !!editId && !existingTemplate && isQueryLoading;
+  const isLoading = !!editId && !isBuiltinClone && !existingTemplate && isQueryLoading;
+
+  // isEdit = true only for custom templates (PUT), false for new + built-in clones (POST)
+  const isEdit = !!editId && !isBuiltinClone;
 
   const [template, setTemplate] = useState<TemplateDefinition>(createBlankTemplateDef);
 
-  // Sync when existingTemplate loads (async) — uses useEffect instead of
-  // render-time setState to avoid violating React's "render must be pure" rule
+  // Sync when existingTemplate loads (async for custom, sync for built-in) — uses useEffect
+  // instead of render-time setState to avoid violating React's "render must be pure" rule
   // and prevent double-firing in StrictMode.
   const [loadedEditId, setLoadedEditId] = useState<string | null>(null);
   useEffect(() => {
     if (editId && existingTemplate && loadedEditId !== editId) {
-      setTemplate({ ...existingTemplate });
+      if (isBuiltinClone) {
+        // Clone the built-in: clear id and mark as not built-in so it saves as a new custom template
+        setTemplate({ ...existingTemplate, id: '', isBuiltIn: false });
+      } else {
+        setTemplate({ ...existingTemplate });
+      }
       setLoadedEditId(editId);
       setIsDirty(false);
     }
-  }, [editId, existingTemplate, loadedEditId]);
+  }, [editId, existingTemplate, isBuiltinClone, loadedEditId]);
 
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [isDirty, setIsDirty] = useState(false);
@@ -203,7 +227,8 @@ export function useTemplateEditor({
     });
 
     try {
-      if (editId) {
+      if (isEdit && editId) {
+        // Updating an existing custom template (PUT)
         await updateMutation.mutateAsync({
           id: editId,
           body: {
@@ -213,6 +238,7 @@ export function useTemplateEditor({
           },
         });
       } else {
+        // Creating new template — covers both fresh creates AND built-in clones (POST)
         await createMutation.mutateAsync({
           name: template.name,
           description: template.description || null,
@@ -224,11 +250,11 @@ export function useTemplateEditor({
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save template.');
     }
-  }, [template, editId, createMutation, updateMutation, onSaved]);
+  }, [template, isEdit, editId, createMutation, updateMutation, onSaved]);
 
   return {
     template,
-    isEdit: !!editId,
+    isEdit,
     isLoading,
     selectedSlotId,
     selectSlot: setSelectedSlotId,
