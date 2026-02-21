@@ -71,15 +71,19 @@ type EditorMode = { view: 'list' } | { view: 'editor'; editId: string | null };
 export function TemplateEditorModal({ onClose }: TemplateEditorModalProps) {
   const styles = useStyles();
   const panelRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(panelRef, true);
-
   const [mode, setMode] = useState<EditorMode>({ view: 'list' });
+  useFocusTrap(panelRef, mode.view === 'list');
 
-  // Escape key closes (only in list mode — editor handles its own Escape)
+  // Escape key closes (only in list mode — editor handles its own Escape).
+  // stopImmediatePropagation prevents ComposePanel's document-level Escape
+  // handler from also firing when the template editor is open on top of it.
   useEffect(() => {
     if (mode.view !== 'list') return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        e.stopImmediatePropagation();
+        onClose();
+      }
     };
     document.addEventListener('keydown', onKeyDown);
     return () => { document.removeEventListener('keydown', onKeyDown); };

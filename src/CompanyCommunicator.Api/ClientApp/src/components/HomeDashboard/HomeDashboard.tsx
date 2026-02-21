@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react';
-import { makeStyles, tokens, Text, Button, Spinner, mergeClasses } from '@fluentui/react-components';
+import { makeStyles, tokens, Text, Button, Spinner } from '@fluentui/react-components';
 import {
   Send24Regular,
   Edit24Regular,
@@ -398,13 +398,16 @@ export function HomeDashboard({ onNavigate, onManageTemplates }: HomeDashboardPr
                 onManageTemplates();
               }
             }}
+            // TODO: add i18n keys for 'dashboard.templatesLabel' and 'dashboard.manageTemplates'
             aria-label="Manage Templates"
           >
             <div className={styles.statCardHeader}>
               <DesignIdeas24Regular className={styles.statCardIcon} />
+              {/* TODO: use t('dashboard.templatesLabel') once i18n key is added */}
               <span className={styles.statCardLabel}>Templates</span>
             </div>
             <span className={styles.statCardLink}>
+              {/* TODO: use t('dashboard.manage') once i18n key is added */}
               Manage <ArrowRight16Regular />
             </span>
           </div>
@@ -425,7 +428,7 @@ export function HomeDashboard({ onNavigate, onManageTemplates }: HomeDashboardPr
             </Button>
           )}
         </div>
-        <div className={mergeClasses(styles.recentGrid)} style={{ marginTop: '12px' }}>
+        <div className={styles.recentGrid} style={{ marginTop: '12px' }}>
           {isLoading ? (
             <div className={styles.emptyState}>
               <Spinner size="small" />

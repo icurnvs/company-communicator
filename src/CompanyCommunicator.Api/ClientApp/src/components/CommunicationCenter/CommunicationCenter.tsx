@@ -129,15 +129,15 @@ export function CommunicationCenter() {
     setTemplateEditorOpen(false);
   }, []);
 
-  // Escape key closes the detail dialog (skip when compose is open — it has its own handler)
+  // Escape key closes the detail dialog (skip when compose or template editor is open — they have their own handlers)
   useEffect(() => {
-    if (!selectedMessageId || composeOpen) return;
+    if (!selectedMessageId || composeOpen || templateEditorOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') handleCloseDetail();
     };
     document.addEventListener('keydown', onKeyDown);
     return () => { document.removeEventListener('keydown', onKeyDown); };
-  }, [selectedMessageId, composeOpen, handleCloseDetail]);
+  }, [selectedMessageId, composeOpen, templateEditorOpen, handleCloseDetail]);
 
   const handleDeliveryDone = useCallback(() => {
     setComposeOpen(false);

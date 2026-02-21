@@ -196,6 +196,9 @@ export function TemplateEditor({ editId, onClose }: TemplateEditorProps) {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (showDiscardDialog) return;
+        // stopImmediatePropagation prevents ComposePanel's document-level
+        // Escape handler from also firing when this editor is layered on top.
+        e.stopImmediatePropagation();
         requestClose();
       }
     };
