@@ -9,6 +9,7 @@ import type { ComposeFormValues } from '@/lib/validators';
 import type { TemplateDefinition } from '@/types';
 import {
   BUILTIN_TEMPLATE_DEFINITIONS,
+  BLANK_TEMPLATE_ID,
   getTemplateById,
 } from '@/lib/templateDefinitions';
 import { getThemeById, DEFAULT_THEME_ID } from '@/lib/builtinThemes';
@@ -190,6 +191,8 @@ export function ContentTab({ form, isEdit = false, advancedMode = false, onManag
           defaultCollapsed={isEdit}
           onTemplateSelect={handleTemplateSelect}
           onManageTemplates={onManageTemplates}
+          activeTemplateName={activeTemplate.id !== BLANK_TEMPLATE_ID ? activeTemplate.name : undefined}
+          activeTemplateAccentColor={activeTemplate.id !== BLANK_TEMPLATE_ID ? activeTemplate.accentColor : undefined}
         />
 
         {/* Card Settings — only in advanced mode */}
