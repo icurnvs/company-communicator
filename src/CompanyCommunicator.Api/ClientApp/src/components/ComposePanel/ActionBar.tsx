@@ -38,9 +38,10 @@ import { DatePicker } from '@fluentui/react-datepicker-compat';
 import type { UseFormReturn } from 'react-hook-form';
 import { useScheduleNotification, usePreviewNotification } from '@/api/notifications';
 import { useCreateTemplate } from '@/api/templates';
-import type { CardSchema } from '@/types';
+import type { SlotDefinition, TemplateDefinition } from '@/types';
 import type { ComposeFormValues } from '@/lib/validators';
 import { buildAudienceSummary, estimateReach } from '@/lib/audienceUtils';
+import { getTemplateById, serializeTemplateDefinition } from '@/lib/templateDefinitions';
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -276,6 +277,134 @@ function SchedulePopover({ notificationId, isSaving, onSaveDraft }: SchedulePopo
 }
 
 // ---------------------------------------------------------------------------
+// Conversion helper — form values → TemplateDefinition (schemaVersion: 2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Map a slot's type-based ID to the corresponding form field value.
+ * The compose form stores slot content in standard fields (headline, body, etc.)
+ * keyed by their semantic slot ID within the active template.
+ */
+function resolveSlotValue(
+  slotId: string,
+  slotType: SlotDefinition['type'],
+  formValues: ComposeFormValues,
+): unknown {
+  // Standard fields are stored by slot type, not by slot id, because the
+  // compose form predates the template slot system. We map by type first,
+  // then fall back to the slot id for extended/additional slots.
+  switch (slotType) {
+    case 'heading':
+      return formValues.headline ? { text: formValues.headline } : undefined;
+    case 'bodyText':
+      return formValues.body ? { text: formValues.body } : undefined;
+    case 'heroImage':
+      return formValues.imageLink ? { url: formValues.imageLink } : undefined;
+    case 'keyDetails':
+      return formValues.keyDetails?.length
+        ? { pairs: formValues.keyDetails }
+        : undefined;
+    case 'linkButton':
+      return formValues.buttonTitle && formValues.buttonLink
+        ? { title: formValues.buttonTitle, url: formValues.buttonLink }
+        : undefined;
+    case 'footer':
+      return formValues.secondaryText
+        ? { text: formValues.secondaryText }
+        : undefined;
+    default: {
+      // Extended / additional slots — look for a matching additionalSlot entry
+      const extra = formValues.additionalSlots?.find((s) => s.id === slotId);
+      return extra ? extra.data : undefined;
+    }
+  }
+}
+
+function formToTemplateDefinition(
+  name: string,
+  description: string,
+  formValues: ComposeFormValues,
+): TemplateDefinition {
+  const slots: SlotDefinition[] = [];
+
+  // When the user is working from a template, look it up and preserve structure
+  const activeTemplate = formValues.templateId
+    ? getTemplateById(formValues.templateId) ?? null
+    : null;
+
+  if (activeTemplate) {
+    // Preserve the template's slot structure; stamp current values as defaults
+    for (const slotDef of activeTemplate.slots) {
+      const currentValue = resolveSlotValue(slotDef.id, slotDef.type, formValues);
+      const isVisible = formValues.slotVisibility?.[slotDef.id] ?? true;
+      slots.push({
+        ...slotDef,
+        defaultValue: currentValue ?? slotDef.defaultValue,
+        visibility: isVisible ? slotDef.visibility : 'optionalOff',
+      });
+    }
+  } else {
+    // No active template — build minimal slots from whatever fields have data
+    let order = 0;
+    if (formValues.headline) {
+      slots.push({
+        id: 'heading',
+        type: 'heading',
+        label: 'Heading',
+        helpText: '',
+        visibility: 'required',
+        order: order++,
+        defaultValue: { text: formValues.headline },
+      });
+    }
+    if (formValues.body) {
+      slots.push({
+        id: 'body',
+        type: 'bodyText',
+        label: 'Body Text',
+        helpText: '',
+        visibility: 'optionalOn',
+        order: order++,
+        defaultValue: { text: formValues.body },
+      });
+    }
+    if (formValues.imageLink) {
+      slots.push({
+        id: 'heroImage',
+        type: 'heroImage',
+        label: 'Hero Image',
+        helpText: '',
+        visibility: 'optionalOn',
+        order: order++,
+        defaultValue: { url: formValues.imageLink },
+      });
+    }
+    if (formValues.buttonTitle && formValues.buttonLink) {
+      slots.push({
+        id: 'linkButton',
+        type: 'linkButton',
+        label: 'Link Button',
+        helpText: '',
+        visibility: 'optionalOn',
+        order: order++,
+        defaultValue: { title: formValues.buttonTitle, url: formValues.buttonLink },
+      });
+    }
+  }
+
+  return {
+    id: '',  // Set by backend on save
+    name,
+    description,
+    iconName: activeTemplate?.iconName ?? 'DocumentOnePage',
+    category: activeTemplate?.category ?? 'general',
+    accentColor: activeTemplate?.accentColor ?? '#5B5FC7',
+    isBuiltIn: false,
+    slots,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Save as Template dialog sub-component
 // ---------------------------------------------------------------------------
 
@@ -297,34 +426,17 @@ function SaveTemplateDialog({ open, onClose, form }: SaveTemplateDialogProps) {
     // Snapshot at save time (not render time) to avoid stale values
     const formValues = form.getValues();
 
-    const cardSchema: CardSchema = {
-      headline: formValues.headline,
-      body: formValues.body,
-      imageLink: formValues.imageLink,
-      keyDetails: formValues.keyDetails ?? undefined,
-      buttonTitle: formValues.buttonTitle,
-      buttonLink: formValues.buttonLink,
-      secondaryText: formValues.secondaryText,
-      advancedBlocks: formValues.advancedBlocks ?? undefined,
-      cardPreference: formValues.cardPreference ?? undefined,
-    };
-
-    // Include Phase C structural data in the schema
-    const extendedSchema = {
-      ...cardSchema,
-      additionalSlots: formValues.additionalSlots ?? undefined,
-      advancedOverrides: formValues.advancedOverrides ?? undefined,
-      cardSettings: formValues.cardSettings ?? undefined,
-      slotOrder: formValues.slotOrder ?? undefined,
-      slotVisibility: formValues.slotVisibility ?? undefined,
-      templateId: formValues.templateId ?? undefined,
-      themeId: formValues.themeId ?? undefined,
-    };
+    const templateDef = formToTemplateDefinition(
+      name.trim(),
+      description.trim(),
+      formValues,
+    );
+    const cardSchema = serializeTemplateDefinition(templateDef);
 
     await createTemplate.mutateAsync({
       name: name.trim(),
       description: description.trim() || null,
-      cardSchema: JSON.stringify(extendedSchema),
+      cardSchema,
     });
 
     setName('');
