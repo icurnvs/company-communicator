@@ -33,7 +33,7 @@ const useStyles = makeStyles({
   },
 
   formArea: {
-    flex: '0 0 58%',
+    flex: '0 0 55%',
     overflowY: 'auto',
     padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalL}`,
     display: 'flex',
@@ -44,12 +44,13 @@ const useStyles = makeStyles({
   },
 
   previewArea: {
-    flex: '0 0 42%',
+    flex: '0 0 45%',
     overflowY: 'auto',
-    padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalM}`,
+    padding: `${tokens.spacingVerticalL} ${tokens.spacingHorizontalL}`,
     display: 'flex',
     flexDirection: 'column',
     minWidth: 0,
+    backgroundColor: tokens.colorNeutralBackground3,
   },
 
   sectionLabel: {
