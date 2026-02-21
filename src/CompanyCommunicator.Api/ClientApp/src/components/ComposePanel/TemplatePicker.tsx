@@ -105,6 +105,24 @@ const useStyles = makeStyles({
     flexShrink: 0,
   },
 
+  activeIndicator: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalXS,
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground3,
+    fontWeight: tokens.fontWeightRegular,
+    textTransform: 'none',
+    letterSpacing: 'normal',
+  },
+
+  activeIndicatorDot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    flexShrink: 0,
+  },
+
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
@@ -366,6 +384,10 @@ export interface TemplatePickerProps {
   onTemplateSelect?: (template: TemplateDefinition) => void;
   /** Called when the user clicks "Manage Templates". */
   onManageTemplates?: () => void;
+  /** Name of the active template (shown as indicator when collapsed). */
+  activeTemplateName?: string;
+  /** Accent color of the active template (shown as dot when collapsed). */
+  activeTemplateAccentColor?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -377,6 +399,8 @@ export function TemplatePicker({
   defaultCollapsed = false,
   onTemplateSelect,
   onManageTemplates,
+  activeTemplateName,
+  activeTemplateAccentColor,
 }: TemplatePickerProps) {
   const styles = useStyles();
   const [expanded, setExpanded] = useState(!defaultCollapsed);
@@ -402,6 +426,7 @@ export function TemplatePicker({
       // Reset dirty state so future template clicks won't prompt
       form.reset(form.getValues());
       onTemplateSelect?.(template);
+      setExpanded(false);
     };
 
     if (isBlank && !isDirty) return; // no-op
@@ -430,6 +455,7 @@ export function TemplatePicker({
       applySchema(form, schema);
       // Reset dirty state so future template clicks won't prompt
       form.reset(form.getValues());
+      setExpanded(false);
     };
 
     if (isDirty) {
@@ -480,7 +506,20 @@ export function TemplatePicker({
         aria-expanded={expanded}
         aria-controls="template-picker-grid"
       >
-        <span className={styles.toggleLabel}>Templates</span>
+        <span className={styles.toggleLabel}>
+          Templates
+          {!expanded && activeTemplateName && (
+            <span className={styles.activeIndicator}>
+              {activeTemplateAccentColor && (
+                <span
+                  className={styles.activeIndicatorDot}
+                  style={{ backgroundColor: activeTemplateAccentColor }}
+                />
+              )}
+              {activeTemplateName}
+            </span>
+          )}
+        </span>
         <span className={styles.toggleIcon} aria-hidden="true">
           {expanded ? <ChevronUpRegular /> : <ChevronDownRegular />}
         </span>
