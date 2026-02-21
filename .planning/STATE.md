@@ -2,7 +2,7 @@
 
 **Project:** Company Communicator Modernization
 **Status:** Active - UI Polish & Enhancements
-**Last activity:** 2026-02-21 - Completed quick task 1 (built-in templates in Manage Templates grid)
+**Last activity:** 2026-02-21 - Completed quick task 1: Add current baked-in templates to the Manage templates screen
 
 ### Current Phase
 Milestone 2: UI Polish & Template Management
@@ -16,3 +16,9 @@ Milestone 2: UI Polish & Template Management
 
 ### Blockers/Concerns
 None
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Status | Directory |
+|---|-------------|------|--------|--------|-----------|
+| 1 | Add current baked-in templates to the Manage templates screen so that they can be edited or even deleted should that be desired | 2026-02-21 | c4fe9e7 | Verified | [1-add-current-baked-in-templates-to-the-ma](./quick/1-add-current-baked-in-templates-to-the-ma/) |
