@@ -28,7 +28,6 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     gap: tokens.spacingVerticalXS,
-    // No CSS transition — let @dnd-kit manage transitions via inline style
   },
   dragging: {
     boxShadow: tokens.shadow8,
@@ -52,6 +51,7 @@ const useStyles = makeStyles({
     padding: '4px',
     display: 'flex',
     alignItems: 'center',
+    touchAction: 'none',
     ':hover': {
       color: tokens.colorNeutralForeground1,
     },
@@ -140,7 +140,7 @@ export const SortableSlotSection = memo(function SortableSlotSection({
   } = useSortable({ id, disabled: !advancedMode });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
   };
 

@@ -138,7 +138,10 @@ const useStyles = makeStyles({
     transitionDuration: '0.15s',
     transitionTimingFunction: 'ease',
     ':hover': {
-      borderColor: tokens.colorBrandStroke1,
+      borderTopColor: tokens.colorBrandStroke1,
+      borderRightColor: tokens.colorBrandStroke1,
+      borderBottomColor: tokens.colorBrandStroke1,
+      borderLeftColor: tokens.colorBrandStroke1,
       boxShadow: tokens.shadow4,
       transform: 'translateY(-1px)',
     },

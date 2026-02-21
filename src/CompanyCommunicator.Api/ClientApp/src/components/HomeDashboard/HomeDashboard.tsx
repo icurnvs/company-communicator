@@ -59,7 +59,10 @@ const useStyles = makeStyles({
     transitionTimingFunction: 'ease',
     ':hover': {
       boxShadow: tokens.shadow4,
-      borderColor: tokens.colorBrandStroke1,
+      borderTopColor: tokens.colorBrandStroke1,
+      borderRightColor: tokens.colorBrandStroke1,
+      borderBottomColor: tokens.colorBrandStroke1,
+      borderLeftColor: tokens.colorBrandStroke1,
     },
     ':focus-visible': {
       outlineWidth: '2px',
@@ -129,7 +132,10 @@ const useStyles = makeStyles({
     transitionTimingFunction: 'ease',
     ':hover': {
       boxShadow: tokens.shadow4,
-      borderColor: tokens.colorBrandStroke1,
+      borderTopColor: tokens.colorBrandStroke1,
+      borderRightColor: tokens.colorBrandStroke1,
+      borderBottomColor: tokens.colorBrandStroke1,
+      borderLeftColor: tokens.colorBrandStroke1,
     },
     ':focus-visible': {
       outlineWidth: '2px',

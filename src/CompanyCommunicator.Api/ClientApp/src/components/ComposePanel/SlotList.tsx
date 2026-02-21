@@ -10,7 +10,8 @@ import {
   DragOverlay,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -158,9 +159,13 @@ export function SlotList({
 }: SlotListProps) {
   const styles = useStyles();
 
-  // DnD sensors — delay-based to avoid accidental drags when scrolling in Teams iframe
+  // DnD sensors — distance-based activation avoids scroll-interception issues.
+  // MouseSensor: drag starts after 5px movement (no time delay).
+  // TouchSensor: 250ms hold to distinguish from scroll on touch devices.
+  // KeyboardSensor: arrow keys for accessible reordering.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -433,6 +438,7 @@ export function SlotList({
           accessibility={{
             announcements: {
               onDragStart({ active }) { return `Picked up ${getSlotLabel(active.id)}`; },
+              onDragOver({ active, over }) { return over ? `${getSlotLabel(active.id)} is over ${getSlotLabel(over.id)}` : ''; },
               onDragEnd({ active, over }) { return over ? `Moved ${getSlotLabel(active.id)} to new position` : 'Drag cancelled'; },
               onDragCancel() { return 'Drag cancelled'; },
             },
