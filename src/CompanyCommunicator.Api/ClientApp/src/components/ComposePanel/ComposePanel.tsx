@@ -135,13 +135,15 @@ export interface ComposePanelProps {
   onClose: () => void;
   /** Called after delivery is done — close compose and navigate to Sent tab. */
   onDeliveryDone?: () => void;
+  /** Called when the user clicks "Manage Templates" inside the picker. */
+  onManageTemplates?: () => void;
 }
 
 // ---------------------------------------------------------------------------
 // ComposePanel
 // ---------------------------------------------------------------------------
 
-export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }: ComposePanelProps) {
+export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone, onManageTemplates }: ComposePanelProps) {
   const styles = useStyles();
 
   // Active tab
@@ -317,7 +319,7 @@ export function ComposePanel({ editId, initialValues, onClose, onDeliveryDone }:
             </div>
           ) : (
             <>
-              {activeTab === 'content' && <ContentTab form={form} isEdit={isEdit} advancedMode={advancedMode} />}
+              {activeTab === 'content' && <ContentTab form={form} isEdit={isEdit} advancedMode={advancedMode} onManageTemplates={onManageTemplates} />}
 
               {activeTab === 'audience' && <AudienceTab form={form} />}
             </>

@@ -76,13 +76,14 @@ export interface ContentTabProps {
   form: UseFormReturn<ComposeFormValues>;
   isEdit?: boolean;
   advancedMode?: boolean;
+  onManageTemplates?: () => void;
 }
 
 // ---------------------------------------------------------------------------
 // ContentTab
 // ---------------------------------------------------------------------------
 
-export function ContentTab({ form, isEdit = false, advancedMode = false }: ContentTabProps) {
+export function ContentTab({ form, isEdit = false, advancedMode = false, onManageTemplates }: ContentTabProps) {
   const styles = useStyles();
   const { watch, setValue } = form;
 
@@ -188,6 +189,7 @@ export function ContentTab({ form, isEdit = false, advancedMode = false }: Conte
           form={form}
           defaultCollapsed={isEdit}
           onTemplateSelect={handleTemplateSelect}
+          onManageTemplates={onManageTemplates}
         />
 
         {/* Card Settings — only in advanced mode */}

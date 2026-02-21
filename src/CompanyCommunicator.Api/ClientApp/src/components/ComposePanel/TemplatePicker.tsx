@@ -34,7 +34,10 @@ import { useTemplates, useDeleteTemplate } from '@/api/templates';
 import {
   BUILTIN_TEMPLATE_DEFINITIONS,
   BLANK_TEMPLATE_ID,
+  isTemplateDefinitionJson,
+  parseTemplateDefinition,
 } from '@/lib/templateDefinitions';
+import { resolveTemplateIcon } from '@/components/TemplateEditor/IconPicker';
 import { templateToFormDefaults } from '@/lib/formBridge';
 import type { TemplateDefinition, CardSchema } from '@/types';
 import type { ComposeFormValues } from '@/lib/validators';
@@ -361,6 +364,8 @@ export interface TemplatePickerProps {
   defaultCollapsed?: boolean;
   /** Called after a built-in template is applied to the form. */
   onTemplateSelect?: (template: TemplateDefinition) => void;
+  /** Called when the user clicks "Manage Templates". */
+  onManageTemplates?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -371,6 +376,7 @@ export function TemplatePicker({
   form,
   defaultCollapsed = false,
   onTemplateSelect,
+  onManageTemplates,
 }: TemplatePickerProps) {
   const styles = useStyles();
   const [expanded, setExpanded] = useState(!defaultCollapsed);
@@ -511,6 +517,25 @@ export function TemplatePicker({
               </div>
 
               {customTemplates!.map((t) => {
+                // Phase D: detect TemplateDefinition format first
+                if (isTemplateDefinitionJson(t.cardSchema)) {
+                  const templateDef = parseTemplateDefinition(t.cardSchema);
+                  if (!templateDef) return null;
+                  return (
+                    <TemplateCard
+                      key={t.id}
+                      name={templateDef.name}
+                      description={templateDef.description}
+                      icon={resolveTemplateIcon(templateDef.iconName)}
+                      accentColor={templateDef.accentColor}
+                      features={getSlotFeatures(templateDef)}
+                      onSelect={() => { handleSelectBuiltin({ ...templateDef, id: t.id, isBuiltIn: false }); }}
+                      onDelete={() => { handleDelete(t.id); }}
+                      isDeleting={deletingId === t.id}
+                    />
+                  );
+                }
+                // Legacy CardSchema fallback
                 const schema = parseCustomSchema(t.cardSchema);
                 if (!schema) return null;
                 return (
@@ -526,7 +551,20 @@ export function TemplatePicker({
                   />
                 );
               })}
+
             </>
+          )}
+
+          {onManageTemplates && (
+            <div style={{ gridColumn: '1 / -1', textAlign: 'center', paddingTop: '8px' }}>
+              <Button
+                appearance="subtle"
+                size="small"
+                onClick={onManageTemplates}
+              >
+                Manage Templates
+              </Button>
+            </div>
           )}
         </div>
       )}
