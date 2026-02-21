@@ -16,7 +16,7 @@ const useStyles = makeStyles({
   root: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalM,
+    gap: tokens.spacingVerticalL,
     height: '100%',
     overflow: 'auto',
   },
@@ -24,12 +24,19 @@ const useStyles = makeStyles({
   section: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalXXS,
+    gap: tokens.spacingVerticalXS,
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusLarge,
+    padding: tokens.spacingHorizontalM,
+    boxShadow: tokens.shadow2,
   },
 
   label: {
+    fontWeight: tokens.fontWeightSemibold,
+    fontSize: tokens.fontSizeBase200,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
     color: tokens.colorNeutralForeground3,
-    paddingLeft: tokens.spacingHorizontalXS,
   },
 
   previewContainer: {
@@ -37,7 +44,7 @@ const useStyles = makeStyles({
     overflow: 'hidden',
     borderRadius: tokens.borderRadiusMedium,
     border: `1px solid ${tokens.colorNeutralStroke2}`,
-    padding: tokens.spacingHorizontalM,
+    padding: tokens.spacingHorizontalL,
   },
 
   previewLight: {
