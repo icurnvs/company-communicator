@@ -21,7 +21,12 @@ import {
 } from '@fluentui/react-icons';
 import { useMemo, useState } from 'react';
 import { useTemplates, useDeleteTemplate } from '@/api/templates';
-import { isTemplateDefinitionJson, parseTemplateDefinition } from '@/lib/templateDefinitions';
+import {
+  isTemplateDefinitionJson,
+  parseTemplateDefinition,
+  BUILTIN_TEMPLATE_DEFINITIONS,
+  BLANK_TEMPLATE_ID,
+} from '@/lib/templateDefinitions';
 import { resolveTemplateIcon } from './IconPicker';
 import type { TemplateDto } from '@/types';
 
@@ -220,6 +225,12 @@ export function TemplateListView({ onCreateNew, onEdit, onClose }: TemplateListV
     [templates],
   );
 
+  // Built-in templates (excluding Blank)
+  const builtinTemplates = useMemo(
+    () => BUILTIN_TEMPLATE_DEFINITIONS.filter((t) => t.id !== BLANK_TEMPLATE_ID),
+    [],
+  );
+
   const handleDelete = (template: TemplateDto) => {
     setDeleteConfirm(template);
   };
@@ -259,7 +270,55 @@ export function TemplateListView({ onCreateNew, onEdit, onClose }: TemplateListV
             Create Template
           </button>
 
-          {/* Existing templates (using memoized parsed data) */}
+          {/* Built-in template cards */}
+          {builtinTemplates.map((t) => {
+            const Icon = resolveTemplateIcon(t.iconName);
+            const slotCount = t.slots.length;
+
+            return (
+              <div key={t.id} className={styles.card}>
+                <div className={styles.cardAccent} style={{ backgroundColor: t.accentColor }} />
+                <div className={styles.cardBody}>
+                  <div className={styles.cardHeader}>
+                    <span className={styles.cardIcon} style={{ color: t.accentColor }}>
+                      <Icon />
+                    </span>
+                    <span className={styles.cardName}>{t.name}</span>
+                  </div>
+                  {t.description && (
+                    <span className={styles.cardDescription}>{t.description}</span>
+                  )}
+                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                    <Badge appearance="outline" size="small" color="informative">
+                      {slotCount} {slotCount === 1 ? 'section' : 'sections'}
+                    </Badge>
+                    <Badge appearance="outline" size="small" color="subtle">
+                      Built-in
+                    </Badge>
+                  </div>
+                </div>
+                <div className={styles.cardFooter}>
+                  <Button
+                    appearance="subtle"
+                    size="small"
+                    icon={<Edit20Regular />}
+                    onClick={() => { onEdit(t.id); }}
+                  >
+                    Edit
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Divider between built-in and custom templates */}
+          <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '8px', color: tokens.colorNeutralForeground4, fontSize: tokens.fontSizeBase100 }}>
+            <span style={{ flex: 1, height: '1px', backgroundColor: tokens.colorNeutralStroke2 }} />
+            <span>Custom Templates</span>
+            <span style={{ flex: 1, height: '1px', backgroundColor: tokens.colorNeutralStroke2 }} />
+          </div>
+
+          {/* Custom templates from API */}
           {parsedTemplates.map(({ dto: t, parsed }) => {
             const Icon = parsed ? resolveTemplateIcon(parsed.iconName) : DocumentOnePage20Regular;
             const accentColor = parsed?.accentColor ?? '#8a8886';
@@ -313,13 +372,13 @@ export function TemplateListView({ onCreateNew, onEdit, onClose }: TemplateListV
               </div>
             );
           })}
-        </div>
-      )}
 
-      {!isLoading && (templates ?? []).length === 0 && (
-        <div className={styles.emptyState}>
-          <Text size={400}>No custom templates yet</Text>
-          <Text size={200}>Create your first template to get started</Text>
+          {/* Inline empty state for custom templates section */}
+          {(templates ?? []).length === 0 && (
+            <div style={{ gridColumn: '1 / -1', color: tokens.colorNeutralForeground3, textAlign: 'center', paddingTop: '16px', paddingBottom: '16px', fontSize: tokens.fontSizeBase200 }}>
+              No custom templates yet — click Create Template to get started.
+            </div>
+          )}
         </div>
       )}
 
