@@ -1,0 +1,107 @@
+{
+  "reviewedCommitRange": "3c61bf5..HEAD",
+  "reviewedCommits": [
+    "d0514a6 feat(templates): add serialization helpers for TemplateDefinition",
+    "7c6bdfc feat(templates): add useTemplateEditor state management hook",
+    "1a684cd feat(templates): add IconPicker and TemplateMetadataForm",
+    "9e33060 feat(templates): add SlotConfigPanel and DefaultValueEditor",
+    "e4feb3c feat(templates): add SlotListPanel with DnD reorder"
+  ],
+  "filesReviewed": 7,
+  "findings": [
+    {
+      "severity": "high",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/SlotListPanel.tsx",
+      "line": 74,
+      "description": "Griffel shorthand violation: `padding` with two space-separated values in makeStyles. Template literal `padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`` uses CSS shorthand which Griffel does not support. This will produce a runtime warning and may not apply styles correctly.",
+      "suggestedFix": "Replace with longhand properties: `paddingTop: tokens.spacingVerticalS, paddingBottom: tokens.spacingVerticalS, paddingLeft: tokens.spacingHorizontalM, paddingRight: tokens.spacingHorizontalM`"
+    },
+    {
+      "severity": "high",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/SlotListPanel.tsx",
+      "line": 75,
+      "description": "Griffel shorthand violation: `borderBottom` with compound value `1px solid ${tokens.colorNeutralStroke2}` in makeStyles. Griffel does not support the `borderBottom` shorthand with multiple values.",
+      "suggestedFix": "Replace with longhand properties: `borderBottomWidth: '1px', borderBottomStyle: 'solid', borderBottomColor: tokens.colorNeutralStroke2`"
+    },
+    {
+      "severity": "high",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/SlotListPanel.tsx",
+      "line": 90,
+      "description": "Griffel shorthand violation: `padding` with two space-separated values `${tokens.spacingVerticalXS} 0` in makeStyles.",
+      "suggestedFix": "Replace with longhand: `paddingTop: tokens.spacingVerticalXS, paddingBottom: tokens.spacingVerticalXS, paddingLeft: '0', paddingRight: '0'`"
+    },
+    {
+      "severity": "high",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/SlotListPanel.tsx",
+      "line": 97,
+      "description": "Griffel shorthand violation: `padding` with two space-separated values `6px ${tokens.spacingHorizontalM}` in makeStyles.",
+      "suggestedFix": "Replace with longhand: `paddingTop: '6px', paddingBottom: '6px', paddingLeft: tokens.spacingHorizontalM, paddingRight: tokens.spacingHorizontalM`"
+    },
+    {
+      "severity": "high",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/SlotListPanel.tsx",
+      "line": 151,
+      "description": "Griffel shorthand violation: `padding: '6px 12px'` in makeStyles `dragOverlay` class uses CSS shorthand with two values.",
+      "suggestedFix": "Replace with longhand: `paddingTop: '6px', paddingBottom: '6px', paddingLeft: '12px', paddingRight: '12px'`"
+    },
+    {
+      "severity": "high",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/IconPicker.tsx",
+      "line": 85,
+      "description": "Griffel shorthand violation: `padding: '4px 8px'` in makeStyles `trigger` class uses CSS shorthand with two values.",
+      "suggestedFix": "Replace with longhand: `paddingTop: '4px', paddingBottom: '4px', paddingLeft: '8px', paddingRight: '8px'`"
+    },
+    {
+      "severity": "high",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/TemplateMetadataForm.tsx",
+      "line": 40,
+      "description": "Griffel shorthand violation: `borderBottom: `1px solid ${tokens.colorNeutralStroke2}`` in makeStyles `root` class uses compound shorthand.",
+      "suggestedFix": "Replace with longhand: `borderBottomWidth: '1px', borderBottomStyle: 'solid', borderBottomColor: tokens.colorNeutralStroke2`"
+    },
+    {
+      "severity": "high",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/TemplateMetadataForm.tsx",
+      "line": 70,
+      "description": "Griffel shorthand violation: `border: `1px solid ${tokens.colorNeutralStroke1}`` in makeStyles `colorInput` class uses compound shorthand.",
+      "suggestedFix": "Replace with longhand: `borderTopWidth: '1px', borderTopStyle: 'solid', borderTopColor: tokens.colorNeutralStroke1, borderRightWidth: '1px', borderRightStyle: 'solid', borderRightColor: tokens.colorNeutralStroke1, borderBottomWidth: '1px', borderBottomStyle: 'solid', borderBottomColor: tokens.colorNeutralStroke1, borderLeftWidth: '1px', borderLeftStyle: 'solid', borderLeftColor: tokens.colorNeutralStroke1`. Or use: `...shorthands.border('1px', 'solid', tokens.colorNeutralStroke1)` after importing `shorthands` from `@fluentui/react-components`."
+    },
+    {
+      "severity": "low",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/DefaultValueEditor.tsx",
+      "line": 61,
+      "description": "Non-ASCII character: em dash (U+2014) used in code comment. While harmless in a comment, it could cause issues with some tooling or encoding configurations.",
+      "suggestedFix": "Replace the em dash with a standard ASCII double-hyphen '--' in the comment: `// Type guards -- safe narrowing instead of unsafe \\`as\\` casts.`"
+    },
+    {
+      "severity": "low",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/SlotConfigPanel.tsx",
+      "line": 147,
+      "description": "Non-ASCII characters: em dashes (U+2014) used in user-facing Radio label strings on lines 147-149. These are in JSX string props for Radio labels ('Required -- always shown', 'Optional -- shown but toggleable', 'Optional -- hidden until toggled on'). While em dashes are typographically correct in user-facing text, they may render inconsistently across Teams platforms.",
+      "suggestedFix": "Consider replacing em dashes with standard ASCII double-hyphens or en dashes for consistency, or keep them if typographic fidelity in user-facing text is preferred."
+    },
+    {
+      "severity": "low",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/useTemplateEditor.ts",
+      "line": 88,
+      "description": "Non-ASCII character: em dash (U+2014) in code comment on line 88.",
+      "suggestedFix": "Replace with ASCII double-hyphen '--' in the comment."
+    }
+  ],
+  "summary": {
+    "critical": 0,
+    "high": 8,
+    "medium": 0,
+    "low": 3,
+    "total": 11
+  },
+  "notes": [
+    "All 29 icon imports from @fluentui/react-icons verified to exist in the installed version (v2.0.319).",
+    "All @dnd-kit package versions are compatible: @dnd-kit/sortable@10.0.0 requires @dnd-kit/core@^6.3.0, installed is 6.3.1.",
+    "TypeScript compilation (tsc --noEmit) passes with zero errors across all 7 changed files.",
+    "React hooks dependency arrays are correct in useTemplateEditor.ts -- no missing deps or stale closures detected.",
+    "The DefaultValueEditor switch statement covers all CoreSlotType cases and has a safe default fallback for ExtendedSlotType values.",
+    "DnD kit integration (useSortable, DragOverlay, SortableContext, sensors, modifiers) follows correct patterns for @dnd-kit v6/v10.",
+    "z-index requirements (200 for overlay) apply to Tasks 3 and 11, which are not yet implemented in this commit range.",
+    "The em dashes in templateDefinitions.ts (lines 60, 61, 63, 78, 96, 112, 130, 167, 181) are all within defaultValue string data content -- these are intentional typographic choices in sample template text and are NOT findings."
+  ]
+}

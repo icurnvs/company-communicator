@@ -1,0 +1,63 @@
+{
+  "reviewedCommitRange": "6693152..HEAD",
+  "reviewedCommits": [
+    "6eb5d3d feat(templates): add TemplateEditorModal with list/editor toggle",
+    "9428b60 feat(templates): wire TemplateEditor into CommunicationCenter and HomeDashboard",
+    "13bfc3b chore: update phase-d-state to wave 7 (tasks 11-12 complete)"
+  ],
+  "filesReviewed": [
+    "src/CompanyCommunicator.Api/ClientApp/src/components/CommunicationCenter/CommunicationCenter.tsx",
+    "src/CompanyCommunicator.Api/ClientApp/src/components/HomeDashboard/HomeDashboard.tsx",
+    "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/TemplateEditorModal.tsx"
+  ],
+  "findings": [
+    {
+      "severity": "high",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/TemplateEditorModal.tsx",
+      "line": 101,
+      "description": "Escape key conflict: When TemplateEditorModal is opened from ComposePanel (via onManageTemplates), both the TemplateEditor's and ComposePanel's document-level Escape keydown handlers fire on the same keypress. In editor mode (line 101-108), the TemplateEditorModal renders only <TemplateEditor>, which has its own Escape handler that calls requestClose(). But ComposePanel also has a document-level Escape handler (ComposePanel.tsx line 206-214) that will simultaneously fire, calling its own requestClose(). This causes a double-close: pressing Escape closes the template editor AND triggers the compose panel's discard-changes dialog (or closes it outright if not dirty). In list mode, the same issue occurs: TemplateEditorModal's Escape handler (line 81-82) fires alongside ComposePanel's.",
+      "suggestedFix": "The cleanest fix is to have the TemplateEditorModal (and the inner TemplateEditor) Escape handlers call e.stopImmediatePropagation() after handling the Escape key. This prevents later-registered document listeners from also firing. Example for TemplateEditorModal line 81-82:\n\n  const onKeyDown = (e: KeyboardEvent) => {\n    if (e.key === 'Escape') {\n      e.stopImmediatePropagation();\n      onClose();\n    }\n  };\n\nAnd similarly in TemplateEditor.tsx line 196-199:\n\n  if (e.key === 'Escape') {\n    if (showDiscardDialog) return;\n    e.stopImmediatePropagation();\n    requestClose();\n  }\n\nNote: stopImmediatePropagation relies on registration order (later-registered listeners are suppressed). Since TemplateEditor mounts after ComposePanel, its listener is registered later and runs later -- so it must be registered BEFORE ComposePanel's listener to suppress it. A more robust alternative: pass a boolean prop like `isTemplateEditorOpen` to ComposePanel so its Escape handler can bail out when the template editor is active."
+    },
+    {
+      "severity": "medium",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/CommunicationCenter/CommunicationCenter.tsx",
+      "line": 133,
+      "description": "CommunicationCenter's detail-panel Escape handler (line 133-140) skips when composeOpen is true but does not skip when templateEditorOpen is true. If a user opens the template editor from the Home dashboard while a selectedMessageId is somehow set (unlikely in current flow but possible with future changes), Escape would fire both the detail-panel close and the template editor close. Currently safe because handleViewChange clears selectedMessageId when navigating to Home, but this guard is fragile and relies on an implicit invariant.",
+      "suggestedFix": "Add templateEditorOpen to the early-return guard at line 134:\n\n  if (!selectedMessageId || composeOpen || templateEditorOpen) return;"
+    },
+    {
+      "severity": "medium",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/HomeDashboard/HomeDashboard.tsx",
+      "line": 401,
+      "description": "The Templates stat card uses hardcoded English strings 'Manage Templates' (aria-label, line 401), 'Templates' (label, line 406), and 'Manage' (link text, line 408) instead of using the useTranslation() i18n system. All other stat cards in the same file use t() for their labels. This breaks localization consistency.",
+      "suggestedFix": "Add translation keys (e.g. 'dashboard.templatesLabel', 'dashboard.manageTemplates') and use t():\n\n  aria-label={t('dashboard.manageTemplates')}\n  ...\n  <span className={styles.statCardLabel}>{t('dashboard.templatesLabel')}</span>\n  ...\n  <span className={styles.statCardLink}>\n    {t('dashboard.manage')} <ArrowRight16Regular />\n  </span>"
+    },
+    {
+      "severity": "low",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/HomeDashboard/HomeDashboard.tsx",
+      "line": 428,
+      "description": "mergeClasses() called with a single argument on line 428: mergeClasses(styles.recentGrid). With only one class name, mergeClasses provides no value -- it just passes through the single argument. This is harmless but adds unnecessary indirection.",
+      "suggestedFix": "Replace mergeClasses(styles.recentGrid) with just styles.recentGrid:\n\n  <div className={styles.recentGrid} style={{ marginTop: '12px' }}>"
+    },
+    {
+      "severity": "low",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/TemplateEditorModal.tsx",
+      "line": 74,
+      "description": "useFocusTrap is called with active=true unconditionally, but when the component switches to editor mode (line 101), the panelRef is never mounted (the list-mode JSX that uses ref={panelRef} is not rendered). The hook harmlessly no-ops because containerRef.current is null, but the intent would be clearer if active were tied to mode.view === 'list'.",
+      "suggestedFix": "Change line 74 to:\n\n  useFocusTrap(panelRef, mode.view === 'list');\n\nThis communicates the intent that the focus trap only applies in list mode, and avoids the hook running a useEffect setup/teardown cycle that immediately bails out."
+    }
+  ],
+  "positiveObservations": [
+    "onManageTemplates prop is now correctly threaded end-to-end: CommunicationCenter passes handleOpenTemplateEditor to both HomeDashboard (line 202) and ComposePanel (line 239). ComposePanel passes it to ContentTab (line 322). ContentTab passes it to TemplatePicker (line 192). TemplatePicker renders a Manage Templates button when the prop is provided (line 558-568). This resolves the wave-6 finding about the prop not being wired.",
+    "TemplateEditorModal correctly toggles between list and editor modes using a discriminated union type EditorMode. The editor mode renders the full TemplateEditor component (which has its own overlay at z-index 200), while list mode renders within the modal's own overlay.",
+    "lazy() import pattern is correct for both ComposePanel (lines 11-15) and TemplateEditorModal (lines 17-21) in CommunicationCenter.tsx. Both use the .then(m => ({ default: m.X })) pattern to convert named exports to default exports for React.lazy.",
+    "Suspense boundaries are correctly placed around both lazy-loaded components (lines 233 and 246 in CommunicationCenter.tsx) with fallback={null}.",
+    "All React hooks in TemplateEditorModal are called before the early return at line 101 (useStyles, useRef, useFocusTrap, useState, useEffect, useCallback x3). No rules-of-hooks violation.",
+    "z-index value of 200 on the TemplateEditorModal overlay (line 20) correctly stacks above ComposePanel's z-index of 100, matching the established convention.",
+    "The TemplateEditorModal overlay correctly uses Griffel longhand properties throughout its makeStyles block -- no shorthand violations detected in the new file.",
+    "Escape key handling in TemplateEditorModal correctly defers to the TemplateEditor when in editor mode (the useEffect at line 79-86 returns early without registering a listener when mode.view !== 'list').",
+    "The handleBackToList callback (line 96-98) correctly resets mode to 'list' when the TemplateEditor's onClose is called, enabling the user to return to the template list after editing.",
+    "No unused imports in any of the three changed files. The DesignIdeas24Regular import in HomeDashboard is used for the Templates stat card icon."
+  ],
+  "summary": "Reviewed 3 files across 3 commits. Found 1 high-severity issue (Escape key conflict causing double-close when template editor is opened from compose panel), 2 medium-severity issues (missing templateEditorOpen guard on detail panel Escape handler, hardcoded English strings bypassing i18n), and 2 low-severity issues (unnecessary mergeClasses call, imprecise useFocusTrap active flag). No critical security issues. No Griffel shorthand violations in new code. Hooks ordering is correct. The onManageTemplates prop chain is now correctly wired end-to-end, resolving the wave-6 finding. The list/editor toggle pattern in TemplateEditorModal is clean and well-structured."
+}

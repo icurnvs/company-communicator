@@ -134,13 +134,12 @@ Custom themes: Users can create their own via a simple color picker for accent +
 
 ## 5. Three-Theme Preview
 
-The preview panel shows three small toggle buttons: **Light** | **Dark** | **High Contrast**.
+The preview panel renders all three themes simultaneously — **Light**, **Dark**, and **High Contrast** — stacked vertically with caption labels.
 
-- Swaps the Adaptive Cards host config (`buildHostConfig(recipientTheme)`)
+- Each container calls `buildThemedHostConfig(recipientTheme, cardTheme)` with its respective theme
 - Card JSON stays identical — only the rendering context changes
-- Default to Light; selection persists in `localStorage`
+- No toggle buttons or localStorage persistence needed — all three are always visible
 - Shows users exactly how recipients in each Teams theme will see their card
-- Cheap to build — just toggles the existing `renderCard(container, payload, recipientTheme)` call
 
 ---
 
@@ -305,25 +304,25 @@ A lightweight intermediate representation — an array of typed element objects 
 
 ## 9. Phased Rollout
 
-### Phase A — Foundation
+### Phase A — Foundation ✅ COMPLETE
 
-New data models (`TemplateDefinition`, `ThemeDefinition`, `CardDocument`), `CardElementTree` intermediate representation, serialization pipeline, theme engine. Built-in templates rewritten as `TemplateDefinition` objects. Built-in themes defined. API endpoints for template and theme CRUD updated.
+New data models (`TemplateDefinition`, `ThemeDefinition`, `CardDocument`), `CardElementTree` intermediate representation, serialization pipeline, theme engine. Built-in templates rewritten as `TemplateDefinition` objects with rich sample data. Built-in themes defined. API endpoints for template and theme CRUD updated.
 
 **Result**: Infrastructure in place, no visible UI changes yet.
 
-### Phase B — Template Compose (Tier 1)
+### Phase B — Template Compose (Tier 1) ✅ COMPLETE
 
-Template picker grid, slot-based compose editor, theme picker strip, three-theme preview toggle. Replaces the current compose experience entirely.
+Template picker grid, slot-based compose editor, theme picker strip, triple-stacked preview (Light/Dark/High Contrast rendered simultaneously). Replaces the current compose experience entirely. Templates ship with compelling sample content. Smart template switching uses `isDirty` detection — no confirmation dialog until the user actually edits a field.
 
 **Result**: Users get the new template-first flow. Beautiful cards from day one.
 
-### Phase C — Advanced Compose (Tier 2)
+### Phase C — Advanced Compose (Tier 2) ✅ COMPLETE
 
-Property expand panels per section, full block palette with all content/layout/chart types, drag reorder, Card Settings panel, "Save as Template" button.
+Property expand panels per section (23 block types), full block palette with all content/layout/chart types (22 blocks in 4 categories), drag-and-drop reorder (MouseSensor + distance activation), Card Settings panel (full-width toggle + accent color override). Phase C1 (7 extended slot types) and Phase C2 (15 advanced block types) both implemented.
 
 **Result**: Power users get full Adaptive Cards capability.
 
-### Phase D — Template Editor (Tier 3)
+### Phase D — Template Editor (Tier 3) — NOT STARTED
 
 Dedicated three-panel template authoring screen. Slot configuration, visibility controls, locked properties, sample data preview.
 

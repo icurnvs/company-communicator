@@ -1,0 +1,68 @@
+{
+  "reviewedCommitRange": "7b7f7e8..HEAD",
+  "reviewedCommits": [
+    "e377bcd feat(templates): add TemplateEditor three-panel layout with all sub-panels",
+    "18ab577 feat(templates): add TemplateListView with grid and CRUD",
+    "c2d1fdc feat(templates): upgrade TemplatePicker for TemplateDefinition format + manage link",
+    "66a8dbe feat(templates): replace legacy SaveTemplateDialog with TemplateDefinition format"
+  ],
+  "filesReviewed": [
+    "src/CompanyCommunicator.Api/ClientApp/src/components/ComposePanel/ActionBar.tsx",
+    "src/CompanyCommunicator.Api/ClientApp/src/components/ComposePanel/ComposePanel.tsx",
+    "src/CompanyCommunicator.Api/ClientApp/src/components/ComposePanel/ContentTab.tsx",
+    "src/CompanyCommunicator.Api/ClientApp/src/components/ComposePanel/TemplatePicker.tsx",
+    "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/TemplateEditor.tsx",
+    "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/TemplateListView.tsx",
+    "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/TemplatePreviewPanel.tsx"
+  ],
+  "findings": [
+    {
+      "severity": "high",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/ComposePanel/ActionBar.tsx",
+      "line": 346,
+      "description": "formToTemplateDefinition no-template fallback path omits keyDetails and footer slots. When there is no active template (user started from Blank), if the form has keyDetails or secondaryText (footer) filled in, those fields are silently dropped when saving as a template. Only heading, bodyText, heroImage, and linkButton are handled.",
+      "suggestedFix": "Add two more branches after the linkButton check:\n\n    if (formValues.keyDetails?.length) {\n      slots.push({\n        id: 'keyDetails',\n        type: 'keyDetails',\n        label: 'Key Details',\n        helpText: '',\n        visibility: 'optionalOn',\n        order: order++,\n        defaultValue: { pairs: formValues.keyDetails },\n      });\n    }\n    if (formValues.secondaryText) {\n      slots.push({\n        id: 'footer',\n        type: 'footer',\n        label: 'Footer',\n        helpText: '',\n        visibility: 'optionalOn',\n        order: order++,\n        defaultValue: { text: formValues.secondaryText },\n      });\n    }"
+    },
+    {
+      "severity": "medium",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/ComposePanel/ActionBar.tsx",
+      "line": 331,
+      "description": "formToTemplateDefinition uses getTemplateById() which only searches built-in templates. When a user has a custom TemplateDefinition template active (selected from the Saved section of TemplatePicker), formValues.templateId is the API-assigned GUID. getTemplateById() returns undefined, so activeTemplate is null, and the function falls into the minimal fallback path -- losing the custom template's full slot structure, visibility settings, and metadata.",
+      "suggestedFix": "Either (a) accept the active TemplateDefinition as a parameter from the caller instead of looking it up by ID, or (b) extend getTemplateById() to also search custom templates (requires the templates query data to be passed in or queried). Option (a) is simpler: change formToTemplateDefinition to accept an optional TemplateDefinition parameter and only fall back to getTemplateById when it is null."
+    },
+    {
+      "severity": "low",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/TemplateEditor/TemplateListView.tsx",
+      "line": 306,
+      "description": "Inconsistent icon sizes in card footer actions. Edit button uses Edit20Regular (20px icon) while Delete button uses Delete16Regular (16px icon). Both are rendered inside size='small' Buttons in the same row, creating a visual size mismatch.",
+      "suggestedFix": "Change Delete16Regular to Delete20Regular for visual consistency, or change Edit20Regular to Edit16Regular. Using the same size for both action icons ensures a balanced appearance."
+    },
+    {
+      "severity": "low",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/ComposePanel/ComposePanel.tsx",
+      "line": 219,
+      "description": "onManageTemplates prop is defined, threaded through ComposePanel -> ContentTab -> TemplatePicker, but the parent component (CommunicationCenter.tsx at line 219) does not pass it. The Manage Templates button in TemplatePicker will never render because onManageTemplates is always undefined. This appears to be intentional for incremental delivery but should be wired in the next wave.",
+      "suggestedFix": "In a subsequent commit, update CommunicationCenter.tsx to pass an onManageTemplates callback that opens the TemplateListView. Example: onManageTemplates={() => setShowTemplateManager(true)}."
+    },
+    {
+      "severity": "low",
+      "file": "src/CompanyCommunicator.Api/ClientApp/src/components/ComposePanel/ActionBar.tsx",
+      "line": 445,
+      "description": "SaveTemplateDialog's handleSave useCallback includes createTemplate (the entire mutation object) in its dependency array. TanStack Query mutation objects are new references each render, so the callback is recreated unnecessarily on every render. This does not cause bugs but triggers extra re-renders of the Save Template button.",
+      "suggestedFix": "Use createTemplate.mutateAsync directly (which is stable) instead of including the whole mutation object. Alternatively, extract mutateAsync into a ref or use the mutate pattern with onSuccess callback instead of async/await."
+    }
+  ],
+  "positiveObservations": [
+    "TemplateEditor.tsx correctly declares all hooks (useState, useRef, useTemplateEditor, useFocusTrap, useCallback, useEffect x2) before the early return at line 214. No React rules-of-hooks violations.",
+    "TemplatePreviewPanel correctly uses buildCard() with direct template pass-through instead of buildCardFromDocument(), which would fail for custom templates not in the built-in registry. The comment at line 118-120 documents this design decision clearly.",
+    "TemplateEditor and TemplateListView makeStyles blocks consistently use longhand Griffel properties (paddingTop/paddingBottom/paddingLeft/paddingRight, borderTopWidth/borderTopStyle/borderTopColor, etc.) avoiding shorthand warnings.",
+    "TemplatePicker correctly detects and handles both TemplateDefinition (schemaVersion 2) and legacy CardSchema formats with proper null guards on parseTemplateDefinition().",
+    "z-index on TemplateEditor overlay is 200, correctly stacking above ComposePanel's 100.",
+    "onManageTemplates prop threading is complete and correct through all three intermediate components (ComposePanel -> ContentTab -> TemplatePicker).",
+    "No smart quotes or non-ASCII characters in runtime code strings. Em dashes appear only in code comments.",
+    "useTemplateEditor hook properly validates slot structure, enforces MAX_SLOTS limit, and normalizes order values on removal.",
+    "All icon imports (Delete16Regular, Edit20Regular, Add24Regular, DocumentOnePage20Regular, Save24Regular, Dismiss24Regular) resolve to valid @fluentui/react-icons exports.",
+    "TypeScript compilation passes with zero errors across all changed files."
+  ],
+  "summary": "Reviewed 7 files across 4 commits. Found 1 high-severity issue (data loss: keyDetails and footer slots omitted during Save-as-Template fallback path), 1 medium-severity issue (custom template structure lost when Save-as-Template uses getTemplateById which only searches built-ins), and 3 low-severity issues. No critical security issues. No Griffel shorthand violations in newly introduced code. Hook ordering is correct. Type safety is solid throughout."
+}
