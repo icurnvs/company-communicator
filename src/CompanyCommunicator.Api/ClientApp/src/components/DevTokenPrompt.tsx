@@ -45,7 +45,7 @@ export function hasValidDevToken(): boolean {
   const token = localStorage.getItem(DEV_TOKEN_KEY);
   if (!token) return false;
   try {
-    const payload = JSON.parse(atob(token.split('.')[1])) as { exp?: number };
+    const payload = JSON.parse(atob(token.split('.')[1]!)) as { exp?: number };
     if (payload.exp && payload.exp * 1000 < Date.now()) {
       localStorage.removeItem(DEV_TOKEN_KEY);
       return false;
@@ -86,7 +86,7 @@ export function DevTokenPrompt() {
 
     // Check expiry
     try {
-      const payload = JSON.parse(atob(parts[1])) as { exp?: number };
+      const payload = JSON.parse(atob(parts[1]!)) as { exp?: number };
       if (payload.exp && payload.exp * 1000 < Date.now()) {
         setError('This token is already expired. Grab a fresh one.');
         return;

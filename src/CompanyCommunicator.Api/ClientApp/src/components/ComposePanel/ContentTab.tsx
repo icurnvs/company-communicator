@@ -9,7 +9,6 @@ import type { ComposeFormValues } from '@/lib/validators';
 import type { TemplateDefinition } from '@/types';
 import {
   BUILTIN_TEMPLATE_DEFINITIONS,
-  BLANK_TEMPLATE_ID,
   getTemplateById,
 } from '@/lib/templateDefinitions';
 import { getThemeById, DEFAULT_THEME_ID } from '@/lib/builtinThemes';

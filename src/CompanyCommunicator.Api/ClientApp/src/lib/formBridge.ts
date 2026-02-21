@@ -166,29 +166,29 @@ function applySlotDefaultToForm(
 
   switch (slot.type) {
     case 'heading':
-      if (dv && typeof (dv as HeadingSlotValue).text === 'string') {
-        defaults.headline = (dv as HeadingSlotValue).text;
+      if (dv && typeof dv.text === 'string') {
+        defaults.headline = dv.text;
       } else if (!defaults.headline) {
         defaults.headline = '';
       }
       break;
     case 'bodyText':
-      if (dv && typeof (dv as BodyTextSlotValue).text === 'string') {
-        defaults.body = (dv as BodyTextSlotValue).text;
+      if (dv && typeof dv.text === 'string') {
+        defaults.body = dv.text;
       } else if (defaults.body === undefined) {
         defaults.body = '';
       }
       break;
     case 'heroImage':
-      if (dv && typeof (dv as HeroImageSlotValue).url === 'string') {
-        defaults.imageLink = (dv as HeroImageSlotValue).url;
+      if (dv && typeof dv.url === 'string') {
+        defaults.imageLink = dv.url;
       } else if (defaults.imageLink === undefined) {
         defaults.imageLink = '';
       }
       break;
     case 'keyDetails':
-      if (dv && Array.isArray((dv as KeyDetailsSlotValue).pairs)) {
-        defaults.keyDetails = (dv as KeyDetailsSlotValue).pairs.map((p) => ({
+      if (dv && Array.isArray(dv.pairs)) {
+        defaults.keyDetails = (dv.pairs as Array<{ label: string; value: string }>).map((p) => ({
           label: p.label,
           value: p.value,
         }));
@@ -198,17 +198,16 @@ function applySlotDefaultToForm(
       break;
     case 'linkButton':
       if (dv) {
-        const lbv = dv as LinkButtonSlotValue;
-        if (typeof lbv.title === 'string') defaults.buttonTitle = lbv.title;
-        if (typeof lbv.url === 'string') defaults.buttonLink = lbv.url;
+        if (typeof dv.title === 'string') defaults.buttonTitle = dv.title;
+        if (typeof dv.url === 'string') defaults.buttonLink = dv.url;
       } else {
         if (defaults.buttonTitle === undefined) defaults.buttonTitle = '';
         if (defaults.buttonLink === undefined) defaults.buttonLink = '';
       }
       break;
     case 'footer':
-      if (dv && typeof (dv as FooterSlotValue).text === 'string') {
-        defaults.secondaryText = (dv as FooterSlotValue).text;
+      if (dv && typeof dv.text === 'string') {
+        defaults.secondaryText = dv.text;
       } else if (defaults.secondaryText === undefined) {
         defaults.secondaryText = '';
       }

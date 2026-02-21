@@ -23,7 +23,7 @@ import {
 } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import type { UseFormReturn } from 'react-hook-form';
-import type { TemplateDefinition, ExtendedSlotType, AdvancedBlockType, AnyBlockType, SlotType } from '@/types';
+import type { TemplateDefinition, ExtendedSlotType, AdvancedBlockType, AnyBlockType } from '@/types';
 import type { ComposeFormValues } from '@/lib/validators';
 import { SlotEditor } from './SlotEditors';
 import { ExtendedSlotEditor } from './ExtendedSlotEditors';

@@ -13,7 +13,7 @@ function tryDevToken(): string | null {
   const token = localStorage.getItem(DEV_TOKEN_KEY);
   if (!token) return null;
   try {
-    const payload = JSON.parse(atob(token.split('.')[1])) as { exp?: number };
+    const payload = JSON.parse(atob(token.split('.')[1]!)) as { exp?: number };
     if (payload.exp && payload.exp * 1000 < Date.now()) {
       localStorage.removeItem(DEV_TOKEN_KEY);
       return null;

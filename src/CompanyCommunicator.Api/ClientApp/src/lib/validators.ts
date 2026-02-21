@@ -263,7 +263,7 @@ export interface TemplateMetadata {
   themeId: string;
   slotVisibility: Record<string, boolean>;
   slotOrder?: Record<string, number> | null;
-  additionalSlots?: Array<{ id: string; type: string; data: Record<string, unknown>; order: number }> | null;
+  additionalSlots?: ComposeFormValues['additionalSlots'];
   advancedOverrides?: Record<string, Record<string, unknown>> | null;
   cardSettings?: CardSettings | null;
 }

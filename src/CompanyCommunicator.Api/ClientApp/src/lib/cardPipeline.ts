@@ -3,13 +3,12 @@ import type {
   CardBuildInput,
   CardDocument,
   TemplateDefinition,
-  ThemeDefinition,
 } from '@/types';
 import { resolveTemplate } from './cardElementTree';
 import { applyTheme, buildThemedHostConfig } from './themeEngine';
 import { resolveVariables } from './variableResolver';
 import { serializeToAdaptiveCard } from './serializer';
-import { getThemeById, DEFAULT_THEME_ID } from './builtinThemes';
+import { getThemeById } from './builtinThemes';
 import { getTemplateById } from './templateDefinitions';
 
 export interface CardBuildResult {

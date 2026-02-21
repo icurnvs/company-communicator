@@ -9,7 +9,7 @@ import {
   Text,
 } from '@fluentui/react-components';
 import { Add16Regular, Delete16Regular } from '@fluentui/react-icons';
-import type { SlotType, HeadingSlotValue, HeroImageSlotValue, KeyDetailsSlotValue, LinkButtonSlotValue } from '@/types';
+import type { SlotType, HeroImageSlotValue, KeyDetailsSlotValue, LinkButtonSlotValue } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -103,7 +103,7 @@ export function DefaultValueEditor({ slotType, value, onChange }: DefaultValueEd
 
     case 'heroImage': {
       const raw = value as Record<string, unknown> | null | undefined;
-      const v = raw && typeof raw.url === 'string' ? (raw as HeroImageSlotValue) : { url: '', altText: '' };
+      const v = raw && typeof raw.url === 'string' ? (raw as unknown as HeroImageSlotValue) : { url: '', altText: '' };
       return (
         <div className={styles.root}>
           <div className={styles.field}>
@@ -129,7 +129,7 @@ export function DefaultValueEditor({ slotType, value, onChange }: DefaultValueEd
 
     case 'keyDetails': {
       const raw = value as Record<string, unknown> | null | undefined;
-      const v = raw && Array.isArray(raw.pairs) ? (raw as KeyDetailsSlotValue) : { pairs: [] };
+      const v = raw && Array.isArray(raw.pairs) ? (raw as unknown as KeyDetailsSlotValue) : { pairs: [] };
       const pairs = v.pairs ?? [];
       return (
         <div className={styles.root}>
@@ -183,7 +183,7 @@ export function DefaultValueEditor({ slotType, value, onChange }: DefaultValueEd
 
     case 'linkButton': {
       const raw = value as Record<string, unknown> | null | undefined;
-      const v = raw && typeof raw.title === 'string' ? (raw as LinkButtonSlotValue) : { title: '', url: '' };
+      const v = raw && typeof raw.title === 'string' ? (raw as unknown as LinkButtonSlotValue) : { title: '', url: '' };
       return (
         <div className={styles.root}>
           <div className={styles.field}>
