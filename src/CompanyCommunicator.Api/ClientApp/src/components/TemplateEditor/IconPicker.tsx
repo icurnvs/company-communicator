@@ -82,7 +82,10 @@ const useStyles = makeStyles({
   trigger: {
     minWidth: '40px',
     height: '32px',
-    padding: '4px 8px',
+    paddingTop: '4px',
+    paddingBottom: '4px',
+    paddingLeft: '8px',
+    paddingRight: '8px',
   },
 
   popover: {
