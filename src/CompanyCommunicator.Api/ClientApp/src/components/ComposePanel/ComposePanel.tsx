@@ -54,7 +54,7 @@ const useStyles = makeStyles({
   panel: {
     position: 'relative',
     width: 'calc(100% - 48px)',
-    maxWidth: '900px',
+    maxWidth: '1120px',
     height: 'calc(100vh - 80px)',
     maxHeight: '85vh',
     display: 'flex',
