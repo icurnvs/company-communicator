@@ -16,7 +16,7 @@ import {
 import {
   Add24Regular,
   Edit20Regular,
-  Delete16Regular,
+  Delete20Regular,
   DocumentOnePage20Regular,
 } from '@fluentui/react-icons';
 import { useMemo, useState } from 'react';
@@ -303,7 +303,7 @@ export function TemplateListView({ onCreateNew, onEdit, onClose }: TemplateListV
                   <Button
                     appearance="subtle"
                     size="small"
-                    icon={<Delete16Regular />}
+                    icon={<Delete20Regular />}
                     onClick={() => { handleDelete(t); }}
                     disabled={deleteMutation.isPending}
                   >

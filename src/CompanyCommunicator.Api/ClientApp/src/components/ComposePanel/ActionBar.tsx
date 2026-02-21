@@ -37,11 +37,11 @@ import {
 import { DatePicker } from '@fluentui/react-datepicker-compat';
 import type { UseFormReturn } from 'react-hook-form';
 import { useScheduleNotification, usePreviewNotification } from '@/api/notifications';
-import { useCreateTemplate } from '@/api/templates';
+import { useCreateTemplate, useTemplates } from '@/api/templates';
 import type { SlotDefinition, TemplateDefinition } from '@/types';
 import type { ComposeFormValues } from '@/lib/validators';
 import { buildAudienceSummary, estimateReach } from '@/lib/audienceUtils';
-import { getTemplateById, serializeTemplateDefinition } from '@/lib/templateDefinitions';
+import { getTemplateById, isTemplateDefinitionJson, parseTemplateDefinition, serializeTemplateDefinition } from '@/lib/templateDefinitions';
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -324,13 +324,17 @@ function formToTemplateDefinition(
   name: string,
   description: string,
   formValues: ComposeFormValues,
+  activeTemplateProp: TemplateDefinition | null = null,
 ): TemplateDefinition {
   const slots: SlotDefinition[] = [];
 
-  // When the user is working from a template, look it up and preserve structure
-  const activeTemplate = formValues.templateId
-    ? getTemplateById(formValues.templateId) ?? null
-    : null;
+  // When the user is working from a template, resolve it:
+  // 1. Use the explicitly provided template (covers custom/API templates whose GUID
+  //    won't be found in the built-in registry).
+  // 2. Fall back to built-in lookup by ID for built-in templates.
+  const activeTemplate: TemplateDefinition | null =
+    activeTemplateProp ??
+    (formValues.templateId ? getTemplateById(formValues.templateId) ?? null : null);
 
   if (activeTemplate) {
     // Preserve the template's slot structure; stamp current values as defaults
@@ -390,6 +394,28 @@ function formToTemplateDefinition(
         defaultValue: { title: formValues.buttonTitle, url: formValues.buttonLink },
       });
     }
+    if (formValues.keyDetails?.length) {
+      slots.push({
+        id: 'keyDetails',
+        type: 'keyDetails',
+        label: 'Key Details',
+        helpText: '',
+        visibility: 'optionalOn',
+        order: order++,
+        defaultValue: { pairs: formValues.keyDetails },
+      });
+    }
+    if (formValues.secondaryText) {
+      slots.push({
+        id: 'footer',
+        type: 'footer',
+        label: 'Footer',
+        helpText: '',
+        visibility: 'optionalOn',
+        order: order++,
+        defaultValue: { text: formValues.secondaryText },
+      });
+    }
   }
 
   return {
@@ -419,6 +445,7 @@ function SaveTemplateDialog({ open, onClose, form }: SaveTemplateDialogProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const createTemplate = useCreateTemplate();
+  const { data: userTemplates } = useTemplates();
 
   const handleSave = useCallback(async () => {
     if (!name.trim()) return;
@@ -426,10 +453,22 @@ function SaveTemplateDialog({ open, onClose, form }: SaveTemplateDialogProps) {
     // Snapshot at save time (not render time) to avoid stale values
     const formValues = form.getValues();
 
+    // Resolve any custom (API-stored) template the user may have active.
+    // getTemplateById() only searches built-ins, so for GUIDs we look in the
+    // user's templates list and parse the stored TemplateDefinition JSON.
+    let resolvedActiveTemplate: TemplateDefinition | null = null;
+    if (formValues.templateId && !getTemplateById(formValues.templateId)) {
+      const match = (userTemplates ?? []).find((t) => t.id === formValues.templateId);
+      if (match && isTemplateDefinitionJson(match.cardSchema)) {
+        resolvedActiveTemplate = parseTemplateDefinition(match.cardSchema);
+      }
+    }
+
     const templateDef = formToTemplateDefinition(
       name.trim(),
       description.trim(),
       formValues,
+      resolvedActiveTemplate,
     );
     const cardSchema = serializeTemplateDefinition(templateDef);
 
@@ -442,7 +481,7 @@ function SaveTemplateDialog({ open, onClose, form }: SaveTemplateDialogProps) {
     setName('');
     setDescription('');
     onClose();
-  }, [name, description, form, createTemplate, onClose]);
+  }, [name, description, form, userTemplates, createTemplate, onClose]);
 
   const handleClose = useCallback(() => {
     setName('');
